@@ -1,3 +1,29 @@
+1. データベース設計
+2. API設計
+3. API実装
+
+機能
+・検索
+・タグ
+・タブ
+・タイトル入力
+・コンテンツ入力
+・コンテンツのサイズ調整
+・コピー範囲指定
+・アコーディオン形式の表示方法の実装
+・ワンクリックコピー
+・表形式の入力
+
+
+### API設計
+【エンドポイント】
+一覧 : GET : /memos
+一件取得 : GET : /memos/:id
+作成 : PUT : memos
+更新 : PUT : memos/:id
+削除 : DELETE : memos/:id
+
+
 -- 1. グループ（アコーディオンの親要素）
 CREATE TABLE memo_groups (
   id SERIAL PRIMARY KEY,
@@ -42,7 +68,6 @@ CREATE TABLE memo_histories (
   memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   content TEXT,
-  changed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
