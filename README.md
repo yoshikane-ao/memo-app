@@ -27,7 +27,7 @@
 -- 1. グループ（アコーディオンの親要素）
 CREATE TABLE memo_groups (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL, -- アコーディオンのタイトル
+  title TEXT NOT NULL, -- アコーディオンのタイトル
   display_order INTEGER DEFAULT 0, -- 表示順序を制御したい場合に便利
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,7 +45,7 @@ CREATE TABLE memos (
 -- 3. タグマスター
 CREATE TABLE tags (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE
+  title TEXT NOT NULL UNIQUE
 );
 
 -- 4. メモとタグの中間テーブル（多対多）

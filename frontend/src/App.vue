@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import MemoItem from './components/MemoItem.vue'
 
 interface Memo {
@@ -12,12 +12,45 @@ interface Memo {
 const memos = ref<Memo[]>([])
 const isAdding = ref(false) // アコーディオンの開閉状態
 const newMessage = ref({ title: '', content: '' })
+const keyword = ref('');
+const selected = ref('all');
 
+const filteredmemo = computed(() => {
+  if(selected.value === "title" ) {
+     return memos.value.filter(m => 
+    m.title.includes(keyword.value)) 
+  } else if (selected.value === "content") {
+         return memos.value.filter(m => 
+    m.content.includes(keyword.value)) 
+  } else if (selected.value === "tag") {
+         return memos.value.filter(m => 
+         m.tags?.some(t =>
+          t.includes(keyword.value)
+         ) )
+  } else {
+         return memos.value.filter(m => 
+    m.title.includes(keyword.value) ||
+    m.content.includes(keyword.value) ||
+    m.tags?.some(t =>
+    t.includes(keyword.value)
+  ))}
+
+})
 // メモ一覧取得
 const fetchMemos = async () => {
   const res = await fetch('http://localhost:3000/memos')
   const data = await res.json()
-  memos.value = data.items
+
+  // データを使いやすい形に変換（整形）してから代入する
+  memos.value = data.items.map((item: { memo_tags: any[]; }) => {
+    return {
+      ...item, // 他の id, title, content などはそのままコピー
+      // memo_tags の中から tag.title だけを抜き取って、新しい配列を作る
+      tags: item.memo_tags.map(mt => mt.tag.title)
+    }
+  })
+  
+  console.log(memos.value) // ここで確認！
 }
 
 // 新規保存
@@ -56,9 +89,25 @@ onMounted(fetchMemos)
       </transition>
     </div>
 
+    <div class="search-bar">
+      <select  @change="fetchMemos" v-model="selected">
+        <option value="all">すべてから検索</option>
+        <option value="title">タイトルのみ</option>
+        <option value="content">内容のみ</option>
+        <option value="tag">タグのみ</option>
+      </select>
+
+      <input 
+        v-model="keyword"
+        @input="fetchMemos" 
+        type="text" 
+        placeholder="メモを検索..." 
+      />
+    </div>
+
     <div class="memo-list">
       <MemoItem 
-        v-for="memo in memos" 
+        v-for="memo in filteredmemo" 
         :key="memo.id" 
         :memo="memo" 
         @refresh="fetchMemos"
@@ -68,6 +117,8 @@ onMounted(fetchMemos)
 </template>
 
 <style scoped>
+.search-bar { margin-bottom: 20px; display: flex; gap: 10px; }
+
 .app-container {
   background-color: #1a1a1a;
   color: #ccc;

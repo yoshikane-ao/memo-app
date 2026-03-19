@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -19,23 +17,31 @@ model Memos {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
   histories MemoHistories[]
+  memo_tags memo_tags[]
 }
 
 model MemoHistories {
   id        Int      @id @default(autoincrement())
   memoId    Int      @map("memo_id")
   title     String
-  content   String? // ?をつけることでNULLを許容(TEXT)
-  createdAt DateTime @default(now()) @map("created_at") // @db.Timestamptz を付ける場合もあります
+  content   String?
+  createdAt DateTime @default(now()) @map("created_at")
   memo      Memos    @relation(fields: [memoId], references: [id], onDelete: Cascade)
 }
 
-// model Memos {
-//   id        Int      @id @default(autoincrement())
-//   title     String
-//   content   String
-//   tags      String[] // タグの配列
-//   tab       String?  // タブ名 (オプション)
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-// }
+model Tags {
+  id        Int         @id @default(autoincrement())
+  title     String      @unique @db.VarChar(20)
+  memo_tags memo_tags[]
+}
+
+// メモとタグの中間テーブル
+model memo_tags {
+  memo_id Int @map("memo_id")
+  tag_id  Int @map("tag_id")
+
+  memo Memos @relation(fields: [memo_id], references: [id], onDelete: Cascade)
+  tag  Tags  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([memo_id, tag_id])
+}
