@@ -9,7 +9,8 @@ const app = buildApp();
 app.use(cors());
 
 
-app.use("/memos", memosRouter);
+app.use("/memos", memosRouter); //メモアプリのAPI
+// app.use("/sanpo", sanpoRouter); //散歩アプリのAPI
 
 
 // ヘルスチェック（稼働確認）
