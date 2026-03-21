@@ -6,7 +6,7 @@ export function memoDelete() {
 
         try {
             // バックエンドの delete.ts (DELETE /api/memos/:id) を叩く
-            await axios.delete(`/memos/${id}`);
+            await axios.delete(`http://localhost:3000/memos/delete/${id}`);
             return true; // 成功したら true を返す
         } catch (error) {
             console.error("削除失敗:", error);
