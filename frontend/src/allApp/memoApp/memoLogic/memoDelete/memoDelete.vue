@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { memoDelete } from './memoDelete.ts';
 import memoList from '../memoList/memoList.vue';
-import buttonBaseField from '../../shared/buttonBaseField.vue'; // 共通コンポーネント
+import buttonBaseField from '../../../shared/buttonBaseField.vue'; // 共通コンポーネント
 
 // 親(memoList)から「どのメモを消すか」のIDを受け取る
 const props = defineProps<{

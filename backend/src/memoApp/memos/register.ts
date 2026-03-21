@@ -7,12 +7,22 @@ const registerRouter = Router();
 
 registerRouter.post("/", async (req, res) => {
     try {
-        const { title, content } = req.body;
+        const { title, content, tags } = req.body;
 
         const newMemo = await prisma.memos.create({
             data: {
                 title,
                 content,
+                memo_tags: Array.isArray(tags) && tags.length > 0 ? {
+                    create: tags.map((tagName: string) => ({
+                        tag: {
+                            connectOrCreate: {
+                                where: { title: tagName },
+                                create: { title: tagName }
+                            }
+                        }
+                    }))
+                } : undefined
             },
         });
 

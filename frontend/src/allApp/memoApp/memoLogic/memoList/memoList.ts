@@ -8,6 +8,12 @@ export function memoList() {
     // 一覧を取得する関数
     const fetchMemos = async () => {
         try {
+            // 現在の検索小窓の開閉状態を記憶しておく
+            const showTagSearchMap = new Map();
+            memos.value.forEach((m: any) => {
+                showTagSearchMap.set(m.id, m.showTagSearch);
+            });
+
             // バックエンドの GET /memos/list を叩く
             const response = await axios.get('http://localhost:3000/memos/list');
 
@@ -16,7 +22,9 @@ export function memoList() {
             memos.value = response.data.items.map((item: any) => ({
                 ...item,
                 initialTitle: item.title,
-                initialContent: item.content
+                initialContent: item.content,
+                // 既存のメモなら元の状態を引き継ぎ、新規なら閉じた状態にする
+                showTagSearch: showTagSearchMap.get(item.id) || false
             }));
         } catch (error) {
             console.error("一覧の取得に失敗しました:", error);

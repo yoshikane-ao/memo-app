@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { memoUpdate } from './memoUpdate.ts';
-import buttonBaseField from '../../shared/buttonBaseField.vue'; 
+import buttonBaseField from '../../../shared/buttonBaseField.vue'; 
 
 /**
  * 【Props（プロパティ）の設定】

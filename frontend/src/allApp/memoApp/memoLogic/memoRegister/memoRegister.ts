@@ -6,7 +6,7 @@ export function MemoRegister() {
      * @param {Object} memoData - { title: string, content: string } の形式
      * @returns {Promise<boolean>} - 成功したら true, 失敗したら false
      */
-    const executeRegister = async (memoData: { title: string, content: string }) => {
+    const executeRegister = async (memoData: { title: string, content: string, tags?: string[] }) => {
         // 簡単なバリデーション（入力チェック）
         if (!memoData.title.trim() || !memoData.content.trim()) {
             return false;
@@ -17,7 +17,8 @@ export function MemoRegister() {
             // Viteのプロキシ設定を使っている前提なので、ドメイン（localhost:3000）は省略
             const response = await axios.post('http://localhost:3000/memos/register', {
                 title: memoData.title,
-                content: memoData.content
+                content: memoData.content,
+                tags: memoData.tags || []
             });
 
             if (response.status === 201 || response.status === 200) {

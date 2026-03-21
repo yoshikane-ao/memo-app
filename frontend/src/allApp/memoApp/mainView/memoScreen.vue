@@ -29,12 +29,11 @@ onMounted(fetchMemos);
 import { reactive } from 'vue'
 import { ref } from 'vue'
 import inputBaseField from '../../shared/inputBaseField.vue'
-import memoList from '../memoList/memoList.vue'
-import { memoDelete } from '../memoDelete/memoDelete.ts';
-import MemoRegister from '../memoRegister/memoRegister.vue'; // 追加
-import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除
-import memoSeach from '../memoSeach/memoSeach.vue'; // 検索機能
-
+import memoList from '../memoLogic/memoList/memoList.vue'
+import { memoDelete } from '../memoLogic/memoDelete/memoDelete.ts';
+import MemoRegister from '../memoLogic/memoRegister/memoRegister.vue';
+import MemoDelete from '../memoLogic/memoDelete/memoDelete.vue'; // 削除
+import memoSeach from '../memoLogic/memoSeach/memoSeach.vue'; // 検索機能
 
 // const form = reactive({
 //   title: '',

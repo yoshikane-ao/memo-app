@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { memoSeach } from './memoSeach.ts';
-import inputBaseField from '../../shared/inputBaseField.vue';
+import inputBaseField from '../../../shared/inputBaseField.vue';
 
 /**
  * 親コンポーネント（memoScreen.vue）へ検索結果を伝えるイベントと、
