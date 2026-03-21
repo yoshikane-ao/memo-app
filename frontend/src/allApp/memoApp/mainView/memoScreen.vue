@@ -34,6 +34,7 @@ import memoList from '../memoList/memoList.vue'
 import { memoDelete } from '../memoDelete/memoDelete.ts';
 import MemoRegister from '../memoRegister/memoRegister.vue'; // 追加
 import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除
+import memoUpdate from '../memoUpdate/memoUpdate.vue'; // 追加
 
 
 // const form = reactive({
@@ -58,4 +59,5 @@ const onSaveSuccess = () => {
   <!-- <MemoDelete /> -->
   <memoList ref="listRef"/>
   <!-- <buttonBaseField /> -->
+   <memoUpdate />
 </template>

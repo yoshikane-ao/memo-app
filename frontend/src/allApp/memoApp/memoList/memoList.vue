@@ -1,22 +1,34 @@
 <script setup>
-import { onMounted } from 'vue';
-import { memoList } from './memoList.ts';
-// 【修正】ロジックではなく、削除ボタン「部品」そのものをインポートする
-import MemoDelete from '../memoDelete/memoDelete.vue'; 
+/**
+ * 【インポート・セクション】
+ * 外部の機能や部品（コンポーネント）をこのファイルで使えるように読み込みます
+ */
+import { onMounted } from 'vue'; // Vueの「ライフサイクル」：画面が表示された瞬間の動きを制御する
+import { memoList } from './memoList.ts'; // 「コンポーザブル」：メモ一覧のデータ操作ロジックを別ファイルから取得
 
-import inputBaseField from '../../shared/inputBaseField.vue';
+// 他のコンポーネント（子部品）の読み込み
+import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除ボタンの部品
+import inputBaseField from '../../shared/inputBaseField.vue'; // 入力フォームの共通部品
+import buttonBaseField from '../../shared/buttonBaseField.vue'; // ボタンの共通部品
 
+/**
+ * 【データ管理・初期化セクション】
+ */
+// memoList関数から、リアクティブなデータ(memos)と再取得用の関数(fetchMemos)を取り出す
+// これにより、データの状態と表示が常に同期されます
 const { memos, fetchMemos } = memoList();
 
+// ライフサイクルフック：このコンポーネントがブラウザに描画（マウント）された直後に実行
 onMounted(() => {
-  fetchMemos();
+  fetchMemos(); // サーバー等から最新のメモ一覧を取得する
 });
 
-// 親（MemoScreen）から呼ばれるために公開
+/**
+ * 【外部公開設定】
+ * defineExpose: 親コンポーネントからこのコンポーネントの関数を直接呼べるようにする
+ * 例：メモ作成画面（親）で保存に成功した後、この一覧を更新させるために使用
+ */
 defineExpose({ fetchMemos });
-
-// 【削除】ここにあった onClickDelete は不要です。
-// 削除の実行は MemoDelete.vue の中で完結しているため。
 </script>
 
 <template>
@@ -24,9 +36,17 @@ defineExpose({ fetchMemos });
     <div v-if="memos.length === 0">メモがありません。</div>
 
     <div v-for="memo in memos" :key="memo.id" class="memo-card">
-      <inputBaseField :id="'title-' + memo.id" v-model="memo.title" />
-      <inputBaseField :id="'content-' + memo.id" v-model="memo.content" :multiline="true" />
       
+      <inputBaseField :id="'title-' + memo.id" v-model="memo.title" />
+      
+      <inputBaseField :id="'content-' + memo.id" v-model="memo.content" :multiline="true" />
+
+      <buttonBaseField 
+        label="更新" 
+        @click="fetchMemos" 
+        :disabled="true"
+      />
+
       <div class="card-footer">
         <MemoDelete :memoId="memo.id" @deleted="fetchMemos" />
       </div>
@@ -41,7 +61,10 @@ defineExpose({ fetchMemos });
 </template>
 
 <style scoped>
-/* 見やすさのために枠線などを有効にするのがおすすめです */
+/**
+ * 【スタイル定義】
+ * scoped属性により、このファイル内のHTML要素だけにデザインが適用されます（他への干渉を防ぐ）
+ */
 .memo-card {
   border: 1px solid #ddd;
   padding: 1rem;
@@ -51,7 +74,13 @@ defineExpose({ fetchMemos });
 }
 .card-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-end; /* 右寄せ */
   margin-top: 10px;
+}
+.tag-badge {
+  display: inline-block;
+  margin-right: 5px;
+  font-size: 0.8rem;
+  color: #666;
 }
 </style>

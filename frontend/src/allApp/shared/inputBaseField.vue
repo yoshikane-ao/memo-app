@@ -46,7 +46,7 @@ const onInput = (event) => {
       @input="onInput"
     />
 
-    <input
+    <textarea
       v-else
       :id="id"
       type="text"

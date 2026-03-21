@@ -9,7 +9,6 @@ export function MemoRegister() {
     const executeRegister = async (memoData: { title: string, content: string }) => {
         // 簡単なバリデーション（入力チェック）
         if (!memoData.title.trim() || !memoData.content.trim()) {
-            alert("タイトルと内容を入力してください");
             return false;
         }
 

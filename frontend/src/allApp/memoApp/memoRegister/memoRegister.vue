@@ -1,6 +1,6 @@
 <script setup>
 import { reactive } from 'vue'
-import { MemoRegister } from './memoRegister'
+import { MemoRegister } from './memoRegister.ts'
 import inputBaseField from '../../shared/inputBaseField.vue'
 import buttonBaseField from '../../shared/buttonBaseField.vue'
 // import { fetchMemos } from '../memoList/memoList.vue';
