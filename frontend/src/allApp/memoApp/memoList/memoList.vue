@@ -24,11 +24,22 @@ onMounted(() => {
 });
 
 /**
+ * 検索結果など、外部から直接メモ一覧を差し替えるための関数
+ */
+const setMemos = (newMemos) => {
+  memos.value = newMemos.map(item => ({
+    ...item,
+    initialTitle: item.title,
+    initialContent: item.content
+  }));
+};
+
+/**
  * 【外部公開設定】
  * defineExpose: 親コンポーネントからこのコンポーネントの関数を直接呼べるようにする
  * 例：メモ作成画面（親）で保存に成功した後、この一覧を更新させるために使用
  */
-defineExpose({ fetchMemos });
+defineExpose({ fetchMemos, setMemos });
 </script>
 
 <template>

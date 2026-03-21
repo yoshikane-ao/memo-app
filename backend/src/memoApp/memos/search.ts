@@ -13,7 +13,7 @@ searchRouter.get("/", async (req, res) => {
       return res.status(400).json({ message: "検索キーワードが必要です。" });
     }
 
-    const searchCondition = { contains: q, mode: 'insensitive' as const };
+    const searchCondition = { contains: q };
     let whereClause: any = {};
 
     // --- 検索ロジック (元のコードを維持) ---

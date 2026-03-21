@@ -29,11 +29,11 @@ onMounted(fetchMemos);
 import { reactive } from 'vue'
 import { ref } from 'vue'
 import inputBaseField from '../../shared/inputBaseField.vue'
-import buttonBaseField from '../../shared/buttonBaseField.vue'
 import memoList from '../memoList/memoList.vue'
 import { memoDelete } from '../memoDelete/memoDelete.ts';
 import MemoRegister from '../memoRegister/memoRegister.vue'; // 追加
 import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除
+import memoSeach from '../memoSeach/memoSeach.vue'; // 検索機能
 
 
 // const form = reactive({
@@ -43,9 +43,22 @@ import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除
 
 const listRef = ref(null);
 
-// 【追加】登録成功時に呼ばれる関数
 const onSaveSuccess = () => {
   // listRef（memoList）が持つ fetchMemos 関数を実行する
+  if (listRef.value) {
+    listRef.value.fetchMemos();
+  }
+};
+
+// 検索完了時に呼ばれる関数（検索結果でリストを上書き）
+const onSearchResults = (results) => {
+  if (listRef.value) {
+    listRef.value.setMemos(results);
+  }
+};
+
+// 検索クリア時に呼ばれる関数（リストを全件再取得）
+const onClearSearch = () => {
   if (listRef.value) {
     listRef.value.fetchMemos();
   }
@@ -54,6 +67,7 @@ const onSaveSuccess = () => {
 </script>
 
 <template>
+  <memoSeach @search-results="onSearchResults" @clear-search="onClearSearch" />
   <MemoRegister @save-success="onSaveSuccess" />
   <!-- <MemoDelete /> -->
   <memoList ref="listRef"/>
