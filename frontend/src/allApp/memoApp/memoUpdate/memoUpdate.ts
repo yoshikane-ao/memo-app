@@ -33,7 +33,7 @@ export function memoUpdate() {
         }
 
         try {
-            const response = await axios.post(`http://localhost:3000/memos/update`, {
+            const response = await axios.put(`http://localhost:3000/memos/update`, {
                 id: id,
                 title: title,
                 content: content
