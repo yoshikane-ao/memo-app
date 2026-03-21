@@ -12,6 +12,7 @@ datasource db {
 
 model Memos {
   id          Int             @id @default(autoincrement())
+  orderIndex  Int             @default(0)
   title       String          @db.VarChar(20)
   content     String
   createdAt   DateTime        @default(now())
@@ -48,12 +49,18 @@ model memo_tags {
 }
 
 model MemoLayouts {
-  id        Int      @id @default(autoincrement())
-  memoId    Int      @unique @map("memo_id") // 1対1のため @unique が必須
-  width     Int      @default(300) // デフォルトの幅
-  height    Int      @default(200) // デフォルトの高さ
+  id     Int @id @default(autoincrement())
+  memoId Int @unique @map("memo_id")
+
+  // --- レイアウト情報 ---
+  width  Int @default(300)
+  height Int @default(200)
+
+  // --- 並び替え順 (追加) ---
+  sortOrder Int      @default(0) @map("sort_order")
   updatedAt DateTime @updatedAt @map("updated_at")
-  memo      Memos    @relation(fields: [memoId], references: [id], onDelete: Cascade)
+
+  memo Memos @relation(fields: [memoId], references: [id], onDelete: Cascade)
 
   @@map("memo_layouts")
 }
