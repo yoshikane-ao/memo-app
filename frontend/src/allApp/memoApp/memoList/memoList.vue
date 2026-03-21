@@ -1,25 +1,36 @@
 <script setup>
 import { onMounted } from 'vue';
-import { useMemo } from './useMemo.ts';
+import { memoList } from './memoList.ts';
+// 【修正】ロジックではなく、削除ボタン「部品」そのものをインポートする
+import MemoDelete from '../memoDelete/memoDelete.vue'; 
 
-const { memos, fetchMemos } = useMemo();
+import inputBaseField from '../../shared/inputBaseField.vue';
 
-// 画面が表示された瞬間に実行
+const { memos, fetchMemos } = memoList();
+
 onMounted(() => {
   fetchMemos();
 });
+
+// 親（MemoScreen）から呼ばれるために公開
+defineExpose({ fetchMemos });
+
+// 【削除】ここにあった onClickDelete は不要です。
+// 削除の実行は MemoDelete.vue の中で完結しているため。
 </script>
 
 <template>
   <div class="memo-container">
-    <h2>メモ一覧</h2>
-    
     <div v-if="memos.length === 0">メモがありません。</div>
 
     <div v-for="memo in memos" :key="memo.id" class="memo-card">
-      <h3>{{ memo.title }}</h3>
-      <p>{{ memo.content }}</p>
+      <inputBaseField :id="'title-' + memo.id" v-model="memo.title" />
+      <inputBaseField :id="'content-' + memo.id" v-model="memo.content" :multiline="true" />
       
+      <div class="card-footer">
+        <MemoDelete :memoId="memo.id" @deleted="fetchMemos" />
+      </div>
+
       <div class="tags">
         <span v-for="mt in memo.memo_tags" :key="mt.tag.id" class="tag-badge">
           #{{ mt.tag.title }}
@@ -30,18 +41,17 @@ onMounted(() => {
 </template>
 
 <style scoped>
+/* 見やすさのために枠線などを有効にするのがおすすめです */
 .memo-card {
   border: 1px solid #ddd;
   padding: 1rem;
   margin-bottom: 1rem;
   border-radius: 8px;
+  background-color: #fff;
 }
-.tag-badge {
-  background: #e0f2f1;
-  color: #00796b;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  margin-right: 5px;
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
 </style>

@@ -1,53 +1,52 @@
-<script setup >
+<script setup>
 defineProps({
-  id: {
-    type: String,
-    required: true
-  },
+  // 表示名称を受け取る設定を追加
   label: {
     type: String,
-    default: ''
+    default: '' // 指定がない場合は空
   },
-  modelValue: {
+  type: {
     type: String,
-    default: ''
+    default: 'button'
   },
-  placeholder: {
-    type: String,
-    default: ''
-  },
-  multiline: {
+  disabled: {
     type: Boolean,
     default: false
-  },
-  rows: {
-    type: Number,
-    default: 4
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
-
-const onInput = (event) => {
-  emit('update:modelValue', event.target.value)
-}
+defineEmits(['click'])
 </script>
 
 <template>
-  <div class="field">
-    <label :for="id">{{ label }}</label>
-
-<button class="custom-button">
-    <slot>デフォルトテキスト</slot>
+  <button 
+    :type="type" 
+    :disabled="disabled"
+    class="custom-button"
+    @click="$emit('click')"
+  >
+    <template v-if="label">{{ label }}</template>
+    <slot v-else></slot> 
   </button>
-
-    <!-- <button
-      v-else
-      :id="id"
-      type="text"
-      :value="modelValue"
-      :placeholder="placeholder"
-      @input="onInput"
-    /> -->
-  </div>
 </template>
+
+<style scoped>
+/* デザインはそのまま */
+.custom-button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background-color: #4caf50; /* サンプルの色 */
+  color: white;
+  font-weight: bold;
+  transition: opacity 0.2s;
+}
+.custom-button:hover {
+  opacity: 0.8;
+}
+.custom-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+</style>

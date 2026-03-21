@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import axios from 'axios';
 
-export function useMemo() {
+export function memoList() {
     // DBからきたメモ一覧を入れる「箱」
     const memos = ref([]);
 

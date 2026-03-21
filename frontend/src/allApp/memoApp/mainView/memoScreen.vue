@@ -27,39 +27,35 @@ onMounted(fetchMemos);
 
 <script setup>
 import { reactive } from 'vue'
+import { ref } from 'vue'
 import inputBaseField from '../../shared/inputBaseField.vue'
 import buttonBaseField from '../../shared/buttonBaseField.vue'
 import memoList from '../memoList/memoList.vue'
-const save = () => console.log('保存しました');
+import { memoDelete } from '../memoDelete/memoDelete.ts';
+import MemoRegister from '../memoRegister/memoRegister.vue'; // 追加
+import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除
 
-const form = reactive({
-  title: '',
-  contents: ''
-})
+
+// const form = reactive({
+//   title: '',
+//   contents: ''
+// })
+
+const listRef = ref(null);
+
+// 【追加】登録成功時に呼ばれる関数
+const onSaveSuccess = () => {
+  // listRef（memoList）が持つ fetchMemos 関数を実行する
+  if (listRef.value) {
+    listRef.value.fetchMemos();
+  }
+};
+
 </script>
 
 <template>
-  <inputBaseField
-    id="title"
-    label="タイトル"
-    v-model="form.title"
-    placeholder="タイトルを入力してください"
-  />
-
-  <inputBaseField
-    id="contents"
-    label="内容"
-    v-model="form.contents"
-    placeholder="内容を入力してください"
-    :multiline="true"
-    :rows="6"
-  />
-
-  <buttonBaseField
-    id="submit"
-    label="送信"
-    @click="save">
-  </buttonBaseField>
-
-  <memoList />
+  <MemoRegister @save-success="onSaveSuccess" />
+  <!-- <MemoDelete /> -->
+  <memoList ref="listRef"/>
+  <!-- <buttonBaseField /> -->
 </template>

@@ -11,7 +11,7 @@ deleteRouter.delete("/:id", async (req, res) => {
         const id = Number(req.params.id);
 
         const deletedMemo = await prisma.memos.delete({
-            where: { id: id },
+            where: { id: Number(id) },
         });
 
         res.status(200).json(deletedMemo);
