@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import MemoItem from '../components/MemoItem.vue'
+import MemoItem from '../memoApp/MemoItem.vue'
 // import { memosRouter } from "vue-router";
+import '../../style.css';
 
+// メモの型定義
 interface Memo {
   id: number;
   title: string;
@@ -116,79 +118,3 @@ onMounted(fetchMemos)
     </div>
   </div>
 </template>
-
-<style scoped>
-.search-bar { margin-bottom: 20px; display: flex; gap: 10px; }
-
-.app-container {
-  background-color: #1a1a1a;
-  color: #ccc;
-  min-height: 100vh;
-  padding: 20px;
-  font-family: sans-serif;
-}
-
-/* アコーディオンアニメーション */
-.accordion-enter-active, .accordion-leave-active {
-  transition: all 0.3s ease;
-  max-height: 200px;
-  overflow: hidden;
-}
-.accordion-enter-from, .accordion-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-
-.add-toggle-btn {
-  width: 100%;
-  padding: 10px;
-  background: #333;
-  border: 1px solid #444;
-  color: #fff;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  transition: background 0.2s;
-}
-.add-toggle-btn:hover { background: #444; }
-
-.add-form {
-  background: #252525;
-  padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
-  border: 1px dashed #555;
-}
-
-.editor-row {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.title-input {
-  width: 200px;
-  background: #111;
-  border: 1px solid #444;
-  color: #eee;
-  padding: 8px;
-}
-
-.content-input {
-  flex: 1;
-  height: 60px;
-  background: #111;
-  border: 1px solid #444;
-  color: #eee;
-  padding: 8px;
-}
-
-.save-btn {
-  padding: 10px 20px;
-  background: #0066cc;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-</style>

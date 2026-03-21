@@ -1,0 +1,327 @@
+/* ==========================================================================
+   1. 変数定義 & ベース設定
+   ========================================================================== */
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+}
+
+/* ==========================================================================
+   2. アプリ全体のレイアウト (MemoList.vue)
+   ========================================================================== */
+.app-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+}
+
+.search-bar {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 12px;
+}
+
+.search-bar select, 
+.search-bar input {
+  background: var(--code-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 16px;
+}
+
+.search-bar input {
+  flex: 1;
+}
+
+/* 新規作成アコーディオン */
+.add-toggle-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  cursor: pointer;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.add-toggle-btn:hover {
+  border-color: var(--accent);
+}
+
+.add-form {
+  background: var(--code-bg);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 30px;
+  border: 1px dashed var(--accent-border);
+}
+
+.editor-row {
+  display: flex;
+  gap: 12px;
+}
+
+.title-input, .content-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.save-btn {
+  padding: 10px 24px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* アニメーション */
+.accordion-enter-active, .accordion-leave-active {
+  transition: all 0.3s ease;
+  max-height: 300px;
+  overflow: hidden;
+}
+.accordion-enter-from, .accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ==========================================================================
+   3. メモ一行のスタイル (MemoItem.vue)
+   ========================================================================== */
+.memo-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+  transition: background 0.1s;
+}
+
+.memo-row:hover {
+  background: rgba(128, 128, 128, 0.03);
+}
+
+.title-container {
+  display: flex;
+  border-right: 1px solid var(--border);
+}
+
+.resizable-title {
+  width: 160px;
+  min-width: 100px;
+  max-width: 400px;
+  resize: horizontal;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  padding: 12px;
+  font-weight: bold;
+  font-family: var(--sans);
+}
+
+.resizable-content {
+  flex: 1;
+  min-height: 40px;
+  resize: vertical;
+  background: transparent;
+  border: none;
+  color: var(--text-h);
+  padding: 12px;
+  line-height: 1.6;
+  font-family: var(--sans);
+}
+
+.resizable-title:focus, .resizable-content:focus {
+  outline: none;
+  background: var(--accent-bg);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  gap: 8px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  opacity: 0.4;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+/* ==========================================================================
+   4. タグ管理メニュー (MemoTagMenu.vue)
+   ========================================================================== */
+.tag-dropdown-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tag-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  width: 280px;
+  z-index: 100;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tag-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--code-bg);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+/* タグチップ */
+.selected-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tag-chip {
+  background-color: var(--accent);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tag-remove-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+}
+
+/* タグ選択リスト */
+.tag-dropdown-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tag-list-item {
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.tag-list-item:hover {
+  background: var(--accent-bg);
+}
+
+.tag-list-item.is-selected {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.tag-create-item {
+  color: var(--accent);
+  font-weight: bold;
+  background: var(--accent-bg);
+}
+
+.tag-menu-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.tag-cancel-btn {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tag-save-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+}

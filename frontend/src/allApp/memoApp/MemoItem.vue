@@ -1,5 +1,8 @@
 <script setup lang="ts">
+// # ロジック（状態と関数）を抽出したもの
+// # メモ一覧の取得・削除・検索ロジック
 import { ref, computed } from 'vue'
+import '../../style.css';
 
 const props = defineProps(['memo'])
 const emit = defineEmits(['refresh'])
@@ -265,64 +268,3 @@ const fetchMemos = async () => {
     </div>
   </div>
 </template>
-
-<style scoped>
-
-/* 既存のレイアウト（省略せず記載） */
-.memo-row { display: flex; align-items: stretch; gap: 0; border-bottom: 1px solid #333; padding: 4px 0; }
-.title-container { display: flex; border-right: 1px solid #333; }
-.resizable-title { width: 150px; min-width: 80px; max-width: 500px; resize: horizontal; background: transparent; border: none; color: #888; padding: 8px; font-weight: bold; overflow: hidden; white-space: nowrap; }
-.resizable-content { flex: 1; min-height: 32px; resize: vertical; background: transparent; border: none; color: #ccc; padding: 8px; line-height: 1.4; }
-.resizable-title:focus, .resizable-content:focus { outline: none; background: #222; }
-.actions { display: flex; align-items: center; padding: 0 10px; gap: 5px; }
-.icon-btn { background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.5; transition: opacity 0.2s; }
-.icon-btn:hover { opacity: 1; }
-
-/* タグ検索プルダウンのスタイル */
-.tag-dropdown-wrapper { position: relative; display: flex; align-items: center; }
-.tag-dropdown-menu { position: absolute; top: 100%; right: 0; margin-top: 8px; background: #222; border: 1px solid #444; border-radius: 6px; padding: 12px; width: 260px; z-index: 50; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; gap: 10px; }
-.tag-search-input { width: 100%; box-sizing: border-box; background: #111; color: #eee; border: 1px solid #555; border-radius: 4px; padding: 8px; font-size: 0.9rem; }
-.tag-search-input:focus { outline: none; border-color: #0ea5e9; }
-
-/* チップのスタイル */
-.selected-tags-preview { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; border-bottom: 1px solid #444; }
-.tag-chip { background-color: #0369a1; color: #e0f2fe; padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px; }
-.tag-remove-btn { background: none; border: none; color: #e0f2fe; cursor: pointer; font-size: 0.9rem; padding: 0; line-height: 1; }
-
-/* リスト部分のスタイル */
-.tag-dropdown-list { list-style: none; margin: 0; padding: 0; max-height: 150px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; background: #1a1a1a; }
-.tag-dropdown-list::-webkit-scrollbar { width: 6px; }
-.tag-dropdown-list::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
-
-.tag-list-item { padding: 8px 10px; color: #ccc; font-size: 0.9rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2a2a2a; }
-.tag-list-item:last-child { border-bottom: none; }
-.tag-list-item:hover { background: #333; }
-.tag-list-item.is-selected { background: #0ea5e920; color: #0ea5e9; }
-.tag-name { flex-grow: 1; }
-
-/* 追加: 新規作成用アイテムの特別スタイル */
-.tag-create-item {
-  color: #0ea5e9; /* 目立つように青色に */
-  font-weight: bold;
-}
-.tag-create-item:hover {
-  background: #0ea5e920;
-}
-.add-icon {
-  font-weight: bold;
-  font-size: 1.1rem;
-}
-
-.tag-item-actions { display: flex; align-items: center; gap: 8px; }
-.check-icon { font-weight: bold; }
-.sys-tag-delete-btn { background: none; border: none; font-size: 0.9rem; cursor: pointer; opacity: 0.3; transition: 0.2s; padding: 0; }
-.sys-tag-delete-btn:hover { opacity: 1; transform: scale(1.1); }
-.tag-list-empty { padding: 8px 10px; color: #777; font-size: 0.9rem; text-align: center; }
-
-/* ボタンエリア */
-.tag-menu-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
-.tag-cancel-btn { background: transparent; color: #aaa; border: 1px solid #555; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
-.tag-save-btn { background: #0ea5e9; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
-.tag-save-btn:hover { background: #0284c7; }
-.tag-cancel-btn:hover { background: #333; }
-</style>
