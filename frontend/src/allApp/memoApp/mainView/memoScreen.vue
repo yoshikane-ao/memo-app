@@ -33,7 +33,7 @@ import memoList from '../memoLogic/memoList/memoList.vue'
 import { memoDelete } from '../memoLogic/memoDelete/memoDelete.ts';
 import MemoRegister from '../memoLogic/memoRegister/memoRegister.vue';
 import MemoDelete from '../memoLogic/memoDelete/memoDelete.vue'; // 削除
-import memoSeach from '../memoLogic/memoSeach/memoSeach.vue'; // 検索機能
+import memoViewControl from '../memoLogic/memoViewControl/memoViewControl.vue'; // 表示管理（検索・ソート・絞り込み）
 
 // const form = reactive({
 //   title: '',
@@ -49,26 +49,23 @@ const onSaveSuccess = () => {
   }
 };
 
-// 検索完了時に呼ばれる関数（検索結果でリストを上書き）
-const onSearchResults = (results) => {
-  if (listRef.value) {
-    listRef.value.setMemos(results);
-  }
-};
-
-// 検索クリア時に呼ばれる関数（リストを全件再取得）
-const onClearSearch = () => {
-  if (listRef.value) {
-    listRef.value.fetchMemos();
-  }
-};
+// 検索結果などのステートはmemoListにpropsで渡すため、親で管理します
+const viewConfig = reactive({
+  keyword: '',
+  sortOrder: 'custom',
+  selectedTags: []
+});
 
 </script>
 
 <template>
-  <memoSeach @search-results="onSearchResults" @clear-search="onClearSearch" />
+  <memoViewControl 
+    v-model:keyword="viewConfig.keyword" 
+    v-model:sortOrder="viewConfig.sortOrder" 
+    v-model:selectedTags="viewConfig.selectedTags" 
+  />
   <MemoRegister @save-success="onSaveSuccess" />
   <!-- <MemoDelete /> -->
-  <memoList ref="listRef"/>
+  <memoList ref="listRef" :viewConfig="viewConfig" />
   <!-- <buttonBaseField /> -->
 </template>

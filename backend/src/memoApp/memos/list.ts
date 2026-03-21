@@ -7,7 +7,10 @@ const listRouter = Router();
 listRouter.get("/", async (req, res) => {
     try {
         const memos = await prisma.memos.findMany({
-            orderBy: { id: 'asc' },
+            orderBy: [
+                { orderIndex: 'asc' },
+                { id: 'desc' }
+            ],
             include: {
                 memo_tags: {
                     include: { tag: true }
