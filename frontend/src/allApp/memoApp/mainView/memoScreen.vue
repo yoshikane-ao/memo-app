@@ -52,6 +52,7 @@ const onSaveSuccess = () => {
 // 検索結果などのステートはmemoListにpropsで渡すため、親で管理します
 const viewConfig = reactive({
   keyword: '',
+  searchType: 'all',
   sortOrder: 'custom',
   selectedTags: []
 });
@@ -61,6 +62,7 @@ const viewConfig = reactive({
 <template>
   <memoViewControl 
     v-model:keyword="viewConfig.keyword" 
+    v-model:searchType="viewConfig.searchType"
     v-model:sortOrder="viewConfig.sortOrder" 
     v-model:selectedTags="viewConfig.selectedTags" 
   />

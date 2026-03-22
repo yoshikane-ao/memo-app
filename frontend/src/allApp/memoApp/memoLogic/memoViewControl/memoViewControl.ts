@@ -1,7 +1,8 @@
 import { ref, computed, type Ref } from 'vue';
 
-export function useViewControl(memos: Ref<any[]>) {
+export function memoViewControl(memos: Ref<any[]>) {
   const keyword = ref('');
+  const searchType = ref('all'); // 'all', 'title', 'content', 'tag'
   const sortOrder = ref('custom'); // 'newest', 'oldest', 'custom'
   const selectedTags = ref<number[]>([]);
 
@@ -23,7 +24,16 @@ export function useViewControl(memos: Ref<any[]>) {
         const matchTitle = memo.title.toLowerCase().includes(q);
         const matchContent = memo.content.toLowerCase().includes(q);
         const matchTag = memo.memo_tags?.some((mt: any) => mt.tag.title.toLowerCase().includes(q));
-        return matchTitle || matchContent || matchTag;
+        
+        if (searchType.value === 'title') {
+          return matchTitle;
+        } else if (searchType.value === 'content') {
+          return matchContent;
+        } else if (searchType.value === 'tag') {
+          return matchTag;
+        } else {
+          return matchTitle || matchContent || matchTag; // 'all'
+        }
       });
     }
 
@@ -44,6 +54,7 @@ export function useViewControl(memos: Ref<any[]>) {
 
   return {
     keyword,
+    searchType,
     sortOrder,
     selectedTags,
     displayedMemos

@@ -5,13 +5,15 @@ import inputBaseField from '../../../shared/inputBaseField.vue';
 
 const props = defineProps({
   keyword: String,
+  searchType: String,
   sortOrder: String,
   selectedTags: Array
 });
 
-const emit = defineEmits(['update:keyword', 'update:sortOrder', 'update:selectedTags']);
+const emit = defineEmits(['update:keyword', 'update:searchType', 'update:sortOrder', 'update:selectedTags']);
 
 const localKeyword = ref(props.keyword || '');
+const localSearchType = ref(props.searchType || 'all');
 const localSortOrder = ref(props.sortOrder || 'custom');
 const localSelectedTags = ref([...(props.selectedTags || [])]);
 
@@ -28,6 +30,7 @@ onMounted(async () => {
 });
 
 watch(localKeyword, (val) => emit('update:keyword', val));
+watch(localSearchType, (val) => emit('update:searchType', val));
 watch(localSortOrder, (val) => emit('update:sortOrder', val));
 watch(localSelectedTags, (val) => emit('update:selectedTags', val), { deep: true });
 
@@ -44,6 +47,16 @@ const toggleTag = (tagId) => {
 <template>
   <div class="view-control-container">
     <div class="search-sort-row">
+      <!-- 検索対象の指定 -->
+      <div class="search-type-box">
+        <select v-model="localSearchType" class="sort-select">
+          <option value="all">全て</option>
+          <option value="title">タイトル</option>
+          <option value="content">内容</option>
+          <option value="tag">タグ名</option>
+        </select>
+      </div>
+
       <!-- 検索 -->
       <div class="search-box">
         <inputBaseField id="search-input" v-model="localKeyword" placeholder="キーワードで検索" />
