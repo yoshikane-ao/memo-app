@@ -11,7 +11,11 @@ const props = defineProps({
   title: { type: String, required: true },         // 現在の入力値
   content: { type: String, required: true },       // 現在の入力値
   initialTitle: { type: String, required: true },  // 比較用の初期タイトル
-  initialContent: { type: String, required: true } // 比較用の初期内容
+  initialContent: { type: String, required: true }, // 比較用の初期内容
+  currentWidth: { type: Number },
+  initialWidth: { type: Number },
+  currentHeight: { type: Number },
+  initialHeight: { type: Number }
 });
 
 /**
@@ -34,7 +38,11 @@ const isUpdateDisabled = computed(() => {
     props.title, 
     props.content, 
     props.initialTitle, 
-    props.initialContent
+    props.initialContent,
+    props.currentWidth,
+    props.initialWidth,
+    props.currentHeight,
+    props.initialHeight
   );
   
   // バリデーションが OK でないなら Disabled(無効) を true にする
@@ -50,7 +58,11 @@ const handleUpdate = async () => {
     props.title, 
     props.content,
     props.initialTitle,
-    props.initialContent
+    props.initialContent,
+    props.currentWidth,
+    props.initialWidth,
+    props.currentHeight,
+    props.initialHeight
   );
   
   if (success) {

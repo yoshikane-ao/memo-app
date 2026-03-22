@@ -7,11 +7,15 @@ const updateRouter = Router();
 
 updateRouter.put("/", async (req, res) => {
     try {
-        const { title, content, id } = req.body;
+        const { title, content, id, width, height } = req.body;
+
+        const updateData: any = { title, content };
+        if (width !== undefined) updateData.width = width;
+        if (height !== undefined) updateData.height = height;
 
         const updateMemos = await prisma.memos.update({
             where: { id },
-            data: { title, content },
+            data: updateData,
         });
 
         const historyMemo = await prisma.memoHistories.create({

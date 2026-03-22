@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { useMemoResize } from './memoLayout.ts';
 
 const props = defineProps<{
     memoId: number;
@@ -8,8 +7,11 @@ const props = defineProps<{
     initialHeight?: number | null;
 }>();
 
+const emit = defineEmits<{
+    (e: 'resize', width: number, height: number): void;
+}>();
+
 const wrapperRef = ref<HTMLElement | null>(null);
-const { saveSize } = useMemoResize(props.memoId);
 let resizeObserver: ResizeObserver | null = null;
 let isInitialRender = true;
 
@@ -32,12 +34,13 @@ onMounted(() => {
     resizeObserver = new ResizeObserver((entries) => {
         if (isInitialRender) {
             isInitialRender = false;
-            return; // 初期化時のResizeイベントは無視する
+            return;
         }
+
         for (const entry of entries) {
-            const target = entry.target as HTMLElement;
-            // 要素の実際の幅・高さを送る
-            saveSize(target.offsetWidth, target.offsetHeight);
+            const el = entry.target as HTMLElement;
+            // ユーザーによって変更されたサイズをストレートにemitする
+            emit('resize', el.offsetWidth, el.offsetHeight);
         }
     });
 

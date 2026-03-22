@@ -38,16 +38,12 @@ export function memoViewControl(memos: Ref<any[]>) {
     }
 
     // 3. Sorting
-    result.sort((a, b) => {
-      if (sortOrder.value === 'newest') {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      } else if (sortOrder.value === 'oldest') {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-      } else {
-        // 'custom' order
-        return a.orderIndex - b.orderIndex || b.id - a.id;
-      }
-    });
+    if (sortOrder.value === 'newest') {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortOrder.value === 'oldest') {
+      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    // 'custom' order は memos の元の順序（フロントでドラッグ＆ドロップした順序）に従うため、並べ替え処理を行いません。
 
     return result;
   });

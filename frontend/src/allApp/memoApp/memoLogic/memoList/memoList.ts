@@ -23,6 +23,8 @@ export function memoList() {
                 ...item,
                 initialTitle: item.title,
                 initialContent: item.content,
+                currentWidth: item.width,
+                currentHeight: item.height,
                 // 既存のメモなら元の状態を引き継ぎ、新規なら閉じた状態にする
                 showTagSearch: showTagSearchMap.get(item.id) || false
             }));
