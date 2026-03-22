@@ -24,7 +24,7 @@ export function memoViewControl(memos: Ref<any[]>) {
         const matchTitle = memo.title.toLowerCase().includes(q);
         const matchContent = memo.content.toLowerCase().includes(q);
         const matchTag = memo.memo_tags?.some((mt: any) => mt.tag.title.toLowerCase().includes(q));
-        
+
         if (searchType.value === 'title') {
           return matchTitle;
         } else if (searchType.value === 'content') {

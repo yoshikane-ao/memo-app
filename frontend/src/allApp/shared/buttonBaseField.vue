@@ -30,7 +30,7 @@ defineEmits(['click'])
   </button>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 /* デザインはそのまま */
 .custom-button {
   padding: 10px 20px;
@@ -49,4 +49,4 @@ defineEmits(['click'])
   background-color: #ccc;
   cursor: not-allowed;
 }
-</style>
+</style> -->

@@ -22,7 +22,7 @@ const handleCopy = async () => {
   </button>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 .copy-btn {
   background: transparent;
   border: none;
@@ -42,4 +42,4 @@ const handleCopy = async () => {
 .copy-btn:active {
   transform: scale(0.9);
 }
-</style>
+</style> -->

@@ -56,7 +56,7 @@ const handleSave = async () => {
       <div style="flex: 1;">
         <inputBaseField
           id="title"
-          label="タイトル"
+          label=""
           v-model="newMemo.title"
           placeholder="タイトルを入力してください"
         />
@@ -83,7 +83,7 @@ const handleSave = async () => {
 
     <inputBaseField
       id="content"
-      label="内容"
+      label=""
       v-model="newMemo.content"
       placeholder="内容を入力してください"
       :multiline="true"

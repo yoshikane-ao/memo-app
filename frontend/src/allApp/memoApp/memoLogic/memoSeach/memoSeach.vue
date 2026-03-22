@@ -56,7 +56,7 @@ watch([keyword, searchType], async ([newKeyword, newType]) => {
   </div>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 .search-container {
   margin-bottom: 2rem;
   background-color: #f7f9fa;
@@ -81,4 +81,4 @@ watch([keyword, searchType], async ([newKeyword, newType]) => {
 .search-select:focus {
   border-color: #4a90e2;
 }
-</style>
+</style> -->

@@ -131,7 +131,7 @@ defineExpose({ fetchMemos, setMemos });
   </div>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 /**
  * 【スタイル定義】
  * scoped属性により、このファイル内のHTML要素だけにデザインが適用されます（他への干渉を防ぐ）
@@ -159,4 +159,4 @@ defineExpose({ fetchMemos, setMemos });
   padding: 2px 6px;
   border-radius: 4px;
 }
-</style>
+</style> -->

@@ -98,7 +98,7 @@ const toggleTag = (tagId) => {
   </div>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 .view-control-container {
   margin-bottom: 2rem;
   background-color: #f7f9fa;
@@ -187,4 +187,4 @@ const toggleTag = (tagId) => {
   background-color: #f4f7f9;
   border-radius: 4px;
 }
-</style>
+</style> -->

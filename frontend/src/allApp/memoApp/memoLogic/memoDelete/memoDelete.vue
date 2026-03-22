@@ -29,9 +29,9 @@ const onClickDelete = async () => {
   </buttonBaseField>
 </template>
 
-<style scoped>
+<!-- <style scoped>
 .delete-style {
   background-color: #ff4d4f;
   color: white;
 }
-</style>
+</style> -->
