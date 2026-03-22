@@ -32,14 +32,12 @@ const viewConfig = reactive({
 </script>
 
 <template>
+  <MemoRegister @save-success="onSaveSuccess" />
   <memoViewControl 
     v-model:keyword="viewConfig.keyword" 
     v-model:searchType="viewConfig.searchType"
     v-model:sortOrder="viewConfig.sortOrder" 
     v-model:selectedTags="viewConfig.selectedTags" 
   />
-  <MemoRegister @save-success="onSaveSuccess" />
-  <!-- <MemoDelete /> -->
   <memoList ref="listRef" :viewConfig="viewConfig" />
-  <!-- <buttonBaseField /> -->
 </template>

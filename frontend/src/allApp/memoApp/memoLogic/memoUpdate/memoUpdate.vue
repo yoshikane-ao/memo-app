@@ -72,9 +72,11 @@ const handleUpdate = async () => {
 </script>
 
 <template>
-  <buttonBaseField 
-    label="更新"
+  <button 
+    class="update-btn"
     :disabled="isUpdateDisabled"
     @click="handleUpdate"
-  />
+  >
+    更新
+  </button>
 </template>

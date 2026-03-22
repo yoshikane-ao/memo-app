@@ -17,14 +17,11 @@ export function memoUpdate() {
         // 2. サイズ変更チェック
         let isSizeChanged = false;
 
-        // DBに未設定(null)の場合フロントからはundefinedが渡ることがあるため、便宜上 0 または -1 に変換して比較する
-        const w1 = currentWidth != null ? currentWidth : 0;
-        const w2 = originalWidth != null ? originalWidth : 0;
-        const h1 = currentHeight != null ? currentHeight : 0;
-        const h2 = originalHeight != null ? originalHeight : 0;
+        // DBに未設定(null)の場合、フロントでユーザーが明示的にリサイズしない限り変更なしとする
+        const isWidthChanged = (currentWidth != null) && (currentWidth !== originalWidth) && !(originalWidth == null && currentWidth === 0);
+        const isHeightChanged = (currentHeight != null) && (currentHeight !== originalHeight) && !(originalHeight == null && currentHeight === 0);
 
-        // フロントでリサイズされて0以外の値が入り、かつ元の値と異なれば変更あり
-        if ((w1 > 0 && w1 !== w2) || (h1 > 0 && h1 !== h2)) {
+        if (isWidthChanged || isHeightChanged) {
             isSizeChanged = true;
         }
 

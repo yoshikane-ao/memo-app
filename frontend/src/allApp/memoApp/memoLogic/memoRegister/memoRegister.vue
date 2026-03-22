@@ -48,7 +48,6 @@ const handleSave = async () => {
   });
   if (success) {
     emit('save-success'); 
-    alert("メモを保存しました！");
     newMemo.title = '';
     newMemo.content = '';
     localTags.value = [];
@@ -67,6 +66,7 @@ const handleSave = async () => {
           v-model="newMemo.title"
           placeholder="タイトル"
           rows="1"
+          spellcheck="false"
           class="title-input"
         />
       </div>
@@ -76,6 +76,7 @@ const handleSave = async () => {
           v-model="newMemo.content"
           placeholder="内容を入力してください"
           rows="2"
+          spellcheck="false"
           class="content-input"
         />
       </div>

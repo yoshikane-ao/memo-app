@@ -30,17 +30,30 @@ onMounted(() => {
         textarea.style.height = `${props.initialHeight}px`;
     }
 
+    let baseWidth: number | null = null;
+    let baseHeight: number | null = null;
+
     // サイズ監視開始
     resizeObserver = new ResizeObserver((entries) => {
-        if (isInitialRender) {
-            isInitialRender = false;
-            return;
-        }
-
         for (const entry of entries) {
             const el = entry.target as HTMLElement;
-            // ユーザーによって変更されたサイズをストレートにemitする
-            emit('resize', el.offsetWidth, el.offsetHeight);
+            
+            // 初回レンダリング時のサイズを基準として記録
+            if (isInitialRender) {
+                baseWidth = el.offsetWidth;
+                baseHeight = el.offsetHeight;
+                isInitialRender = false;
+                return;
+            }
+
+            // 基準サイズから変更があった場合のみユーザーリサイズとみなす
+            // inline style が設定されていれば明らかにユーザー操作
+            const isWidthChanged = Math.abs(el.offsetWidth - (baseWidth || 0)) > 2;
+            const isHeightChanged = Math.abs(el.offsetHeight - (baseHeight || 0)) > 2;
+
+            if (isWidthChanged || isHeightChanged || el.style.width || el.style.height) {
+                emit('resize', el.offsetWidth, el.offsetHeight);
+            }
         }
     });
 

@@ -46,53 +46,43 @@ const toggleTag = (tagId) => {
 
 <template>
   <div class="view-control-container">
-    <div class="search-sort-row">
-      <!-- 検索対象の指定 -->
-      <div class="search-type-box">
-        <select v-model="localSearchType" class="sort-select">
-          <option value="all">全て</option>
-          <option value="title">タイトル</option>
-          <option value="content">内容</option>
-          <option value="tag">タグ名</option>
-        </select>
-      </div>
+    <!-- 検索欄 -->
+    <input
+      type="text"
+      id="search-input"
+      v-model="localKeyword"
+      placeholder="🔍 検索"
+      spellcheck="false"
+      class="search-input-compact"
+    />
 
-      <!-- 検索 -->
-      <div class="search-box">
-        <inputBaseField id="search-input" v-model="localKeyword" placeholder="キーワードで検索" />
-      </div>
+    <!-- 検索条件 -->
+    <select v-model="localSearchType" class="sort-select">
+      <option value="all">全て</option>
+      <option value="title">タイトル</option>
+      <option value="content">内容</option>
+      <option value="tag">タグ名</option>
+    </select>
 
-      <!-- ソート -->
-      <div class="sort-box">
-        <select v-model="localSortOrder" class="sort-select">
-          <option value="custom">自分で並べた順</option>
-          <option value="newest">新しい順</option>
-          <option value="oldest">古い順</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- タグ絞り込み (プルダウン形式) -->
-    <div class="tags-filter" v-if="allTags.length > 0">
-      <div class="dropdown-container">
-        <button class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
-          タグで絞り込む {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }} ▼
-        </button>
-        <div class="dropdown-menu" v-if="isDropdownOpen">
-          <label 
-            v-for="tag in allTags" 
-            :key="tag.id"
-            class="dropdown-item"
-          >
-            <input 
-              type="checkbox" 
-              :value="tag.id" 
-              :checked="localSelectedTags.includes(tag.id)"
-              @change="toggleTag(tag.id)"
-            />
-            #{{ tag.title }}
-          </label>
-        </div>
+    <!-- タグで絞り込む -->
+    <div class="dropdown-container" v-if="allTags.length > 0">
+      <button class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
+        タグで絞り込む {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }} ▼
+      </button>
+      <div class="dropdown-menu" v-if="isDropdownOpen">
+        <label 
+          v-for="tag in allTags" 
+          :key="tag.id"
+          class="dropdown-item"
+        >
+          <input 
+            type="checkbox" 
+            :value="tag.id" 
+            :checked="localSelectedTags.includes(tag.id)"
+            @change="toggleTag(tag.id)"
+          />
+          #{{ tag.title }}
+        </label>
       </div>
     </div>
   </div>
