@@ -1,213 +1,406 @@
 /* ==========================================================================
-   1. 変数定義 & ベース設定
+   Memo App — Dark Compact Design
    ========================================================================== */
+
+/* ---------- 1. デザイントークン ---------- */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --shadow: rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --bg-primary:     #111;
+  --bg-surface:     #1a1a1a;
+  --bg-input:       #0d0d0d;
+  --bg-hover:       #222;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --text-primary:   #ddd;
+  --text-secondary: #888;
+  --text-muted:     #555;
 
-  font: 18px/145% var(--sans);
-  color: var(--text);
-  background: var(--bg);
+  --border:         #333;
+  --border-focus:   #666;
+
+  --accent:         #6c8cff;
+  --accent-hover:   #5a7aee;
+  --accent-soft:    rgba(108, 140, 255, 0.12);
+
+  --danger:         #e85555;
+  --danger-hover:   #d44;
+
+  --tag-color:      #b89cff;
+  --tag-bg:         rgba(184, 156, 255, 0.12);
+
+  --font-sans: 'Inter', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', ui-monospace, monospace;
+
+  --radius:    4px;
+  --transition: 0.15s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --shadow: rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* ---------- 2. リセット ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  margin: 0;
-  background-color: var(--bg);
-}
-
-/* ==========================================================================
-   2. アプリ全体のレイアウト (MemoList.vue)
-   ========================================================================== */
-.app-container {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 20px;
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
   min-height: 100vh;
 }
 
-.search-bar {
-  margin-bottom: 24px;
+::selection {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* ---------- 3. アプリコンテナ ---------- */
+#app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 12px;
+  min-height: 100vh;
+}
+
+
+/* ---------- 4. メモ行 ---------- */
+.memo-container {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
 }
 
-.search-bar select,
-.search-bar input {
-  background: var(--code-bg);
-  color: var(--text-h);
-  border: 1px solid var(--border);
-  padding: 10px;
-  border-radius: 6px;
-  font-size: 16px;
-}
-
-.search-bar input {
-  flex: 1;
-}
-
-/* 新規作成アコーディオン */
-.add-toggle-btn {
-  width: 100%;
-  padding: 12px;
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  color: var(--text-h);
-  cursor: pointer;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  font-weight: bold;
-  transition: all 0.2s;
-}
-
-.add-toggle-btn:hover {
-  border-color: var(--accent);
-}
-
-.add-form {
-  background: var(--code-bg);
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 30px;
-  border: 1px dashed var(--accent-border);
-}
-
-.editor-row {
-  display: flex;
-  gap: 12px;
-}
-
-.title-input,
-.content-input {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  color: var(--text-h);
-  padding: 10px;
-  border-radius: 4px;
-}
-
-.save-btn {
-  padding: 10px 24px;
-  background: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-/* アニメーション */
-.accordion-enter-active,
-.accordion-leave-active {
-  transition: all 0.3s ease;
-  max-height: 300px;
-  overflow: hidden;
-}
-
-.accordion-enter-from,
-.accordion-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
-
-/* ==========================================================================
-   3. メモ一行のスタイル (MemoItem.vue)
-   ========================================================================== */
 .memo-row {
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid var(--border);
-  padding: 8px 0;
-  transition: background 0.1s;
+  min-height: 36px;
+  transition: background var(--transition);
 }
 
 .memo-row:hover {
-  background: rgba(128, 128, 128, 0.03);
+  background: var(--bg-hover);
 }
 
-.title-container {
-  display: flex;
+/* タイトルセル */
+.title-cell {
+  flex: 0 0 auto;
   border-right: 1px solid var(--border);
+  display: flex;
 }
 
-.resizable-title {
-  width: 160px;
-  min-width: 100px;
-  max-width: 400px;
+.title-input {
+  width: 180px;
+  min-width: 80px;
+  max-width: 500px;
   resize: horizontal;
+  overflow: hidden;
   background: transparent;
   border: none;
-  color: var(--accent);
-  padding: 12px;
-  font-weight: bold;
-  font-family: var(--sans);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
-.resizable-content {
+.title-input:focus {
+  outline: none;
+  background: var(--bg-input);
+}
+
+/* コンテンツセル */
+.content-cell {
   flex: 1;
-  min-height: 40px;
+  display: flex;
+  min-width: 0;
+}
+
+.content-input {
+  width: 100%;
+  min-height: 32px;
   resize: vertical;
   background: transparent;
   border: none;
-  color: var(--text-h);
-  padding: 12px;
-  line-height: 1.6;
-  font-family: var(--sans);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  line-height: 1.5;
 }
 
-.resizable-title:focus,
-.resizable-content:focus {
+.content-input:focus {
   outline: none;
-  background: var(--accent-bg);
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
-.actions {
+/* アクションセル */
+.actions-cell {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  padding: 0 15px;
+  gap: 4px;
+  padding: 0 8px;
+  border-left: 1px solid var(--border);
+}
+
+
+/* ---------- 5. タグ行 ---------- */
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px 4px 190px;
+  position: relative;
+  min-height: 22px;
+}
+
+.tag-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--tag-color);
+  background: var(--tag-bg);
+  padding: 1px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.2px;
+}
+
+.tag-add-btn {
+  font-size: 0.68rem;
+  cursor: pointer;
+  border: 1px dashed var(--text-muted);
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all var(--transition);
+}
+
+.tag-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+
+/* ---------- 6. ボタン基盤 ---------- */
+.custom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.custom-button:hover {
+  background: var(--accent-hover);
+}
+
+.custom-button:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+
+/* ---------- 7. コピーボタン ---------- */
+.copy-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  opacity: 0.4;
+  padding: 4px;
+  transition: opacity var(--transition);
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+}
+
+
+/* ---------- 8. 表示制御ツールバー ---------- */
+.view-control-container {
+  margin-bottom: 16px;
+  background: var(--bg-surface);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
-.icon-btn {
-  background: none;
-  border: none;
+.search-sort-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-box { flex: 1; }
+
+.sort-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
-  font-size: 1.2rem;
-  opacity: 0.4;
-  transition: all 0.2s;
+  outline: none;
+  transition: border-color var(--transition);
 }
 
-.icon-btn:hover {
-  opacity: 1;
-  transform: scale(1.1);
+.sort-select:focus {
+  border-color: var(--border-focus);
 }
 
-/* ==========================================================================
-   4. タグ管理メニュー (MemoTagMenu.vue)
-   ========================================================================== */
+
+/* ---------- 9. 入力フィールド (inputBaseField / グローバルフォーム用) ---------- */
+.field {
+  width: 100%;
+}
+
+.field label {
+  display: none;
+}
+
+.field textarea,
+.field input[type="text"] {
+  width: 100%;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color var(--transition);
+}
+
+.field textarea:focus,
+.field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  background: var(--bg-surface);
+}
+
+.field textarea::placeholder,
+.field input[type="text"]::placeholder {
+  color: var(--text-muted);
+}
+
+
+/* ---------- 10. 新規登録エリア ---------- */
+.memo-register-wrapper {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.register-top-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  margin-bottom: 8px;
+}
+
+.register-title-field { flex: 1; }
+
+.register-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+
+/* ---------- 11. タグ絞り込み ---------- */
+.tags-filter { padding-top: 4px; }
+
+.dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+}
+
+.dropdown-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 200px;
+  z-index: 100;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  transition: background var(--transition);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+}
+
+.dropdown-item input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+
+/* ---------- 12. タグ検索ドロップダウン ---------- */
 .tag-dropdown-wrapper {
   position: relative;
   display: flex;
@@ -218,47 +411,54 @@ body {
   position: absolute;
   top: 100%;
   right: 0;
-  margin-top: 10px;
-  background: var(--bg);
+  margin-top: 6px;
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px;
-  width: 280px;
+  border-radius: var(--radius);
+  padding: 10px;
+  width: 260px;
   z-index: 100;
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .tag-search-input {
   width: 100%;
   box-sizing: border-box;
-  background: var(--code-bg);
-  color: var(--text-h);
+  background: var(--bg-input);
+  color: var(--text-primary);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
 }
 
-/* タグチップ */
+.tag-search-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
 .selected-tags-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding-bottom: 10px;
+  gap: 4px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--border);
 }
 
 .tag-chip {
-  background-color: var(--accent);
+  background: var(--accent);
   color: #fff;
-  padding: 4px 10px;
-  border-radius: 16px;
-  font-size: 0.8rem;
+  padding: 2px 10px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .tag-remove-btn {
@@ -266,67 +466,257 @@ body {
   border: none;
   color: #fff;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 0.9rem;
   padding: 0;
+  opacity: 0.7;
 }
 
-/* タグ選択リスト */
+.tag-remove-btn:hover { opacity: 1; }
+
 .tag-dropdown-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 180px;
+  max-height: 160px;
   overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
+.tag-dropdown-list::-webkit-scrollbar { width: 4px; }
+.tag-dropdown-list::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 2px; }
+
 .tag-list-item {
-  padding: 10px 12px;
-  color: var(--text);
-  font-size: 0.9rem;
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-size: 0.8rem;
   cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
 }
 
-.tag-list-item:hover {
-  background: var(--accent-bg);
-}
+.tag-list-item:last-child { border-bottom: none; }
+.tag-list-item:hover { background: var(--bg-hover); }
 
 .tag-list-item.is-selected {
   color: var(--accent);
-  font-weight: bold;
+  font-weight: 600;
+  background: var(--accent-soft);
 }
 
 .tag-create-item {
   color: var(--accent);
-  font-weight: bold;
-  background: var(--accent-bg);
+  font-weight: 600;
+  background: var(--accent-soft);
+}
+
+.tag-name { flex-grow: 1; }
+.tag-item-actions { display: flex; align-items: center; gap: 6px; }
+.check-icon { font-weight: bold; }
+
+.sys-tag-delete-btn {
+  background: none;
+  border: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity var(--transition);
+  padding: 0;
+}
+
+.sys-tag-delete-btn:hover { opacity: 1; }
+
+.tag-list-empty {
+  padding: 6px 10px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
 }
 
 .tag-menu-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: 6px;
 }
 
 .tag-cancel-btn {
   background: transparent;
-  color: var(--text);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
   cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
 }
+
+.tag-cancel-btn:hover { background: var(--bg-hover); }
 
 .tag-save-btn {
   background: var(--accent);
   color: #fff;
   border: none;
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius);
   cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tag-save-btn:hover { background: var(--accent-hover); }
+
+.add-icon { font-weight: bold; font-size: 1rem; }
+
+/* ---------- 13. アイコンボタン ---------- */
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  opacity: 0.4;
+  padding: 4px;
+  transition: opacity var(--transition);
+}
+
+.icon-btn:hover { opacity: 1; }
+
+
+/* ---------- 14. ソートリスト ---------- */
+.sortable-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.sortable-item {
+  display: flex;
+  align-items: flex-start;
+  transition: opacity var(--transition);
+  margin-bottom: 0;
+}
+
+.sortable-item.dragging { opacity: 0.4; }
+
+.drag-handle {
+  cursor: grab;
+  padding: 6px 4px;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.drag-handle:hover { color: var(--accent); }
+.drag-handle:active { cursor: grabbing; }
+
+.item-content { flex: 1; width: 100%; }
+
+
+/* ---------- 15. アニメーション ---------- */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.25s ease;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+
+/* ---------- 16. 空状態 ---------- */
+.memo-empty {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+
+/* ---------- 17. レイアウトラッパー ---------- */
+.memo-layout-wrapper {
+  width: 100%;
+  display: flex;
+}
+
+
+/* ---------- 18. スクロールバー ---------- */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+
+
+/* ---------- 19. 削除ボタン ---------- */
+.delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--danger);
+  color: #fff;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.delete-btn:hover {
+  background: var(--danger-hover);
+}
+
+
+/* ---------- 20. タグ内のインライン削除ボタン ---------- */
+.tag-remove-inline {
+  background: none;
+  border: none;
+  color: var(--tag-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0.5;
+  padding: 0 2px;
+  margin-left: 2px;
+  transition: opacity var(--transition);
+  line-height: 1;
+}
+
+.tag-remove-inline:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+
+/* ---------- 21. 登録フォーム下部ボタン行 ---------- */
+.register-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.register-bottom-row .tag-dropdown-wrapper {
+  position: relative;
+}
+
+.register-title-field {
+  margin-bottom: 8px;
+}
+
+.register-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
 }

@@ -1,9 +1,9 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, computed } from 'vue'
 import { MemoRegister } from './memoRegister.ts'
-import inputBaseField from '../../../shared/inputBaseField.vue'
 import buttonBaseField from '../../../shared/buttonBaseField.vue'
 import tagSearch from '../../tagLogic/tagSearch/tagSearch.vue';
+import TagBadgeList from '../../tagLogic/tagBadgeList/tagBadgeList.vue';
 
 // defineEmits を使って、親に合図を送るための「emit」関数を定義します
 const emit = defineEmits(['save-success'])
@@ -19,28 +19,35 @@ const newMemo = reactive({
 const showTagSearch = ref(false);
 const localTags = ref([]); // 作成予定のメモに紐づけるタグのリスト
 
+// タグ追加（トグルの「追加」側）
 const handleLocalTagAdded = (tagObj) => {
-  // tagObj は { id, title } などを想定
-  if (!localTags.value.find(t => t.title === tagObj.title)) {
+  if (!localTags.value.find(t => t.id === tagObj.id)) {
     localTags.value.push(tagObj);
   }
 };
 
-const handleRemoveLocalTag = (index) => {
-  localTags.value.splice(index, 1);
+// タグ解除（トグルの「解除」側）
+const handleLocalTagRemoved = (tagObj) => {
+  localTags.value = localTags.value.filter(t => t.id !== tagObj.id);
 };
+
+// TagBadgeListからの削除
+const handleBadgeRemove = (tag) => {
+  localTags.value = localTags.value.filter(t => t.id !== tag.id);
+};
+
+// 選択中タグのID配列（tagSearchに渡してハイライトさせる）
+const linkedTagIds = computed(() => localTags.value.map(t => t.id));
 
 // 保存ボタンが押された時の処理
 const handleSave = async () => {
   const success = await executeRegister({
     title: newMemo.title,
     content: newMemo.content,
-    tags: localTags.value.map(t => t.title) // タグ名の配列を渡す
+    tags: localTags.value.map(t => t.title)
   });
   if (success) {
-    // 【変更】ここで親（MemoScreen）に合図を送る
     emit('save-success'); 
-
     alert("メモを保存しました！");
     newMemo.title = '';
     newMemo.content = '';
@@ -51,49 +58,54 @@ const handleSave = async () => {
 </script>
 
 <template>
-  <div class="memo-register-wrapper" style="margin-bottom: 2rem;">
-    <div style="display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px;">
-      <div style="flex: 1;">
-        <inputBaseField
-          id="title"
-          label=""
+  <div class="memo-register-wrapper">
+    <!-- タイトルとコンテンツを横並び -->
+    <div class="register-row">
+      <div class="title-cell">
+        <textarea
+          id="reg-title"
           v-model="newMemo.title"
-          placeholder="タイトルを入力してください"
+          placeholder="タイトル"
+          rows="1"
+          class="title-input"
         />
       </div>
+      <div class="content-cell">
+        <textarea
+          id="reg-content"
+          v-model="newMemo.content"
+          placeholder="内容を入力してください"
+          rows="2"
+          class="content-input"
+        />
+      </div>
+    </div>
+
+    <!-- 選択タグ＋ボタン行 -->
+    <div class="register-bottom-row">
+      <buttonBaseField
+        id="submit"
+        label="保存"
+        @click="handleSave">
+      </buttonBaseField>
       
-      <div class="tag-dropdown-wrapper" style="position: relative; padding-bottom: 0.5rem;">
-        <button @click="showTagSearch = !showTagSearch" class="icon-btn" title="タグ設定" style="cursor: pointer; font-size: 1.5rem; border: none; background: none; padding: 5px;">⚙️</button>
-        
+      <div class="tag-dropdown-wrapper">
+        <button @click.stop="showTagSearch = !showTagSearch" class="tag-add-btn" title="タグ設定">
+          ⚙️ タグ
+        </button>
         <tagSearch 
-          v-if="showTagSearch" 
-          @tag-added="handleLocalTagAdded" 
+          v-if="showTagSearch"
+          :linkedTagIds="linkedTagIds"
+          @tag-added="handleLocalTagAdded"
+          @tag-removed="handleLocalTagRemoved"
           @close="showTagSearch = false"
         />
       </div>
+
+      <TagBadgeList
+        :tags="localTags"
+        @remove="handleBadgeRemove"
+      />
     </div>
-
-    <!-- 既に選択されたタグを簡易表示しておく -->
-    <div style="margin-bottom: 10px;" v-if="localTags.length > 0">
-      <span v-for="(tag, index) in localTags" :key="'out-'+tag.title" class="tag-badge" style="display:inline-block; margin-right:5px; margin-bottom:5px; font-size:0.8rem; background:#4a90e2; color:white; padding:4px 8px; border-radius:4px;">
-        #{{ tag.title }}
-        <button @click.prevent="handleRemoveLocalTag(index)" style="background:none; border:none; color:white; cursor:pointer; margin-left:3px;">×</button>
-      </span>
-    </div>
-
-    <inputBaseField
-      id="content"
-      label=""
-      v-model="newMemo.content"
-      placeholder="内容を入力してください"
-      :multiline="true"
-      :rows="6"
-    />
-
-    <buttonBaseField
-      id="submit"
-      label="保存"
-      @click="handleSave">
-    </buttonBaseField>
   </div>
 </template>

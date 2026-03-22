@@ -44,7 +44,7 @@ tagsRouter.post("/", async (req, res) => {
     try {
         const { memoId, title } = req.body;
         if (!title) return res.status(400).json({ message: "title が必要です" });
-        
+
         let tag = await prisma.tags.findUnique({ where: { title } });
         if (!tag) {
             tag = await prisma.tags.create({ data: { title } });
@@ -65,6 +65,36 @@ tagsRouter.post("/", async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "エラーが発生しました" });
+    }
+});
+
+// メモからタグの紐付けを解除
+tagsRouter.delete("/unlink/:memoId/:tagId", async (req, res) => {
+    try {
+        const { memoId, tagId } = req.params;
+        await prisma.memo_tags.deleteMany({
+            where: { memo_id: Number(memoId), tag_id: Number(tagId) }
+        });
+        res.status(200).json({ message: "タグの紐付けを解除しました" });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "エラーが発生しました" });
+    }
+});
+
+// タグをシステムから完全削除（全メモとの紐付けも解除）
+tagsRouter.delete("/system-delete/:tagId", async (req, res) => {
+    try {
+        const tagId = Number(req.params.tagId);
+        await prisma.memo_tags.deleteMany({ where: { tag_id: tagId } });
+        await prisma.tags.delete({ where: { id: tagId } });
+        res.status(200).json({ message: "タグを完全に削除しました" });
+    } catch (error) {
+        console.error("タグ削除エラー:", error);
+        if ((error as any).code === 'P2025') {
+            return res.status(404).json({ message: "タグが見つかりません" });
+        }
+        res.status(500).json({ message: "削除中にエラーが発生しました" });
     }
 });
 

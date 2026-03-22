@@ -1,6 +1,7 @@
 
 
 <script setup>
+import '../style.css'; // モダンデザインシステムの読み込み
 // import style from '';
 import { reactive } from 'vue'
 import { ref } from 'vue'

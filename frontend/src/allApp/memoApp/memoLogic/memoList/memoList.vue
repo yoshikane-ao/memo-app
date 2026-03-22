@@ -6,12 +6,12 @@
 import { onMounted, watch, computed, reactive } from 'vue'; // Vueの「ライフサイクル」：画面が表示された瞬間の動きを制御する
 import { memoList } from './memoList.ts'; // 「コンポーザブル」：メモ一覧のデータ操作ロジックを別ファイルから取得
 import { memoViewControl } from '../memoViewControl/memoViewControl.ts'; // 表示制御共通ロジック
+import axios from 'axios';
 
 // 他のコンポーネント（子部品）の読み込み
-import MemoDelete from '../memoDelete/memoDelete.vue'; // 削除ボタンの部品
 import memoUpdate from '../memoUpdate/memoUpdate.vue'; // 更新コンポーネント
-import inputBaseField from '../../../shared/inputBaseField.vue'; // 入力フォームの共通部品
 import tagSearch from '../../tagLogic/tagSearch/tagSearch.vue'; // タグ検索機能
+import TagBadgeList from '../../tagLogic/tagBadgeList/tagBadgeList.vue'; // タグバッジ共通コンポーネント
 import memoCopy from '../memoCopy/memoCopy.vue'; // コピー機能部
 import memoSortWrapper from '../memoSort/memoSort.vue'; // 並び替えラッパーコンポーネント
 import { saveSortOrder } from '../memoSort/memoSort'; // 並び替え時の保存機能
@@ -62,6 +62,36 @@ onMounted(() => {
   fetchMemos(); // サーバー等から最新のメモ一覧を取得する
 });
 
+// メモからタグの紐付けを解除する
+const removeTag = async (memoId, tagId) => {
+  try {
+    await axios.delete(`http://localhost:3000/tags/unlink/${memoId}/${tagId}`);
+    fetchMemos();
+  } catch (error) {
+    console.error("タグの解除に失敗しました", error);
+  }
+};
+
+// メモの削除
+const deleteMemo = async (memoId) => {
+  console.log('[DELETE] ボタン押下, memoId:', memoId);
+  
+  const confirmed = window.confirm('このメモを削除してもよろしいですか？');
+  console.log('[DELETE] confirm結果:', confirmed);
+  
+  if (!confirmed) return;
+  
+  try {
+    console.log('[DELETE] リクエスト送信:', `http://localhost:3000/memos/delete/${memoId}`);
+    const response = await axios.delete(`http://localhost:3000/memos/delete/${memoId}`);
+    console.log('[DELETE] 成功:', response.data);
+    await fetchMemos();
+  } catch (error) {
+    console.error('[DELETE] 失敗:', error);
+    alert('削除に失敗しました:\n' + (error.response?.data?.message || error.message));
+  }
+};
+
 /**
  * 検索結果など、外部から直接メモ一覧を差し替えるための関数
  */
@@ -78,15 +108,13 @@ const setMemos = (newMemos) => {
 
 /**
  * 【外部公開設定】
- * defineExpose: 親コンポーネントからこのコンポーネントの関数を直接呼べるようにする
- * 例：メモ作成画面（親）で保存に成功した後、この一覧を更新させるために使用
  */
 defineExpose({ fetchMemos, setMemos });
 </script>
 
 <template>
   <div class="memo-container">
-    <div v-if="displayedMemos.length === 0" style="margin-bottom: 20px; color: #666;">
+    <div v-if="displayedMemos.length === 0" class="memo-empty">
       対象のメモが見つかりません。
     </div>
 
@@ -97,56 +125,72 @@ defineExpose({ fetchMemos, setMemos });
       @sortEnd="saveSortOrder"
     >
       <template #default="{ item: memo }">
-        <div class="memo-card" style="width: 100%; box-sizing: border-box; margin-bottom: 0;">
-          
-          <inputBaseField :id="'title-' + memo.id" v-model="memo.title" />
-          
-          <memoLayout 
-            :memoId="memo.id" 
-            :initialWidth="memo.width" 
-            :initialHeight="memo.height"
-            @resize="(w, h) => handleResize(memo.id, w, h)"
-          >
-            <inputBaseField :id="'content-' + memo.id" v-model="memo.content" :multiline="true" />
-          </memoLayout>
-
-          <memoUpdate 
-            :memoId="memo.id"
-            :title="memo.title"
-            :content="memo.content"
-            :initialTitle="memo.initialTitle"
-            :initialContent="memo.initialContent"
-            :currentWidth="resizeWidths[memo.id] !== undefined ? resizeWidths[memo.id] : memo.width"
-            :initialWidth="memo.width"
-            :currentHeight="resizeHeights[memo.id] !== undefined ? resizeHeights[memo.id] : memo.height"
-            :initialHeight="memo.height"
-            @update="fetchMemos"
-          />
-
-          <div class="card-footer">
-            <memoCopy :text="`${memo.title}\n\n${memo.content}`" />
-            <MemoDelete :memoId="memo.id" @deleted="fetchMemos" />
-          </div>
-
-          <div class="tags" style="margin-top: 10px; position: relative;">
-            <!-- 既存のタグ表示（削除や編集の機能は将来実装など） -->
-            <span v-for="mt in memo.memo_tags" :key="mt.tag.id" class="tag-badge">
-              #{{ mt.tag.title }}
-            </span>
-
-            <!-- ＋タグ追加 ボタンの配置 -->
-            <button @click="memo.showTagSearch = !memo.showTagSearch" style="font-size: 0.8rem; cursor: pointer; border: 1px solid #ccc; padding: 2px 6px; border-radius: 4px; background: #fff; margin-left: 5px;">
-              ＋タグ追加
-            </button>
-            
-            <!-- 各メモ専用の検索小窓 -->
-            <tagSearch 
-              v-if="memo.showTagSearch" 
-              :memoId="memo.id" 
-              @tag-added="fetchMemos" 
-              @close="memo.showTagSearch = false"
+        <div class="memo-row">
+          <!-- タイトル（横リサイズのみ） -->
+          <div class="title-cell">
+            <textarea
+              :id="'title-' + memo.id"
+              :value="memo.title"
+              @input="memo.title = $event.target.value"
+              rows="1"
+              class="title-input"
             />
           </div>
+
+          <!-- コンテンツ（縦リサイズのみ）→ memoLayout で監視 -->
+          <div class="content-cell">
+            <memoLayout 
+              :memoId="memo.id" 
+              :initialWidth="memo.width" 
+              :initialHeight="memo.height"
+              @resize="(w, h) => handleResize(memo.id, w, h)"
+            >
+              <textarea
+                :id="'content-' + memo.id"
+                :value="memo.content"
+                @input="memo.content = $event.target.value"
+                rows="2"
+                class="content-input"
+              />
+            </memoLayout>
+          </div>
+
+          <!-- アクションボタン群: コピー → 更新 → 削除 -->
+          <div class="actions-cell">
+            <memoCopy :text="`${memo.title}\n\n${memo.content}`" />
+            <memoUpdate 
+              :memoId="memo.id"
+              :title="memo.title"
+              :content="memo.content"
+              :initialTitle="memo.initialTitle"
+              :initialContent="memo.initialContent"
+              :currentWidth="resizeWidths[memo.id] !== undefined ? resizeWidths[memo.id] : memo.width"
+              :initialWidth="memo.width"
+              :currentHeight="resizeHeights[memo.id] !== undefined ? resizeHeights[memo.id] : memo.height"
+              :initialHeight="memo.height"
+              @update="fetchMemos"
+            />
+            <button class="delete-btn" @click="deleteMemo(memo.id)">削除</button>
+          </div>
+        </div>
+
+        <!-- タグ行 -->
+        <div class="tag-row">
+          <TagBadgeList
+            :tags="(memo.memo_tags || []).map(mt => mt.tag)"
+            @remove="(tag) => removeTag(memo.id, tag.id)"
+          />
+          <button @click.stop="memo.showTagSearch = !memo.showTagSearch" class="tag-add-btn">
+            ＋タグ
+          </button>
+          <tagSearch 
+            v-if="memo.showTagSearch" 
+            :memoId="memo.id"
+            :linkedTagIds="(memo.memo_tags || []).map(mt => mt.tag.id)"
+            @tag-added="fetchMemos"
+            @tag-deleted="fetchMemos"
+            @close="memo.showTagSearch = false"
+          />
         </div>
       </template>
     </memoSortWrapper>

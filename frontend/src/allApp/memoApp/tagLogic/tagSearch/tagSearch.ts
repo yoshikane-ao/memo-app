@@ -28,5 +28,5 @@ export function useTagSearch() {
         return allTags.value.some(tag => tag.title === searchQuery.value.trim());
     });
 
-    return { searchQuery, filteredTags, hasExactMatch, fetchAllTags };
+    return { searchQuery, filteredTags, hasExactMatch, fetchAllTags, allTags };
 }
