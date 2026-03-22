@@ -69,7 +69,7 @@ const onDrop = (e: DragEvent) => {
   </div>
 </template>
 
-<!-- <style scoped>
+<style scoped>
 .sortable-list {
   display: flex;
   flex-direction: column;
@@ -105,4 +105,4 @@ const onDrop = (e: DragEvent) => {
   flex: 1;
   width: 100%;
 }
-</style> -->
+</style>

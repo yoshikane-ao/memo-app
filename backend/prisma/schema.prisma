@@ -13,6 +13,8 @@ datasource db {
 model Memos {
   id          Int             @id @default(autoincrement())
   orderIndex  Int             @default(0)
+  width       Int?
+  height      Int?
   title       String          @db.VarChar(20)
   content     String
   createdAt   DateTime        @default(now())

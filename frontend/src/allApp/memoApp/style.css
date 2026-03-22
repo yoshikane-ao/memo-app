@@ -55,7 +55,7 @@ body {
   gap: 12px;
 }
 
-.search-bar select, 
+.search-bar select,
 .search-bar input {
   background: var(--code-bg);
   color: var(--text-h);
@@ -100,7 +100,8 @@ body {
   gap: 12px;
 }
 
-.title-input, .content-input {
+.title-input,
+.content-input {
   background: var(--bg);
   border: 1px solid var(--border);
   color: var(--text-h);
@@ -119,12 +120,15 @@ body {
 }
 
 /* アニメーション */
-.accordion-enter-active, .accordion-leave-active {
+.accordion-enter-active,
+.accordion-leave-active {
   transition: all 0.3s ease;
   max-height: 300px;
   overflow: hidden;
 }
-.accordion-enter-from, .accordion-leave-to {
+
+.accordion-enter-from,
+.accordion-leave-to {
   max-height: 0;
   opacity: 0;
 }
@@ -174,7 +178,8 @@ body {
   font-family: var(--sans);
 }
 
-.resizable-title:focus, .resizable-content:focus {
+.resizable-title:focus,
+.resizable-content:focus {
   outline: none;
   background: var(--accent-bg);
 }
