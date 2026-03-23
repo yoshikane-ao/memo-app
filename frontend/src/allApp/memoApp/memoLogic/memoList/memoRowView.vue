@@ -4,7 +4,9 @@ import MemoUpdate from '../memoUpdate/memoUpdate.vue';
 import MemoDelete from '../memoDelete/memoDelete.vue';
 import MemoCopy from '../memoCopy/memoCopy.vue';
 import TagRelationField from '../../tagLogic/tagRelation/tagRelationField.vue';
-import type { MemoRowViewEmits, MemoRowViewProps } from '../Types';
+import type { MemoDeletedPayload } from '../memoDelete/types';
+import type { MemoUpdatedPayload } from '../memoUpdate/types';
+import type { MemoRowViewEmits, MemoRowViewProps } from './types';
 
 const props = defineProps<MemoRowViewProps>();
 const emit = defineEmits<MemoRowViewEmits>();
@@ -14,6 +16,14 @@ const contentTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
 const notifyChanged = () => {
   emit('changed');
+};
+
+const handleUpdated = (payload: MemoUpdatedPayload) => {
+  emit('memo-updated', payload);
+};
+
+const handleDeleted = (memoId: MemoDeletedPayload) => {
+  emit('memo-deleted', memoId);
 };
 
 const syncTitleLayout = () => {
@@ -33,12 +43,24 @@ const syncContentLayout = () => {
 };
 
 const handleTitleInput = (event: Event) => {
-  emit('title-input', event);
+  const target = event.target;
+
+  if (!(target instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  emit('title-input', target.value);
   syncTitleLayout();
 };
 
 const handleContentInput = (event: Event) => {
-  emit('content-input', event);
+  const target = event.target;
+
+  if (!(target instanceof HTMLTextAreaElement)) {
+    return;
+  }
+
+  emit('content-input', target.value);
   syncContentLayout();
 };
 
@@ -97,9 +119,9 @@ watch(() => props.memo.content, syncContentLayout);
         :initialWidth="memo.width ?? undefined"
         :currentHeight="currentHeight"
         :initialHeight="memo.height ?? undefined"
-        @updated="notifyChanged"
+        @memo-updated="handleUpdated"
       />
-      <MemoDelete :memoId="memo.id" @deleted="notifyChanged" />
+      <MemoDelete :memoId="memo.id" @memo-deleted="handleDeleted" />
     </div>
   </div>
 </template>

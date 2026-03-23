@@ -1,35 +1,44 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, watch } from 'vue';
+import TagBadgeList from '../tagBadgeList/tagBadgeList.vue';
 import { useTagCatalog } from '../tagCatalog/tagCatalog';
+import TagSearch from '../tagSearch/tagSearch.vue';
+import type { TagItem } from '../Types';
 import { useTagFilter } from './tagFilter';
 import type { TagFilterFieldEmits, TagFilterFieldProps } from '../Types';
 
 const props = defineProps<TagFilterFieldProps>();
 const emit = defineEmits<TagFilterFieldEmits>();
 
+const isSameTagIdList = (left: number[], right: number[]) => {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+};
+
 const { allTags, fetchAllTags } = useTagCatalog();
 const {
   localSelectedTags,
   isDropdownOpen,
-  toggleTag,
+  addTag,
+  removeTag,
   replaceSelectedTags
 } = useTagFilter(props.selectedTags ?? []);
 
-const containerRef = ref<HTMLElement | null>(null);
+const selectedTagItems = computed<TagItem[]>(() => {
+  return localSelectedTags.value
+    .map((tagId) => allTags.value.find((tag) => tag.id === tagId))
+    .filter((tag): tag is TagItem => Boolean(tag));
+});
 
-const onClickOutside = (event: MouseEvent) => {
-  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
-    isDropdownOpen.value = false;
-  }
+const handleTagAdded = (tag: TagItem) => {
+  addTag(tag.id);
+};
+
+const handleTagRemoved = (tag: TagItem) => {
+  removeTag(tag.id);
 };
 
 onMounted(() => {
   void fetchAllTags();
-  document.addEventListener('click', onClickOutside, true);
-});
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', onClickOutside, true);
 });
 
 watch(
@@ -40,8 +49,21 @@ watch(
 );
 
 watch(
+  allTags,
+  (tags) => {
+    const validTagIds = tags.map((tag) => tag.id);
+    replaceSelectedTags(localSelectedTags.value.filter((tagId) => validTagIds.includes(tagId)));
+  },
+  { deep: true }
+);
+
+watch(
   localSelectedTags,
   (value) => {
+    if (isSameTagIdList(value, props.selectedTags ?? [])) {
+      return;
+    }
+
     emit('update:selectedTags', [...value]);
   },
   { deep: true }
@@ -49,25 +71,26 @@ watch(
 </script>
 
 <template>
-  <div v-if="allTags.length > 0" ref="containerRef" class="dropdown-container">
-    <button class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
-      タグで絞り込む {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }} ▼
-    </button>
-    <div v-if="isDropdownOpen" class="dropdown-menu">
-      <label
-        v-for="tag in allTags"
-        :key="tag.id"
-        class="dropdown-item"
-      >
-        <input
-          type="checkbox"
-          :value="tag.id"
-          :checked="localSelectedTags.includes(tag.id)"
-          @change="toggleTag(tag.id)"
+  <div class="dropdown-container">
+    <div class="tag-filter-trigger-row">
+      <button type="button" class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
+        タグで絞り込む {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }} ▼
+      </button>
+
+      <div v-if="selectedTagItems.length > 0" class="tag-filter-selected-preview">
+        <TagBadgeList
+          :tags="selectedTagItems"
+          :removable="false"
         />
-        #{{ tag.title }}
-      </label>
+      </div>
     </div>
+
+    <TagSearch
+      v-if="isDropdownOpen"
+      :linkedTagIds="localSelectedTags"
+      @tag-added="handleTagAdded"
+      @tag-removed="handleTagRemoved"
+      @close="isDropdownOpen = false"
+    />
   </div>
 </template>
-

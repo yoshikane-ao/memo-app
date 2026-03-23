@@ -13,7 +13,10 @@ const {
   displayedMemos,
   canSort,
   repaintMemos,
-  replaceMemos
+  replaceMemos,
+  commitSortedMemos,
+  commitMemoUpdate,
+  removeMemo
 } = useMemoRepaint();
 
 onMounted(() => {
@@ -33,7 +36,9 @@ onMounted(() => {
     :items="displayedMemos"
     :canSort="canSort"
     @update:items="replaceMemos"
-    @sorted="repaintMemos"
+    @sort-saved="commitSortedMemos"
     @changed="repaintMemos"
+    @memo-updated="commitMemoUpdate"
+    @memo-deleted="removeMemo"
   />
 </template>

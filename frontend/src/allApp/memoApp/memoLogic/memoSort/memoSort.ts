@@ -1,5 +1,6 @@
 import axios from 'axios';
-import type { MemoListItem, MemoSortPayloadItem } from '../Types';
+import type { MemoListItem } from '../types/memo-domain.types';
+import type { MemoSortPayloadItem } from './types';
 
 export const saveSortOrder = async (memos: MemoListItem[]) => {
   const items: MemoSortPayloadItem[] = memos.map((memo, index) => ({

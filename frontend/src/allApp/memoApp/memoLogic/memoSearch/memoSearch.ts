@@ -1,5 +1,6 @@
 import { computed, ref, type Ref } from 'vue';
-import type { MemoListItem, MemoSearchType, MemoSortOrder } from '../Types';
+import type { MemoListItem } from '../types/memo-domain.types';
+import type { MemoSearchType, MemoSortOrder } from './types';
 
 export function useMemoSearch(memos: Ref<MemoListItem[]>) {
   const keyword = ref('');

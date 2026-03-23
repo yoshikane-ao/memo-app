@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { memoUpdate } from './memoUpdate.ts';
 import buttonBaseField from '../../../shared/buttonBaseField.vue';
-import type { MemoUpdateEmits, MemoUpdateProps } from '../Types';
+import type { MemoUpdateEmits, MemoUpdateProps } from './types';
 
 const props = defineProps<MemoUpdateProps>();
 
@@ -33,7 +33,13 @@ const handleUpdate = async () => {
   });
 
   if (success) {
-    emit('updated');
+    emit('memo-updated', {
+      memoId: props.memoId,
+      title: props.title,
+      content: props.content,
+      width: props.currentWidth,
+      height: props.currentHeight
+    });
     return;
   }
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { MemoRegisterInput } from '../Types';
+import type { MemoRegisterInput } from './types';
 
 export function MemoRegister() {
     const executeRegister = async (memoData: MemoRegisterInput) => {

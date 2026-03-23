@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { MemoUpdateInput } from '../Types';
+import type { MemoUpdateInput } from './types';
 
 export function memoUpdate() {
     const executeUpdate = async (input: MemoUpdateInput) => {

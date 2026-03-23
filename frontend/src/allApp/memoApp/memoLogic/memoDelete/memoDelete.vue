@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { memoDelete } from './memoDelete.ts';
 import buttonBaseField from '../../../shared/buttonBaseField.vue';
-import type { MemoDeleteEmits, MemoIdProps } from '../Types';
+import type { MemoIdProps } from '../types/memo-domain.types';
+import type { MemoDeleteEmits } from './types';
 
 const props = defineProps<MemoIdProps>();
 
@@ -18,7 +19,7 @@ const onClickDelete = async () => {
   const success = await executeDelete(props.memoId);
 
   if (success) {
-    emit('deleted');
+    emit('memo-deleted', props.memoId);
     return;
   }
 

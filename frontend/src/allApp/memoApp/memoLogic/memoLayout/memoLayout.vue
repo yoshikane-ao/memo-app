@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useMemoLayoutState } from './memoLayout';
-import type { MemoLayoutSlotProps } from '../Types';
+import type { MemoLayoutSlotProps } from './types';
 
 defineSlots<{
   default(props: MemoLayoutSlotProps): any;

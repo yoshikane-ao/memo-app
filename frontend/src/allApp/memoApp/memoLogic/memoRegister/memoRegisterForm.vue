@@ -3,7 +3,7 @@ import { onMounted, ref, watch } from 'vue';
 import buttonBaseField from '../../../shared/buttonBaseField.vue';
 import TagSelectionField from '../../tagLogic/tagSelection/tagSelectionField.vue';
 import { applyAutoContentHeight, applyAutoTitleWidth } from '../memoLayout/memoLayout';
-import type { MemoRegisterFormEmits, MemoRegisterFormProps } from '../Types';
+import type { MemoRegisterFormEmits, MemoRegisterFormProps } from './types';
 
 const props = defineProps<MemoRegisterFormProps>();
 const emit = defineEmits<MemoRegisterFormEmits>();
@@ -23,7 +23,6 @@ const syncContentLayout = () => {
   if (!contentTextareaRef.value) {
     return;
   }
-
   applyAutoContentHeight(contentTextareaRef.value);
 };
 

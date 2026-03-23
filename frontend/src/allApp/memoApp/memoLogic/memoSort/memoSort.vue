@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { saveSortOrder } from './memoSort';
-import type { MemoSortEmits, MemoSortProps } from '../Types';
+import type { MemoSortEmits, MemoSortProps } from './types';
 
 const props = defineProps<MemoSortProps>();
 const emit = defineEmits<MemoSortEmits>();
@@ -41,7 +41,7 @@ const onDrop = async (e: DragEvent) => {
     return;
   }
 
-  emit('sorted');
+  emit('sort-saved', props.items);
 };
 </script>
 

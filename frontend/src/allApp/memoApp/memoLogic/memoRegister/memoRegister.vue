@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue';
 import { MemoRegister } from './memoRegister.ts';
 import MemoRegisterForm from './memoRegisterForm.vue';
-import type { MemoDraft, MemoRegisterEmits } from '../Types';
+import type { MemoDraft, MemoRegisterEmits } from './types';
 
 const emit = defineEmits<MemoRegisterEmits>();
 

@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import type { MemoListItem } from '../Types';
+import type { MemoListItem } from '../types/memo-domain.types';
 
 const MIN_TITLE_WIDTH = 80;
 const MAX_TITLE_WIDTH = 500;

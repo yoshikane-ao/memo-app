@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MemoSortWrapper from '../memoSort/memoSort.vue';
-import type { MemoListViewEmits, MemoListViewProps } from '../Types';
+import type { MemoListViewEmits, MemoListViewProps } from './types';
 
 defineProps<MemoListViewProps>();
 const emit = defineEmits<MemoListViewEmits>();
@@ -16,7 +16,7 @@ const emit = defineEmits<MemoListViewEmits>();
       :items="items"
       :disabled="!canSort"
       @update:items="emit('update:items', $event)"
-      @sorted="emit('sorted')"
+      @sort-saved="emit('sort-saved', $event)"
     >
       <template #default="{ item: memo }">
         <slot :memo="memo" />

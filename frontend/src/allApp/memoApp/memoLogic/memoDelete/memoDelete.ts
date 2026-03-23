@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { MemoIdProps } from '../Types';
+import type { MemoIdProps } from '../types/memo-domain.types';
 
 export function memoDelete() {
     const executeDelete = async (id: MemoIdProps['memoId']) => {

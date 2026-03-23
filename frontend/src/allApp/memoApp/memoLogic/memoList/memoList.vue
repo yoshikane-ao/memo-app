@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import MemoLayout from '../memoLayout/memoLayout.vue';
+import { useMemoCollection } from '../memoCollection/memoCollection';
 import MemoListView from './memoListView.vue';
 import MemoRowView from './memoRowView.vue';
-import { useMemoListState } from './memoList';
-import type { MemoListEmits, MemoListProps } from '../Types';
+import type { MemoDeletedPayload } from '../memoDelete/types';
+import type { MemoUpdatedPayload } from '../memoUpdate/types';
+import type { MemoListEmits, MemoListProps } from './types';
 
 const props = defineProps<MemoListProps>();
 const emit = defineEmits<MemoListEmits>();
-
-const { updateMemoField } = useMemoListState();
+const { updateMemoField } = useMemoCollection();
 
 const notifyChanged = () => {
   emit('changed');
@@ -22,12 +23,24 @@ const updateItems = (items: MemoListProps['items']) => {
   emit('update:items', items);
 };
 
-const handleSorted = () => {
+const handleSorted = (items: MemoListProps['items']) => {
   if (!props.canSort) {
     return;
   }
 
-  emit('sorted');
+  emit('sort-saved', items);
+};
+
+const handleUpdated = (payload: MemoUpdatedPayload) => {
+  emit('memo-updated', payload);
+};
+
+const handleDeleted = (memoId: MemoDeletedPayload) => {
+  emit('memo-deleted', memoId);
+};
+
+const handleMemoFieldUpdate = (memoId: number, field: 'title' | 'content', value: string) => {
+  updateMemoField(memoId, field, value);
 };
 </script>
 
@@ -39,7 +52,7 @@ const handleSorted = () => {
       :items="items"
       :canSort="canSort"
       @update:items="updateItems"
-      @sorted="handleSorted"
+      @sort-saved="handleSorted"
     >
       <template #default="{ memo }">
         <MemoRowView
@@ -50,9 +63,11 @@ const handleSorted = () => {
           :currentHeight="getCurrentHeight(memo)"
           :syncTitleLayout="syncTitleLayout"
           :syncContentLayout="syncContentLayout"
-          @title-input="updateMemoField(memo, 'title', $event)"
-          @content-input="updateMemoField(memo, 'content', $event)"
+          @title-input="handleMemoFieldUpdate(memo.id, 'title', $event)"
+          @content-input="handleMemoFieldUpdate(memo.id, 'content', $event)"
           @changed="notifyChanged"
+          @memo-updated="handleUpdated"
+          @memo-deleted="handleDeleted"
         />
       </template>
     </MemoListView>
