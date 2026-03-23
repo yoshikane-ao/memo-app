@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import type { MemoCopyProps } from '../Types';
 
-const props = defineProps<{ text: string }>();
+const props = defineProps<MemoCopyProps>();
 const isCopied = ref(false);
 
 const handleCopy = async () => {

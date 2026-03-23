@@ -1,37 +1,62 @@
-import { ref } from 'vue';
-import axios from 'axios';
+import { reactive } from 'vue';
+import type { MemoListItem, MemoTextField, ResizeDirection } from '../Types';
 
-export function memoList() {
-    // DBからきたメモ一覧を入れる「箱」
-    const memos = ref([]);
+export function useMemoListState() {
+  const resizeWidths = reactive<Record<number, number>>({});
+  const resizeHeights = reactive<Record<number, number>>({});
 
-    // 一覧を取得する関数
-    const fetchMemos = async () => {
-        try {
-            // 現在の検索小窓の開閉状態を記憶しておく
-            const showTagSearchMap = new Map();
-            memos.value.forEach((m: any) => {
-                showTagSearchMap.set(m.id, m.showTagSearch);
-            });
+  const updateMemoField = (memo: MemoListItem, field: MemoTextField, event: Event) => {
+    const target = event.target;
+    if (target instanceof HTMLTextAreaElement) {
+      memo[field] = target.value;
+    }
+  };
 
-            // バックエンドの GET /memos/list を叩く
-            const response = await axios.get('http://localhost:3000/memos/list');
+  const checkResize = (memoId: number, event: MouseEvent, direction: ResizeDirection) => {
+    const target = event.target;
+    if (!(target instanceof HTMLTextAreaElement)) {
+      return;
+    }
 
-            // バックエンドの json({ items: memos }) に合わせ、itemsを代入
-            // その際、更新判定に使うため「初期状態のタイトル・内容」をコピーして保持する
-            memos.value = response.data.items.map((item: any) => ({
-                ...item,
-                initialTitle: item.title,
-                initialContent: item.content,
-                currentWidth: item.width,
-                currentHeight: item.height,
-                // 既存のメモなら元の状態を引き継ぎ、新規なら閉じた状態にする
-                showTagSearch: showTagSearchMap.get(item.id) || false
-            }));
-        } catch (error) {
-            console.error("一覧の取得に失敗しました:", error);
-        }
-    };
+    const size = direction === 'width' ? target.style.width : target.style.height;
+    if (!size) {
+      return;
+    }
 
-    return { memos, fetchMemos };
+    const parsedSize = Number.parseInt(size, 10);
+    if (Number.isNaN(parsedSize)) {
+      return;
+    }
+
+    if (direction === 'width') {
+      resizeWidths[memoId] = parsedSize;
+      return;
+    }
+
+    resizeHeights[memoId] = parsedSize;
+  };
+
+  const getTitleWidth = (memo: MemoListItem) => {
+    const width = resizeWidths[memo.id] ?? memo.width;
+    return width == null ? undefined : `${width}px`;
+  };
+
+  const getContentHeight = (memo: MemoListItem) => {
+    const height = resizeHeights[memo.id] ?? memo.height;
+    return height == null ? undefined : `${height}px`;
+  };
+
+  const getCurrentWidth = (memo: MemoListItem) => resizeWidths[memo.id] ?? memo.width ?? undefined;
+
+  const getCurrentHeight = (memo: MemoListItem) =>
+    resizeHeights[memo.id] ?? memo.height ?? undefined;
+
+  return {
+    updateMemoField,
+    checkResize,
+    getTitleWidth,
+    getContentHeight,
+    getCurrentWidth,
+    getCurrentHeight
+  };
 }

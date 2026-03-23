@@ -1,12 +1,10 @@
-<script setup>
-/**
- * TagBadgeList - タグバッジの表示・削除を行う共通コンポーネント
- * メモ一覧とメモ新規作成の両方で使い回す
- */
-defineProps({
-  tags: { type: Array, required: true },  // { id, title } の配列
-  removable: { type: Boolean, default: true }
-});
+<script setup lang="ts">
+import type { TagItem } from '../Types';
+
+defineProps<{
+  tags: TagItem[];
+  removable?: boolean;
+}>();
 
 const emit = defineEmits(['remove']);
 </script>
@@ -15,12 +13,14 @@ const emit = defineEmits(['remove']);
   <template v-for="(tag, index) in tags" :key="tag.id || tag.title">
     <span class="tag-chip">
       #{{ tag.title }}
-      <button 
-        v-if="removable" 
-        class="tag-remove-btn" 
-        @click.prevent.stop="emit('remove', tag, index)"
+      <button
+        v-if="removable ?? true"
+        class="tag-remove-btn"
         title="タグを外す"
-      >×</button>
+        @click.prevent.stop="emit('remove', tag, index)"
+      >
+        x
+      </button>
     </span>
   </template>
 </template>

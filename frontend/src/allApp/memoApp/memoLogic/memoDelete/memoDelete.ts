@@ -1,16 +1,12 @@
 import axios from 'axios';
+import type { MemoIdProps } from '../Types';
 
 export function memoDelete() {
-    const executeDelete = async (id: number) => {
-        if (!confirm('削除してもよろしいですか？')) return false;
-
+    const executeDelete = async (id: MemoIdProps['memoId']) => {
         try {
-            // バックエンドの delete.ts (DELETE /api/memos/:id) を叩く
             await axios.delete(`http://localhost:3000/memos/delete/${id}`);
-            return true; // 成功したら true を返す
-        } catch (error) {
-            console.error("削除失敗:", error);
-            alert("削除に失敗しました");
+            return true;
+        } catch {
             return false;
         }
     };

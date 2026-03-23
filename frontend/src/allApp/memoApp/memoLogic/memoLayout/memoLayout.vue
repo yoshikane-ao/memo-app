@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue';
+import type { MemoLayoutEmits, MemoLayoutProps } from '../Types';
 
-const props = defineProps<{
-    memoId: number;
-    initialWidth?: number | null;
-    initialHeight?: number | null;
-}>();
+const props = defineProps<MemoLayoutProps>();
 
-const emit = defineEmits<{
-    (e: 'resize', width: number, height: number): void;
-}>();
+const emit = defineEmits<MemoLayoutEmits>();
 
 const wrapperRef = ref<HTMLElement | null>(null);
 let resizeObserver: ResizeObserver | null = null;

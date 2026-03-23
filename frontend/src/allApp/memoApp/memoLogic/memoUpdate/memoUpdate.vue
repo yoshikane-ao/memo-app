@@ -1,82 +1,67 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue';
 import { memoUpdate } from './memoUpdate.ts';
-import buttonBaseField from '../../../shared/buttonBaseField.vue'; 
+import buttonBaseField from '../../../shared/buttonBaseField.vue';
+import type { MemoUpdateEmits, MemoUpdateProps } from '../Types';
 
-/**
- * 【Props（プロパティ）の設定】
- */
-const props = defineProps({
-  memoId: { type: Number, required: true },
-  title: { type: String, required: true },         // 現在の入力値
-  content: { type: String, required: true },       // 現在の入力値
-  initialTitle: { type: String, required: true },  // 比較用の初期タイトル
-  initialContent: { type: String, required: true }, // 比較用の初期内容
-  currentWidth: { type: Number },
-  initialWidth: { type: Number },
-  currentHeight: { type: Number },
-  initialHeight: { type: Number }
+const props = defineProps<MemoUpdateProps>();
+
+const emit = defineEmits<MemoUpdateEmits>();
+
+const { executeUpdate } = memoUpdate();
+
+const hasTextChanged = computed(() => {
+  return props.title !== props.initialTitle || props.content !== props.initialContent;
 });
 
-/**
- * 【Emits（イベント発行）の設定】
- */
-const emit = defineEmits(['update']);
-
-/**
- * ロジックの初期化
- */
-const { executeUpdate, validateUpdate } = memoUpdate();
-
-/**
- * 【更新ボタンの有効判定】
- * TS側の validateUpdate を呼び出して結果を判定します。
- * 判定結果を反転させて「無効(disabled)にするか」を決めます。
- */
-const isUpdateDisabled = computed(() => {
-  const isValid = validateUpdate(
-    props.title, 
-    props.content, 
-    props.initialTitle, 
-    props.initialContent,
-    props.currentWidth,
-    props.initialWidth,
-    props.currentHeight,
-    props.initialHeight
-  );
-  
-  // バリデーションが OK でないなら Disabled(無効) を true にする
-  return !isValid;
-});
-
-/**
- * 更新ボタンがクリックされた時の処理
- */
-const handleUpdate = async () => {
-  const success = await executeUpdate(
-    props.memoId, 
-    props.title, 
-    props.content,
-    props.initialTitle,
-    props.initialContent,
-    props.currentWidth,
-    props.initialWidth,
-    props.currentHeight,
-    props.initialHeight
-  );
-  
-  if (success) {
-    emit('update');
+const hasWidthChanged = computed(() => {
+  if (props.currentWidth == null) {
+    return false;
   }
+
+  return props.currentWidth !== props.initialWidth && !(props.initialWidth == null && props.currentWidth === 0);
+});
+
+const hasHeightChanged = computed(() => {
+  if (props.currentHeight == null) {
+    return false;
+  }
+
+  return props.currentHeight !== props.initialHeight && !(props.initialHeight == null && props.currentHeight === 0);
+});
+
+const isUpdateDisabled = computed(() => {
+  const hasRequiredFields = props.title.trim() !== '' && props.content.trim() !== '';
+  return !hasRequiredFields || (!hasTextChanged.value && !hasWidthChanged.value && !hasHeightChanged.value);
+});
+
+const handleUpdate = async () => {
+  if (isUpdateDisabled.value) {
+    return;
+  }
+
+  const success = await executeUpdate({
+    id: props.memoId,
+    title: props.title,
+    content: props.content,
+    width: props.currentWidth,
+    height: props.currentHeight
+  });
+
+  if (success) {
+    emit('updated');
+    return;
+  }
+
+  alert('メモの更新に失敗しました。');
 };
 </script>
 
 <template>
-  <button 
+  <buttonBaseField
     class="update-btn"
+    label="更新"
     :disabled="isUpdateDisabled"
     @click="handleUpdate"
-  >
-    更新
-  </button>
+  />
 </template>

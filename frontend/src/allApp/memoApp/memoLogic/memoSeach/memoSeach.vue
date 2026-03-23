@@ -1,19 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 import { memoSeach } from './memoSeach.ts';
 import inputBaseField from '../../../shared/inputBaseField.vue';
+import type { MemoSearchEmits, MemoSearchType } from '../Types';
 
 /**
  * 親コンポーネント（memoScreen.vue）へ検索結果を伝えるイベントと、
  * 検索クリア（全件戻し）を伝えるイベントを定義
  */
-const emit = defineEmits(['searchResults', 'clearSearch']);
+const emit = defineEmits<MemoSearchEmits>();
 
 const { executeSearch } = memoSeach();
 
 // 検索キーワードとカテゴリの状態管理
 const keyword = ref('');
-const searchType = ref('all');
+const searchType = ref<MemoSearchType>('all');
 
 /**
  * watch を使い、キーワードやプルダウンの変更を常に監視します。

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import type { MemoApiItem, MemoSearchType } from '../Types';
 
 export function memoSeach() {
     /**
@@ -6,7 +7,7 @@ export function memoSeach() {
      * @param keyword 検索する文字列
      * @param type 検索範囲 (all, title, content, tag)
      */
-    const executeSearch = async (keyword: string, type: string) => {
+    const executeSearch = async (keyword: string, type: MemoSearchType): Promise<MemoApiItem[] | null> => {
         try {
             const response = await axios.get(`http://localhost:3000/memos/search`, {
                 params: {

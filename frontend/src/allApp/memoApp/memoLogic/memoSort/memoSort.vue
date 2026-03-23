@@ -1,15 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { saveSortOrder } from './memoSort';
+import type { MemoSortEmits, MemoSortProps } from '../Types';
 
-const props = defineProps<{
-  items: any[];
-  disabled?: boolean;
-}>();
-
-const emit = defineEmits<{
-  (e: 'update:items', val: any[]): void;
-  (e: 'sortEnd', val: any[]): void;
-}>();
+const props = defineProps<MemoSortProps>();
+const emit = defineEmits<MemoSortEmits>();
 
 const dragIndex = ref<number | null>(null);
 
@@ -36,31 +31,38 @@ const onDragOver = (e: DragEvent) => {
   e.preventDefault();
 };
 
-const onDrop = (e: DragEvent) => {
+const onDrop = async (e: DragEvent) => {
   e.preventDefault();
   dragIndex.value = null;
-  emit('sortEnd', props.items);
+
+  const isSaved = await saveSortOrder(props.items);
+  if (!isSaved) {
+    alert('Failed to save sort order.');
+    return;
+  }
+
+  emit('sorted');
 };
 </script>
 
 <template>
   <div class="sortable-list" @dragover.prevent @drop="onDrop">
-    <div 
-      v-for="(item, index) in items" 
+    <div
+      v-for="(item, index) in items"
       :key="item.id || index"
       class="sortable-item"
       :class="{ dragging: dragIndex === index }"
       @dragenter="onDragEnter($event, index)"
       @dragover="onDragOver"
     >
-      <div 
+      <div
         v-if="!disabled"
-        class="drag-handle" 
-        draggable="true" 
+        class="drag-handle"
+        draggable="true"
         @dragstart="onDragStart($event, index)"
-        title="ドラッグして並び替え"
+        title="Drag to reorder"
       >
-        ≡
+        ||
       </div>
       <div class="item-content">
         <slot :item="item" :index="index"></slot>

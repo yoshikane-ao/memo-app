@@ -2,21 +2,22 @@
 import { useTagRegister } from './tagRegister';
 
 const props = defineProps<{
-  memoId?: number; // ← ここをオプショナル(?)に変更
-  inputTitle: string; // 検索窓に入力されている文字列
+  memoId?: number;
+  inputTitle: string;
 }>();
 
 const emit = defineEmits(['tag-registered']);
 const { registerTag } = useTagRegister();
 
 const handleAddTag = async () => {
-  // 1. 登録ロジックの実行
   const newTag = await registerTag(props.memoId, props.inputTitle);
-  
+
   if (newTag) {
-    // 2. 成功したら親（検索小窓）に知らせて、リストを更新させる
     emit('tag-registered', newTag);
+    return;
   }
+
+  alert('タグの作成に失敗しました。');
 };
 </script>
 
@@ -24,7 +25,7 @@ const handleAddTag = async () => {
   <div v-if="inputTitle.trim()" class="tag-register-container">
     <button class="add-tag-button" @click="handleAddTag">
       <span class="plus-icon">+</span>
-      「{{ inputTitle }}」を新規追加する。
+      「{{ inputTitle }}」を新規追加する
     </button>
   </div>
 </template>

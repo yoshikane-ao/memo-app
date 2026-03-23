@@ -1,6 +1,7 @@
 import axios from 'axios';
+import type { MemoIdProps } from '../Types';
 
-export const useMemoResize = (memoId: number) => {
+export const useMemoResize = (memoId: MemoIdProps['memoId']) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const saveSize = (width: number, height: number) => {

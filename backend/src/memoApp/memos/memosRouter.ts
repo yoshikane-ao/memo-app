@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { PrismaClient } from "../../generated/prisma/client";
-import { prisma } from "../../db";
 import searchRouter from "./search";
 import registerRouter from "./register";
 import deleteRouter from "./delete";
