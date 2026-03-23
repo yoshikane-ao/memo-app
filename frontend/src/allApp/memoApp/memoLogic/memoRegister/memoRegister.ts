@@ -1,18 +1,18 @@
 import axios from 'axios';
-import type { MemoRegisterInput } from './types';
+import type { MemoCreatedPayload, MemoRegisterInput } from './types';
 
 export function MemoRegister() {
     const executeRegister = async (memoData: MemoRegisterInput) => {
         try {
-            await axios.post('http://localhost:3000/memos/register', {
+            const response = await axios.post<MemoCreatedPayload>('http://localhost:3000/memos/register', {
                 title: memoData.title,
                 content: memoData.content,
                 tags: memoData.tags ?? []
             });
 
-            return true;
+            return response.data;
         } catch {
-            return false;
+            return null;
         }
     };
 

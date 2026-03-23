@@ -1,15 +1,25 @@
+import { onMounted } from 'vue';
 import { useMemoCollection } from '../memoCollection/memoCollection';
 import { useMemoSearch } from '../memoSearch/memoSearch';
 
 export function useMemoRepaint() {
-  const { memos, fetchMemos, replaceMemos, commitSortedMemos, commitMemoUpdate, removeMemo } =
-    useMemoCollection();
+  const {
+    memos,
+    initializeMemos,
+    handleItemsReplaced,
+    handleMemoCreated,
+    handleSortSaved,
+    handleMemoUpdated,
+    handleMemoDeleted,
+    handleMemoTagsUpdated,
+    handleTagDeleted
+  } = useMemoCollection();
   const { keyword, searchType, sortOrder, selectedTags, displayedMemos, canSort } =
     useMemoSearch(memos);
 
-  const repaintMemos = async () => {
-    await fetchMemos();
-  };
+  onMounted(() => {
+    void initializeMemos();
+  });
 
   return {
     keyword,
@@ -18,10 +28,12 @@ export function useMemoRepaint() {
     selectedTags,
     displayedMemos,
     canSort,
-    repaintMemos,
-    replaceMemos,
-    commitSortedMemos,
-    commitMemoUpdate,
-    removeMemo
+    handleMemoCreated,
+    handleTagDeleted,
+    handleItemsReplaced,
+    handleSortSaved,
+    handleMemoUpdated,
+    handleMemoDeleted,
+    handleMemoTagsUpdated
   };
 }

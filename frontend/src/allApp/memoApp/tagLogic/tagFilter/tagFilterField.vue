@@ -37,6 +37,10 @@ const handleTagRemoved = (tag: TagItem) => {
   removeTag(tag.id);
 };
 
+const handleTagDeleted = (tagId: number) => {
+  emit('tag-deleted', tagId);
+};
+
 onMounted(() => {
   void fetchAllTags();
 });
@@ -90,6 +94,7 @@ watch(
       :linkedTagIds="localSelectedTags"
       @tag-added="handleTagAdded"
       @tag-removed="handleTagRemoved"
+      @tag-deleted="handleTagDeleted($event.id)"
       @close="isDropdownOpen = false"
     />
   </div>

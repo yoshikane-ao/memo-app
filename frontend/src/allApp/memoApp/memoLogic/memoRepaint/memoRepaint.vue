@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
 import MemoRegister from '../memoRegister/memoRegister.vue';
 import MemoSearch from '../memoSearch/memoSearch.vue';
 import MemoList from '../memoList/memoList.vue';
 import { useMemoRepaint } from './memoRepaint';
+import { useMemoRepaintBindings } from './useMemoRepaintBindings';
 
 const {
   keyword,
@@ -12,33 +12,40 @@ const {
   selectedTags,
   displayedMemos,
   canSort,
-  repaintMemos,
-  replaceMemos,
-  commitSortedMemos,
-  commitMemoUpdate,
-  removeMemo
+  handleMemoCreated,
+  handleTagDeleted,
+  handleItemsReplaced,
+  handleSortSaved,
+  handleMemoUpdated,
+  handleMemoDeleted,
+  handleMemoTagsUpdated
 } = useMemoRepaint();
 
-onMounted(() => {
-  void repaintMemos();
+const {
+  memoRegisterListeners,
+  memoSearchProps,
+  memoSearchListeners,
+  memoListProps,
+  memoListListeners
+} = useMemoRepaintBindings({
+  keyword,
+  searchType,
+  sortOrder,
+  selectedTags,
+  displayedMemos,
+  canSort,
+  handleMemoCreated,
+  handleTagDeleted,
+  handleItemsReplaced,
+  handleSortSaved,
+  handleMemoUpdated,
+  handleMemoDeleted,
+  handleMemoTagsUpdated
 });
 </script>
 
 <template>
-  <MemoRegister @created="repaintMemos" />
-  <MemoSearch
-    v-model:keyword="keyword"
-    v-model:searchType="searchType"
-    v-model:sortOrder="sortOrder"
-    v-model:selectedTags="selectedTags"
-  />
-  <MemoList
-    :items="displayedMemos"
-    :canSort="canSort"
-    @update:items="replaceMemos"
-    @sort-saved="commitSortedMemos"
-    @changed="repaintMemos"
-    @memo-updated="commitMemoUpdate"
-    @memo-deleted="removeMemo"
-  />
+  <MemoRegister v-on="memoRegisterListeners" />
+  <MemoSearch v-bind="memoSearchProps" v-on="memoSearchListeners" />
+  <MemoList v-bind="memoListProps" v-on="memoListListeners" />
 </template>

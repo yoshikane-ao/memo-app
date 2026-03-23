@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { useTagCatalog } from '../tagCatalog/tagCatalog';
 import TagSearch from '../tagSearch/tagSearch.vue';
 import TagBadgeList from '../tagBadgeList/tagBadgeList.vue';
 import { useTagRelation } from './tagRelation';
@@ -10,14 +9,16 @@ const props = defineProps<TagRelationFieldProps>();
 const emit = defineEmits<TagRelationFieldEmits>();
 
 const { unlinkTagFromMemo } = useTagRelation();
-const { allTags } = useTagCatalog();
 const showTagSearch = ref(false);
 const localTags = ref<TagItem[]>([...props.tags]);
 
 const linkedTagIds = computed(() => localTags.value.map((tag) => tag.id));
 
-const notifyChanged = () => {
-  emit('changed');
+const notifyMemoTagsUpdated = (tags: TagItem[] = localTags.value) => {
+  emit('memo-tags-updated', {
+    memoId: props.memoId,
+    tags: [...tags]
+  });
 };
 
 const syncLocalTags = (tags: TagItem[]) => {
@@ -38,8 +39,9 @@ const handleTagRemove = async (tag: TagItem) => {
   const success = await unlinkTagFromMemo(props.memoId, tag.id);
 
   if (success) {
-    removeLocalTag(tag);
-    notifyChanged();
+    const nextTags = localTags.value.filter((currentTag) => currentTag.id !== tag.id);
+    localTags.value = nextTags;
+    notifyMemoTagsUpdated(nextTags);
     return;
   }
 
@@ -48,32 +50,23 @@ const handleTagRemove = async (tag: TagItem) => {
 
 const handleTagAdded = (tag: TagItem) => {
   addLocalTag(tag);
-  notifyChanged();
+  notifyMemoTagsUpdated();
 };
 
 const handleTagRemoved = (tag: TagItem) => {
   removeLocalTag(tag);
-  notifyChanged();
+  notifyMemoTagsUpdated();
+};
+
+const handleTagDeleted = (tag: TagItem) => {
+  removeLocalTag(tag);
+  emit('tag-deleted', tag.id);
 };
 
 watch(
   () => props.tags,
   (value) => {
     syncLocalTags(value);
-  },
-  { deep: true }
-);
-
-watch(
-  allTags,
-  (tags) => {
-    const validTagIds = tags.map((tag) => tag.id);
-    const nextTags = localTags.value.filter((tag) => validTagIds.includes(tag.id));
-
-    if (nextTags.length !== localTags.value.length) {
-      localTags.value = nextTags;
-      notifyChanged();
-    }
   },
   { deep: true }
 );
@@ -96,7 +89,7 @@ watch(
       :linkedTagIds="linkedTagIds"
       @tag-added="handleTagAdded"
       @tag-removed="handleTagRemoved"
-      @tag-deleted="notifyChanged"
+      @tag-deleted="handleTagDeleted"
       @close="showTagSearch = false"
     />
   </div>

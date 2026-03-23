@@ -23,6 +23,11 @@ registerRouter.post("/", async (req, res) => {
                     }))
                 } : undefined
             },
+            include: {
+                memo_tags: {
+                    include: { tag: true }
+                }
+            }
         });
 
         res.status(201).json(newMemo);

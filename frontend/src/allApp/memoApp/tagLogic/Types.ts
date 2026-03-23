@@ -3,12 +3,20 @@ export type TagItem = {
   title: string;
 };
 
+export interface MemoTagsUpdatedPayload {
+  memoId: number;
+  tags: TagItem[];
+}
+
+export type TagDeletedPayload = number;
+
 export interface TagFilterFieldProps {
   selectedTags?: number[];
 }
 
 export type TagFilterFieldEmits = {
   (e: 'update:selectedTags', value: number[]): void;
+  (e: 'tag-deleted', tagId: TagDeletedPayload): void;
 };
 
 export interface TagRelationFieldProps {
@@ -17,7 +25,8 @@ export interface TagRelationFieldProps {
 }
 
 export type TagRelationFieldEmits = {
-  (e: 'changed'): void;
+  (e: 'memo-tags-updated', payload: MemoTagsUpdatedPayload): void;
+  (e: 'tag-deleted', tagId: TagDeletedPayload): void;
 };
 
 export interface TagSelectionFieldProps {
@@ -26,4 +35,5 @@ export interface TagSelectionFieldProps {
 
 export type TagSelectionFieldEmits = {
   (e: 'update:selectedTitles', value: string[]): void;
+  (e: 'tag-deleted', tagId: TagDeletedPayload): void;
 };

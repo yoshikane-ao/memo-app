@@ -4,7 +4,7 @@ import TagSearch from '../tagSearch/tagSearch.vue';
 import TagBadgeList from '../tagBadgeList/tagBadgeList.vue';
 import { useTagCatalog } from '../tagCatalog/tagCatalog';
 import { useTagSelection } from './tagSelection';
-import type { TagItem, TagSelectionFieldEmits, TagSelectionFieldProps } from '../Types';
+import type { TagDeletedPayload, TagItem, TagSelectionFieldEmits, TagSelectionFieldProps } from '../Types';
 
 const props = defineProps<TagSelectionFieldProps>();
 const emit = defineEmits<TagSelectionFieldEmits>();
@@ -53,6 +53,10 @@ watch(
 onMounted(() => {
   void fetchAllTags();
 });
+
+const handleTagDeleted = (tag: TagItem) => {
+  emit('tag-deleted', tag.id as TagDeletedPayload);
+};
 </script>
 
 <template>
@@ -71,6 +75,7 @@ onMounted(() => {
         :linkedTagIds="linkedTagIds"
         @tag-added="addTag"
         @tag-removed="removeTag"
+        @tag-deleted="handleTagDeleted"
         @close="closeTagSearch"
       />
     </div>
