@@ -22,3 +22,13 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+tmp-chrome-profile-escalated/
+node_modules/
+tmp-chrome-profile*/
+tmp-*.png
+tmp-*.log
+
+tmp-chrome-profile-escalated/
+tmp-chrome-profile/
+tmp-*.png
+tmp-*.log
