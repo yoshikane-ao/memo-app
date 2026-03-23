@@ -19,7 +19,7 @@ const emit = defineEmits(['remove']);
         title="タグを外す"
         @click.prevent.stop="emit('remove', tag, index)"
       >
-        x
+        ×
       </button>
     </span>
   </template>

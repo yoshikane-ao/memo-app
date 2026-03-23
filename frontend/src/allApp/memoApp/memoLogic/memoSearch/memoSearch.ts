@@ -1,7 +1,7 @@
-import { ref, computed, type Ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
 import type { MemoListItem, MemoSearchType, MemoSortOrder } from '../Types';
 
-export function memoViewControl(memos: Ref<MemoListItem[]>) {
+export function useMemoSearch(memos: Ref<MemoListItem[]>) {
   const keyword = ref('');
   const searchType = ref<MemoSearchType>('all');
   const sortOrder = ref<MemoSortOrder>('custom');
@@ -51,11 +51,16 @@ export function memoViewControl(memos: Ref<MemoListItem[]>) {
     return result;
   });
 
+  const canSort = computed(
+    () => sortOrder.value === 'custom' && !keyword.value && selectedTags.value.length === 0
+  );
+
   return {
     keyword,
     searchType,
     sortOrder,
     selectedTags,
-    displayedMemos
+    displayedMemos,
+    canSort
   };
 }

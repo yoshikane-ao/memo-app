@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
 import MemoRegister from '../memoRegister/memoRegister.vue';
-import MemoViewControl from '../memoViewControl/memoViewControl.vue';
+import MemoSearch from '../memoSearch/memoSearch.vue';
 import MemoList from '../memoList/memoList.vue';
 import { useMemoRepaint } from './memoRepaint';
 
@@ -23,7 +23,7 @@ onMounted(() => {
 
 <template>
   <MemoRegister @created="repaintMemos" />
-  <MemoViewControl
+  <MemoSearch
     v-model:keyword="keyword"
     v-model:searchType="searchType"
     v-model:sortOrder="sortOrder"

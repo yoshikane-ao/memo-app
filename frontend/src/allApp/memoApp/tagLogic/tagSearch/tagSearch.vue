@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .tag-search-modal {
   position: absolute;
-  bottom: calc(100% + 4px);
+  top: calc(100% + 4px);
   left: 0;
   width: 260px;
   background: #1a1a1a;

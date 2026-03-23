@@ -1,15 +1,37 @@
 <script setup lang="ts">
+import { onMounted, ref, watch } from 'vue';
 import buttonBaseField from '../../../shared/buttonBaseField.vue';
 import TagSelectionField from '../../tagLogic/tagSelection/tagSelectionField.vue';
+import { applyAutoContentHeight, applyAutoTitleWidth } from '../memoLayout/memoLayout';
 import type { MemoRegisterFormEmits, MemoRegisterFormProps } from '../Types';
 
 const props = defineProps<MemoRegisterFormProps>();
 const emit = defineEmits<MemoRegisterFormEmits>();
 
+const titleTextareaRef = ref<HTMLTextAreaElement | null>(null);
+const contentTextareaRef = ref<HTMLTextAreaElement | null>(null);
+
+const syncTitleLayout = () => {
+  if (!titleTextareaRef.value) {
+    return;
+  }
+
+  applyAutoTitleWidth(titleTextareaRef.value);
+};
+
+const syncContentLayout = () => {
+  if (!contentTextareaRef.value) {
+    return;
+  }
+
+  applyAutoContentHeight(contentTextareaRef.value);
+};
+
 const handleTitleInput = (event: Event) => {
   const target = event.target;
   if (target instanceof HTMLTextAreaElement) {
     emit('update:title', target.value);
+    applyAutoTitleWidth(target);
   }
 };
 
@@ -17,8 +39,17 @@ const handleContentInput = (event: Event) => {
   const target = event.target;
   if (target instanceof HTMLTextAreaElement) {
     emit('update:content', target.value);
+    applyAutoContentHeight(target);
   }
 };
+
+onMounted(() => {
+  syncTitleLayout();
+  syncContentLayout();
+});
+
+watch(() => props.title, syncTitleLayout);
+watch(() => props.content, syncContentLayout);
 </script>
 
 <template>
@@ -26,6 +57,7 @@ const handleContentInput = (event: Event) => {
     <div class="register-row">
       <div class="title-cell">
         <textarea
+          ref="titleTextareaRef"
           id="reg-title"
           :value="title"
           placeholder="タイトル"
@@ -37,6 +69,7 @@ const handleContentInput = (event: Event) => {
       </div>
       <div class="content-cell">
         <textarea
+          ref="contentTextareaRef"
           id="reg-content"
           :value="content"
           placeholder="内容を入力してください"

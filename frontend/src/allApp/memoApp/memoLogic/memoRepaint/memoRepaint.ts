@@ -1,6 +1,6 @@
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import axios from 'axios';
-import { memoViewControl } from '../memoViewControl/memoViewControl';
+import { useMemoSearch } from '../memoSearch/memoSearch';
 import type { MemoApiItem, MemoListItem } from '../Types';
 
 const toMemoListItem = (item: MemoApiItem): MemoListItem => ({
@@ -11,11 +11,8 @@ const toMemoListItem = (item: MemoApiItem): MemoListItem => ({
 
 export function useMemoRepaint() {
   const memos = ref<MemoListItem[]>([]);
-  const { keyword, searchType, sortOrder, selectedTags, displayedMemos } = memoViewControl(memos);
-
-  const canSort = computed(
-    () => sortOrder.value === 'custom' && !keyword.value && selectedTags.value.length === 0
-  );
+  const { keyword, searchType, sortOrder, selectedTags, displayedMemos, canSort } =
+    useMemoSearch(memos);
 
   const fetchMemos = async () => {
     try {

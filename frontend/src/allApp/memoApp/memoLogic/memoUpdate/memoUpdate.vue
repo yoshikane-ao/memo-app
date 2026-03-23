@@ -14,25 +14,9 @@ const hasTextChanged = computed(() => {
   return props.title !== props.initialTitle || props.content !== props.initialContent;
 });
 
-const hasWidthChanged = computed(() => {
-  if (props.currentWidth == null) {
-    return false;
-  }
-
-  return props.currentWidth !== props.initialWidth && !(props.initialWidth == null && props.currentWidth === 0);
-});
-
-const hasHeightChanged = computed(() => {
-  if (props.currentHeight == null) {
-    return false;
-  }
-
-  return props.currentHeight !== props.initialHeight && !(props.initialHeight == null && props.currentHeight === 0);
-});
-
 const isUpdateDisabled = computed(() => {
   const hasRequiredFields = props.title.trim() !== '' && props.content.trim() !== '';
-  return !hasRequiredFields || (!hasTextChanged.value && !hasWidthChanged.value && !hasHeightChanged.value);
+  return !hasRequiredFields || !hasTextChanged.value;
 });
 
 const handleUpdate = async () => {

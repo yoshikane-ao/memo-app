@@ -1,24 +1,57 @@
-import axios from 'axios';
-import type { MemoIdProps } from '../Types';
+import { reactive } from 'vue';
+import type { MemoListItem } from '../Types';
 
-export const useMemoResize = (memoId: MemoIdProps['memoId']) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+const MIN_TITLE_WIDTH = 80;
+const MAX_TITLE_WIDTH = 500;
+const MIN_CONTENT_HEIGHT = 32;
 
-    const saveSize = (width: number, height: number) => {
-        if (timeoutId) clearTimeout(timeoutId);
-        
-        timeoutId = setTimeout(async () => {
-            try {
-                await axios.put('http://localhost:3000/memos/layout', {
-                    memoId,
-                    width,
-                    height
-                });
-            } catch (error) {
-                console.error('サイズの保存に失敗しました:', error);
-            }
-        }, 500); // 500msのデバウンスで最後のみ保存
-    };
-
-    return { saveSize };
+export const applyAutoTitleWidth = (textarea: HTMLTextAreaElement) => {
+  textarea.style.width = '0px';
+  const nextWidth = Math.min(Math.max(textarea.scrollWidth + 4, MIN_TITLE_WIDTH), MAX_TITLE_WIDTH);
+  textarea.style.width = `${nextWidth}px`;
+  return nextWidth;
 };
+
+export const applyAutoContentHeight = (textarea: HTMLTextAreaElement) => {
+  textarea.style.height = '0px';
+  const nextHeight = Math.max(textarea.scrollHeight, MIN_CONTENT_HEIGHT);
+  textarea.style.height = `${nextHeight}px`;
+  return nextHeight;
+};
+
+export function useMemoLayoutState() {
+  const resizeWidths = reactive<Record<number, number>>({});
+  const resizeHeights = reactive<Record<number, number>>({});
+
+  const syncTitleLayout = (memoId: number, textarea: HTMLTextAreaElement) => {
+    resizeWidths[memoId] = applyAutoTitleWidth(textarea);
+  };
+
+  const syncContentLayout = (memoId: number, textarea: HTMLTextAreaElement) => {
+    resizeHeights[memoId] = applyAutoContentHeight(textarea);
+  };
+
+  const getTitleWidth = (memo: MemoListItem) => {
+    const width = resizeWidths[memo.id] ?? memo.width;
+    return width == null ? undefined : `${width}px`;
+  };
+
+  const getContentHeight = (memo: MemoListItem) => {
+    const height = resizeHeights[memo.id] ?? memo.height;
+    return height == null ? undefined : `${height}px`;
+  };
+
+  const getCurrentWidth = (memo: MemoListItem) => resizeWidths[memo.id] ?? memo.width ?? undefined;
+
+  const getCurrentHeight = (memo: MemoListItem) =>
+    resizeHeights[memo.id] ?? memo.height ?? undefined;
+
+  return {
+    syncTitleLayout,
+    syncContentLayout,
+    getTitleWidth,
+    getContentHeight,
+    getCurrentWidth,
+    getCurrentHeight
+  };
+}

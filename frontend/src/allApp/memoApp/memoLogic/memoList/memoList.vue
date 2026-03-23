@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MemoLayout from '../memoLayout/memoLayout.vue';
 import MemoListView from './memoListView.vue';
 import MemoRowView from './memoRowView.vue';
 import { useMemoListState } from './memoList';
@@ -7,14 +8,7 @@ import type { MemoListEmits, MemoListProps } from '../Types';
 const props = defineProps<MemoListProps>();
 const emit = defineEmits<MemoListEmits>();
 
-const {
-  updateMemoField,
-  checkResize,
-  getTitleWidth,
-  getContentHeight,
-  getCurrentWidth,
-  getCurrentHeight
-} = useMemoListState();
+const { updateMemoField } = useMemoListState();
 
 const notifyChanged = () => {
   emit('changed');
@@ -38,25 +32,29 @@ const handleSorted = () => {
 </script>
 
 <template>
-  <MemoListView
-    :items="items"
-    :canSort="canSort"
-    @update:items="updateItems"
-    @sorted="handleSorted"
+  <MemoLayout
+    v-slot="{ syncTitleLayout, syncContentLayout, getTitleWidth, getContentHeight, getCurrentWidth, getCurrentHeight }"
   >
-    <template #default="{ memo }">
-      <MemoRowView
-        :memo="memo"
-        :titleWidth="getTitleWidth(memo)"
-        :contentHeight="getContentHeight(memo)"
-        :currentWidth="getCurrentWidth(memo)"
-        :currentHeight="getCurrentHeight(memo)"
-        @title-input="updateMemoField(memo, 'title', $event)"
-        @content-input="updateMemoField(memo, 'content', $event)"
-        @title-resize="checkResize(memo.id, $event, 'width')"
-        @content-resize="checkResize(memo.id, $event, 'height')"
-        @changed="notifyChanged"
-      />
-    </template>
-  </MemoListView>
+    <MemoListView
+      :items="items"
+      :canSort="canSort"
+      @update:items="updateItems"
+      @sorted="handleSorted"
+    >
+      <template #default="{ memo }">
+        <MemoRowView
+          :memo="memo"
+          :titleWidth="getTitleWidth(memo)"
+          :contentHeight="getContentHeight(memo)"
+          :currentWidth="getCurrentWidth(memo)"
+          :currentHeight="getCurrentHeight(memo)"
+          :syncTitleLayout="syncTitleLayout"
+          :syncContentLayout="syncContentLayout"
+          @title-input="updateMemoField(memo, 'title', $event)"
+          @content-input="updateMemoField(memo, 'content', $event)"
+          @changed="notifyChanged"
+        />
+      </template>
+    </MemoListView>
+  </MemoLayout>
 </template>

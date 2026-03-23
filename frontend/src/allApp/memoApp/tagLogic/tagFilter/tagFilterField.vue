@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useTagCatalog } from '../tagCatalog/tagCatalog';
 import { useTagFilter } from './tagFilter';
 import type { TagFilterFieldEmits, TagFilterFieldProps } from '../Types';
@@ -15,8 +15,21 @@ const {
   replaceSelectedTags
 } = useTagFilter(props.selectedTags ?? []);
 
+const containerRef = ref<HTMLElement | null>(null);
+
+const onClickOutside = (event: MouseEvent) => {
+  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
+    isDropdownOpen.value = false;
+  }
+};
+
 onMounted(() => {
   void fetchAllTags();
+  document.addEventListener('click', onClickOutside, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', onClickOutside, true);
 });
 
 watch(
@@ -36,7 +49,7 @@ watch(
 </script>
 
 <template>
-  <div v-if="allTags.length > 0" class="dropdown-container">
+  <div v-if="allTags.length > 0" ref="containerRef" class="dropdown-container">
     <button class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
       タグで絞り込む {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }} ▼
     </button>
@@ -57,3 +70,4 @@ watch(
     </div>
   </div>
 </template>
+

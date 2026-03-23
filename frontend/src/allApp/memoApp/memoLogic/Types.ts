@@ -2,7 +2,6 @@ import type { TagItem } from '../tagLogic/Types';
 
 export type MemoSearchType = 'all' | 'title' | 'content' | 'tag';
 export type MemoSortOrder = 'custom' | 'newest' | 'oldest';
-export type ResizeDirection = 'width' | 'height';
 export type MemoTextField = 'title' | 'content';
 
 export interface MemoIdProps {
@@ -35,11 +34,6 @@ export interface MemoUpdateInput {
   height?: number;
 }
 
-export interface MemoLayoutProps extends MemoIdProps {
-  initialWidth?: number | null;
-  initialHeight?: number | null;
-}
-
 export interface MemoUpdateProps extends MemoIdProps {
   title: string;
   content: string;
@@ -51,7 +45,7 @@ export interface MemoUpdateProps extends MemoIdProps {
   initialHeight?: number | null;
 }
 
-export interface MemoViewControlProps {
+export interface MemoSearchProps {
   keyword?: string;
   searchType?: MemoSearchType;
   sortOrder?: MemoSortOrder;
@@ -97,11 +91,22 @@ export interface MemoRowViewProps {
   contentHeight?: string;
   currentWidth?: number;
   currentHeight?: number;
+  syncTitleLayout: (memoId: number, textarea: HTMLTextAreaElement) => void;
+  syncContentLayout: (memoId: number, textarea: HTMLTextAreaElement) => void;
 }
 
 export interface MemoSortProps {
   items: MemoListItem[];
   disabled?: boolean;
+}
+
+export interface MemoLayoutSlotProps {
+  syncTitleLayout: (memoId: number, textarea: HTMLTextAreaElement) => void;
+  syncContentLayout: (memoId: number, textarea: HTMLTextAreaElement) => void;
+  getTitleWidth: (memo: MemoListItem) => string | undefined;
+  getContentHeight: (memo: MemoListItem) => string | undefined;
+  getCurrentWidth: (memo: MemoListItem) => number | undefined;
+  getCurrentHeight: (memo: MemoListItem) => number | undefined;
 }
 
 export interface MemoSortPayloadItem {
@@ -128,10 +133,6 @@ export type MemoRegisterFormEmits = {
   (e: 'submit'): void;
 };
 
-export type MemoLayoutEmits = {
-  (e: 'resize', width: number, height: number): void;
-};
-
 export type MemoListEmits = {
   (e: 'update:items', items: MemoListItem[]): void;
   (e: 'changed'): void;
@@ -141,8 +142,6 @@ export type MemoListEmits = {
 export type MemoRowViewEmits = {
   (e: 'title-input', event: Event): void;
   (e: 'content-input', event: Event): void;
-  (e: 'title-resize', event: MouseEvent): void;
-  (e: 'content-resize', event: MouseEvent): void;
   (e: 'changed'): void;
 };
 
@@ -157,11 +156,6 @@ export type MemoSortEmits = {
 };
 
 export type MemoSearchEmits = {
-  (e: 'searchResults', results: MemoApiItem[]): void;
-  (e: 'clearSearch'): void;
-};
-
-export type MemoViewControlEmits = {
   (e: 'update:keyword', value: string): void;
   (e: 'update:searchType', value: MemoSearchType): void;
   (e: 'update:sortOrder', value: MemoSortOrder): void;

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, ref, watch } from 'vue';
 import MemoUpdate from '../memoUpdate/memoUpdate.vue';
 import MemoDelete from '../memoDelete/memoDelete.vue';
 import MemoCopy from '../memoCopy/memoCopy.vue';
@@ -8,36 +9,73 @@ import type { MemoRowViewEmits, MemoRowViewProps } from '../Types';
 const props = defineProps<MemoRowViewProps>();
 const emit = defineEmits<MemoRowViewEmits>();
 
+const titleTextareaRef = ref<HTMLTextAreaElement | null>(null);
+const contentTextareaRef = ref<HTMLTextAreaElement | null>(null);
+
 const notifyChanged = () => {
   emit('changed');
 };
+
+const syncTitleLayout = () => {
+  if (!titleTextareaRef.value) {
+    return;
+  }
+
+  props.syncTitleLayout(props.memo.id, titleTextareaRef.value);
+};
+
+const syncContentLayout = () => {
+  if (!contentTextareaRef.value) {
+    return;
+  }
+
+  props.syncContentLayout(props.memo.id, contentTextareaRef.value);
+};
+
+const handleTitleInput = (event: Event) => {
+  emit('title-input', event);
+  syncTitleLayout();
+};
+
+const handleContentInput = (event: Event) => {
+  emit('content-input', event);
+  syncContentLayout();
+};
+
+onMounted(() => {
+  syncTitleLayout();
+  syncContentLayout();
+});
+
+watch(() => props.memo.title, syncTitleLayout);
+watch(() => props.memo.content, syncContentLayout);
 </script>
 
 <template>
   <div class="memo-row">
     <div class="title-cell">
       <textarea
+        ref="titleTextareaRef"
         :id="`title-${memo.id}`"
         :value="memo.title"
         :style="{ width: titleWidth }"
         rows="1"
         spellcheck="false"
         class="title-input"
-        @input="emit('title-input', $event)"
-        @mouseup="emit('title-resize', $event)"
+        @input="handleTitleInput"
       />
     </div>
 
     <div class="content-cell">
       <textarea
+        ref="contentTextareaRef"
         :id="`content-${memo.id}`"
         :value="memo.content"
         :style="{ height: contentHeight }"
         rows="2"
         spellcheck="false"
         class="content-input"
-        @input="emit('content-input', $event)"
-        @mouseup="emit('content-resize', $event)"
+        @input="handleContentInput"
       />
 
       <TagRelationField
@@ -48,7 +86,7 @@ const notifyChanged = () => {
     </div>
 
     <div class="actions-cell">
-      <MemoCopy :text="`${memo.title}\n\n${memo.content}`" />
+      <MemoCopy :text="`${memo.content}`" />
       <MemoUpdate
         :memoId="memo.id"
         :title="memo.title"
