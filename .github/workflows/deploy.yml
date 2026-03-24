@@ -34,6 +34,7 @@ jobs:
             whoami
             echo "== hostname =="
             hostname
+
             echo "== app dir =="
             cd "${{ secrets.APP_DIR }}"
             pwd
@@ -41,6 +42,7 @@ jobs:
             echo "== git sync =="
             git fetch origin
             git reset --hard origin/main
+            git clean -fd
 
             echo "== docker status =="
             sudo systemctl start docker || true
@@ -51,7 +53,7 @@ jobs:
             sudo docker compose up -d --build db
 
             echo "== migrate =="
-            sudo docker compose run --rm api npx prisma migrate deploy
+            sudo docker compose run --build --rm api npx prisma migrate deploy
 
             echo "== deploy app =="
             sudo docker compose up -d --build api web
