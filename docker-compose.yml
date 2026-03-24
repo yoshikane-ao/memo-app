@@ -29,7 +29,7 @@ services:
 
   web:
     build:
-      context: ./web
+      context: ./frontend
       args:
         VITE_API_URL: http://3.107.229.153:3000
     container_name: memo_web
