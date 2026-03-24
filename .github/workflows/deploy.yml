@@ -44,6 +44,9 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
+            echo "== remove stale compose env =="
+            rm -f .env
+
             echo "== docker status =="
             sudo systemctl start docker || true
             sudo systemctl is-active docker
