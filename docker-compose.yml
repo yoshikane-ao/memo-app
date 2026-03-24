@@ -15,7 +15,7 @@ services:
       - memo_db_data:/var/lib/postgresql/data
 
   api:
-    build: ./api
+    build: ./backend
     container_name: memo_api
     restart: always
     ports:
