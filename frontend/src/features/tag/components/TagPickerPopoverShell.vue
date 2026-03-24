@@ -14,10 +14,27 @@ const emit = defineEmits<{
   (e: "update:activeTab", tab: "tags" | "memos"): void;
   (e: "close"): void;
 }>();
+
+const handleKeydown = (event: KeyboardEvent) => {
+  const isShiftEnter =
+    event.key === "Enter" &&
+    event.shiftKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.altKey &&
+    !event.isComposing;
+
+  if (!isShiftEnter) {
+    return;
+  }
+
+  event.preventDefault();
+  emit("close");
+};
 </script>
 
 <template>
-  <div class="tag-popup">
+  <div class="tag-popup" @keydown="handleKeydown">
     <div v-if="props.showMemoTab" class="tag-popup-tabs">
       <button
         type="button"

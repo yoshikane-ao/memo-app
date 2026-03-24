@@ -33,6 +33,7 @@ export interface TagPickerFieldProps {
   availableTags: TagItem[];
   memoSources?: MemoTagSource[];
   resetKey?: number;
+  isCreating?: boolean;
 }
 
 export interface TagRelationEditorProps {

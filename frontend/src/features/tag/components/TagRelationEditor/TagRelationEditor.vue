@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref } from "vue";
 import type {
   MemoTagSource,
   MemoTagsUpdatedPayload,
@@ -20,7 +20,28 @@ const commands = useMemoHistoryCommands();
 const memoStore = useMemoStore();
 const feedback = useFeedbackStore();
 const tagStore = useTagStore();
-const localTags = ref<TagItem[]>([...props.tags]);
+const isCreatingTag = ref(false);
+
+const toUniqueTags = (tags: readonly TagItem[]) => {
+  const seenTagIds = new Set<number>();
+  const nextTags: TagItem[] = [];
+
+  for (const tag of tags) {
+    if (seenTagIds.has(tag.id)) {
+      continue;
+    }
+
+    seenTagIds.add(tag.id);
+    nextTags.push({
+      id: tag.id,
+      title: tag.title,
+    });
+  }
+
+  return nextTags;
+};
+
+const selectedTags = computed(() => toUniqueTags(props.tags));
 
 const memoSources = computed<MemoTagSource[]>(() =>
   memoStore.items
@@ -36,22 +57,16 @@ const memoSources = computed<MemoTagSource[]>(() =>
     }))
 );
 
-const emitMemoTagsUpdated = (tags: TagItem[] = localTags.value) => {
+const emitMemoTagsUpdated = (tags: TagItem[] = selectedTags.value) => {
   const payload: MemoTagsUpdatedPayload = {
     memoId: props.memoId,
-    tags: [...tags],
+    tags: toUniqueTags(tags),
   };
   emit("memo-tags-updated", payload);
 };
 
-const addLocalTag = (tag: TagItem) => {
-  if (!localTags.value.some((currentTag) => currentTag.id === tag.id)) {
-    localTags.value = [...localTags.value, tag];
-  }
-};
-
 const handleTagToggle = async (tag: TagItem) => {
-  const isSelected = localTags.value.some((currentTag) => currentTag.id === tag.id);
+  const isSelected = selectedTags.value.some((currentTag) => currentTag.id === tag.id);
   const success = isSelected
     ? await commands.removeTagFromMemo(props.memoId, tag)
     : await commands.addTagToMemo(props.memoId, tag);
@@ -64,15 +79,13 @@ const handleTagToggle = async (tag: TagItem) => {
   }
 
   const nextTags = isSelected
-    ? localTags.value.filter((currentTag) => currentTag.id !== tag.id)
-    : [...localTags.value, tag];
-
-  localTags.value = nextTags;
+    ? selectedTags.value.filter((currentTag) => currentTag.id !== tag.id)
+    : [...selectedTags.value, tag];
   emitMemoTagsUpdated(nextTags);
 };
 
 const handleTagRemove = async (tag: TagItem) => {
-  if (!localTags.value.some((currentTag) => currentTag.id === tag.id)) {
+  if (!selectedTags.value.some((currentTag) => currentTag.id === tag.id)) {
     return;
   }
 
@@ -80,20 +93,29 @@ const handleTagRemove = async (tag: TagItem) => {
 };
 
 const handleCreateTag = async (title: string) => {
-  const createdTag = await commands.createTag({
-    memoId: props.memoId,
-    title,
-  });
-
-  if (!createdTag.ok) {
-    if (createdTag.reason === "error") {
-      feedback.showError("Failed to create tag.");
-    }
+  if (isCreatingTag.value) {
     return;
   }
 
-  addLocalTag(createdTag.value);
-  emitMemoTagsUpdated();
+  isCreatingTag.value = true;
+
+  try {
+    const createdTag = await commands.createTag({
+      memoId: props.memoId,
+      title,
+    });
+
+    if (!createdTag.ok) {
+      if (createdTag.reason === "error") {
+        feedback.showError("Failed to create tag.");
+      }
+      return;
+    }
+
+    emitMemoTagsUpdated([...selectedTags.value, createdTag.value]);
+  } finally {
+    isCreatingTag.value = false;
+  }
 };
 
 const handleTagDeleted = async (tag: TagItem) => {
@@ -112,8 +134,7 @@ const handleTagDeleted = async (tag: TagItem) => {
     return;
   }
 
-  const nextTags = localTags.value.filter((currentTag) => currentTag.id !== tag.id);
-  localTags.value = nextTags;
+  const nextTags = selectedTags.value.filter((currentTag) => currentTag.id !== tag.id);
   emitMemoTagsUpdated(nextTags);
   emit("tag-deleted", tag.id);
 };
@@ -132,7 +153,6 @@ const handleApplyTagsFromMemo = async (source: MemoTagSource) => {
     id: tag.id,
     title: tag.title,
   }));
-  localTags.value = nextTags;
   emitMemoTagsUpdated(nextTags);
 };
 
@@ -140,22 +160,15 @@ onMounted(() => {
   void tagStore.ensureLoaded();
   void memoStore.ensureLoaded();
 });
-
-watch(
-  () => props.tags,
-  (value) => {
-    localTags.value = [...value];
-  },
-  { deep: true }
-);
 </script>
 
 <template>
   <div class="tag-row">
     <TagPickerField
-      :selectedTags="localTags"
+      :selectedTags="selectedTags"
       :availableTags="tagStore.items"
       :memoSources="memoSources"
+      :isCreating="isCreatingTag"
       @toggle-tag="void handleTagToggle($event)"
       @remove-tag="void handleTagRemove($event)"
       @create-tag="void handleCreateTag($event)"
