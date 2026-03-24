@@ -16,7 +16,7 @@ jobs:
       - name: Setup SSH
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
           sed -i 's/\r$//' ~/.ssh/id_ed25519
@@ -28,16 +28,38 @@ jobs:
         shell: bash
         run: |
           ssh -i ~/.ssh/id_ed25519 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << EOF
-            set -e
-            cd "${{ secrets.APP_DIR }}"
+            set -euo pipefail
 
+            echo "== whoami =="
+            whoami
+            echo "== hostname =="
+            hostname
+            echo "== app dir =="
+            cd "${{ secrets.APP_DIR }}"
+            pwd
+
+            echo "== git sync =="
             git fetch origin
             git reset --hard origin/main
 
-            docker compose up -d --build db
-            docker compose run --rm api npx prisma migrate deploy
-            docker compose up -d --build api web
+            echo "== docker status =="
+            sudo systemctl start docker || true
+            sudo systemctl is-active docker
+            sudo docker version
 
-            docker image prune -af || true
-            docker builder prune -af || true
+            echo "== deploy db =="
+            sudo docker compose up -d --build db
+
+            echo "== migrate =="
+            sudo docker compose run --rm api npx prisma migrate deploy
+
+            echo "== deploy app =="
+            sudo docker compose up -d --build api web
+
+            echo "== cleanup =="
+            sudo docker image prune -af || true
+            sudo docker builder prune -af || true
+
+            echo "== ps =="
+            sudo docker compose ps
           EOF
