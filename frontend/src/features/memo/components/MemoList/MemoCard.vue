@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { applyAutoHeight, applyAutoWidth } from "../../../../shared/composables/textareaAutosize";
 import { useActiveCopyTarget } from "../../../../shared/copy/activeCopyTarget";
+import { copyText } from "../../../../shared/copy/copyText";
 import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 import {
   handleMultilineEnterSubmit,
@@ -129,7 +130,7 @@ const markCopied = () => {
 
 const copyMemoContent = async () => {
   try {
-    await navigator.clipboard.writeText(draftContent.value);
+    await copyText(draftContent.value);
     markCopied();
     return true;
   } catch (error) {
