@@ -23,6 +23,8 @@ services:
     environment:
       DATABASE_URL: postgresql://memo_db:tanjoubi0622@db:5432/memo_db?schema=public
       PORT: 3000
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1h}
 
   web:
     build:

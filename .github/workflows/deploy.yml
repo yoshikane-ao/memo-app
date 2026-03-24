@@ -24,6 +24,15 @@ jobs:
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
+      - name: Validate deploy secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+            echo "Missing GitHub Actions secret: JWT_SECRET" >&2
+            exit 1
+          fi
+
       - name: Deploy to EC2
         shell: bash
         run: |
