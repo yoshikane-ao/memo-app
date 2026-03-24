@@ -36,9 +36,14 @@ watch(
         v-if="showTagSearch"
         :tags="availableTags"
         :selectedTagIds="selectedTagIds"
+        :memoSources="memoSources"
         @toggle-tag="emit('toggle-tag', $event)"
         @create-tag="emit('create-tag', $event)"
         @delete-tag="emit('delete-tag', $event)"
+        @apply-tags-from-memo="
+          emit('apply-tags-from-memo', $event);
+          closeTagSearch();
+        "
         @close="closeTagSearch"
       />
     </div>

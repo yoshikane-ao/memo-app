@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { TagItem } from "../../model/tag.types";
+import { useMemoStore } from "../../../memo/model/useMemoStore";
 import { useTagStore } from "../../model/useTagStore";
 import TagRelationEditor from "./TagRelationEditor.vue";
 
@@ -10,6 +11,7 @@ const commandsMock = {
   addTagToMemo: vi.fn(),
   createTag: vi.fn(),
   deleteTag: vi.fn(),
+  replaceMemoTags: vi.fn(),
   removeTagFromMemo: vi.fn(),
 };
 
@@ -36,13 +38,18 @@ const TagPickerFieldStub = defineComponent({
       type: Array,
       default: () => [],
     },
+    memoSources: {
+      type: Array,
+      default: () => [],
+    },
   },
-  emits: ["toggle-tag", "remove-tag", "create-tag", "delete-tag"],
+  emits: ["toggle-tag", "remove-tag", "create-tag", "delete-tag", "apply-tags-from-memo"],
   template: `
     <div class="tag-picker-stub">
       <button class="remove-tag" @click="$emit('remove-tag', { id: 1, title: 'work' })">remove</button>
       <button class="toggle-tag" @click="$emit('toggle-tag', { id: 3, title: 'later' })">toggle</button>
       <button class="delete-tag" @click="$emit('delete-tag', { id: 1, title: 'work' })">delete</button>
+      <button class="apply-from-memo" @click="$emit('apply-tags-from-memo', { memoId: 5, title: 'Source', content: 'Source body', tags: [{ id: 2, title: 'home' }] })">apply-from-memo</button>
     </div>
   `,
 });
@@ -61,6 +68,30 @@ describe("TagRelationEditor", () => {
     setActivePinia(pinia);
     vi.clearAllMocks();
     useTagStore().setItems([makeTag(), makeTag({ id: 2, title: "home" }), makeTag({ id: 3, title: "later" })]);
+    useMemoStore().setItems([
+      {
+        id: 8,
+        orderIndex: 0,
+        width: 180,
+        height: 48,
+        title: "Current",
+        content: "Current body",
+        createdAt: "2026-03-20T10:00:00.000Z",
+        updatedAt: "2026-03-20T10:00:00.000Z",
+        memo_tags: [{ memo_id: 8, tag_id: 1, tag: makeTag() }],
+      },
+      {
+        id: 5,
+        orderIndex: 1,
+        width: 180,
+        height: 48,
+        title: "Source",
+        content: "Source body",
+        createdAt: "2026-03-19T10:00:00.000Z",
+        updatedAt: "2026-03-19T10:00:00.000Z",
+        memo_tags: [{ memo_id: 5, tag_id: 2, tag: makeTag({ id: 2, title: "home" }) }],
+      },
+    ]);
   });
 
   it("reflects existing memo tags and unlinks a selected tag", async () => {
@@ -125,6 +156,34 @@ describe("TagRelationEditor", () => {
       },
     ]);
     expect(commandsMock.addTagToMemo).toHaveBeenCalledWith(8, { id: 3, title: "later" });
+  });
+
+  it("replaces tags with the selected memo's tag set in one action", async () => {
+    commandsMock.replaceMemoTags.mockResolvedValue({ ok: true, value: undefined });
+
+    const wrapper = mount(TagRelationEditor, {
+      props: {
+        memoId: 8,
+        tags: [makeTag()],
+      },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TagPickerField: TagPickerFieldStub,
+        },
+      },
+    });
+
+    await wrapper.get(".apply-from-memo").trigger("click");
+    await flushPromises();
+
+    expect(commandsMock.replaceMemoTags).toHaveBeenCalledWith(8, [{ id: 2, title: "home" }]);
+    expect(wrapper.emitted("memo-tags-updated")?.[0]).toEqual([
+      {
+        memoId: 8,
+        tags: [{ id: 2, title: "home" }],
+      },
+    ]);
   });
 
   it("relays system tag deletion and removes the local tag", async () => {

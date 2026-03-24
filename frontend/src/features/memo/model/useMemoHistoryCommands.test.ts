@@ -141,4 +141,47 @@ describe("useMemoHistoryCommands", () => {
       },
     ]);
   });
+
+  it("replaces memo tags as a single undoable action", async () => {
+    vi.mocked(linkTagToMemoRequest).mockResolvedValue();
+    vi.mocked(unlinkTagFromMemoRequest).mockResolvedValue();
+
+    const memoStore = useMemoStore();
+    memoStore.items = [
+      makeMemo({
+        memo_tags: [
+          {
+            memo_id: 1,
+            tag_id: 1,
+            tag: makeTag(),
+          },
+        ],
+      }),
+    ];
+
+    const commands = useMemoHistoryCommands();
+
+    const replaced = await commands.replaceMemoTags(1, [{ id: 2, title: "home" }]);
+    expect(replaced).toEqual({ ok: true, value: undefined });
+    expect(unlinkTagFromMemoRequest).toHaveBeenCalledWith(1, 1);
+    expect(linkTagToMemoRequest).toHaveBeenCalledWith(1, 2);
+    expect(memoStore.items[0].memo_tags).toEqual([
+      {
+        memo_id: 1,
+        tag_id: 2,
+        tag: { id: 2, title: "home" },
+      },
+    ]);
+
+    await commands.undo();
+    expect(linkTagToMemoRequest).toHaveBeenCalledWith(1, 1);
+    expect(unlinkTagFromMemoRequest).toHaveBeenCalledWith(1, 2);
+    expect(memoStore.items[0].memo_tags).toEqual([
+      {
+        memo_id: 1,
+        tag_id: 1,
+        tag: { id: 1, title: "work" },
+      },
+    ]);
+  });
 });

@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import type { TagItem } from "../model/tag.types";
+import MemoTagSourceTab from "./MemoTagSourceTab.vue";
+import TagCatalogPanel from "./TagCatalogPanel.vue";
+import TagPickerPopoverShell from "./TagPickerPopoverShell.vue";
+import type { MemoTagSource, TagItem } from "../model/tag.types";
 
 const props = defineProps<{
   tags: TagItem[];
   selectedTagIds?: number[];
+  memoSources?: MemoTagSource[];
 }>();
 
 const emit = defineEmits<{
@@ -12,37 +16,15 @@ const emit = defineEmits<{
   (e: "toggle-tag", tag: TagItem): void;
   (e: "create-tag", title: string): void;
   (e: "tag-deleted", tag: TagItem): void;
+  (e: "apply-tags-from-memo", source: MemoTagSource): void;
 }>();
 
+type PickerTab = "tags" | "memos";
+
 const modalRef = ref<HTMLElement | null>(null);
-const searchQuery = ref("");
-
-const filteredTags = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase();
-
-  if (!query) {
-    return props.tags;
-  }
-
-  return props.tags.filter((tag) => tag.title.toLowerCase().includes(query));
-});
-
-const hasExactMatch = computed(() =>
-  props.tags.some((tag) => tag.title === searchQuery.value.trim())
-);
-
-const isSelected = (tagId: number) => (props.selectedTagIds ?? []).includes(tagId);
-
-const handleCreateTag = () => {
-  const title = searchQuery.value.trim();
-
-  if (title === "") {
-    return;
-  }
-
-  emit("create-tag", title);
-  searchQuery.value = "";
-};
+const activeTab = ref<PickerTab>("tags");
+const hasMemoTab = computed(() => props.memoSources !== undefined);
+let outsideClickTimer: ReturnType<typeof setTimeout> | null = null;
 
 const handleClickOutside = (event: MouseEvent) => {
   if (modalRef.value && !modalRef.value.contains(event.target as Node)) {
@@ -51,54 +33,51 @@ const handleClickOutside = (event: MouseEvent) => {
 };
 
 onMounted(() => {
-  setTimeout(() => {
+  outsideClickTimer = setTimeout(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
     document.addEventListener("click", handleClickOutside, true);
   }, 100);
 });
 
 onBeforeUnmount(() => {
-  document.removeEventListener("click", handleClickOutside, true);
+  if (outsideClickTimer) {
+    clearTimeout(outsideClickTimer);
+    outsideClickTimer = null;
+  }
+
+  if (typeof document !== "undefined") {
+    document.removeEventListener("click", handleClickOutside, true);
+  }
 });
 </script>
 
 <template>
-  <div ref="modalRef" class="tag-popup">
-    <input
-      v-model="searchQuery"
-      type="text"
-      placeholder="Search tags"
-      class="tag-popup-input"
-    />
+  <div ref="modalRef">
+    <TagPickerPopoverShell
+      :activeTab="activeTab"
+      :showMemoTab="hasMemoTab"
+      @update:activeTab="activeTab = $event"
+      @close="emit('close')"
+    >
+      <TagCatalogPanel
+        v-if="activeTab === 'tags'"
+        :tags="tags"
+        :selectedTagIds="selectedTagIds"
+        @toggle-tag="emit('toggle-tag', $event)"
+        @create-tag="emit('create-tag', $event)"
+        @tag-deleted="emit('tag-deleted', $event)"
+      />
 
-    <div class="tag-popup-list">
-      <div
-        v-for="tag in filteredTags"
-        :key="tag.id"
-        class="tag-popup-item"
-        :class="{ 'is-selected': isSelected(tag.id) }"
-      >
-        <button type="button" class="tag-popup-select-btn" @click="emit('toggle-tag', tag)">
-          <span v-if="isSelected(tag.id)" class="tag-popup-indicator">+</span>
-          # {{ tag.title }}
-        </button>
-        <button
-          type="button"
-          class="tag-popup-danger-btn"
-          title="Delete tag"
-          @click.prevent.stop="emit('tag-deleted', tag)"
-        >
-          x
-        </button>
-      </div>
-    </div>
+      <MemoTagSourceTab
+        v-else-if="memoSources"
+        :memoSources="memoSources"
+        @apply-tags-from-memo="emit('apply-tags-from-memo', $event)"
+      />
 
-    <div v-if="!hasExactMatch && searchQuery.trim() !== ''" class="tag-register-container">
-      <button type="button" class="add-tag-button" @click="handleCreateTag">
-        <span class="plus-icon">+</span>
-        Create #{{ searchQuery.trim() }}
-      </button>
-    </div>
-
-    <button type="button" class="tag-popup-close-btn" @click="emit('close')">Close</button>
+      <div v-else class="memo-source-empty">No memos available.</div>
+    </TagPickerPopoverShell>
   </div>
 </template>

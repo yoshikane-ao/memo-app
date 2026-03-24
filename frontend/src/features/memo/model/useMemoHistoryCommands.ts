@@ -38,6 +38,22 @@ const toTagSummary = (tag: TagItem): TagSummary => ({
   title: tag.title,
 });
 
+const toUniqueTagSummaries = (tags: readonly TagItem[]): TagSummary[] => {
+  const seenTagIds = new Set<number>();
+  const nextTags: TagSummary[] = [];
+
+  for (const tag of tags) {
+    if (seenTagIds.has(tag.id)) {
+      continue;
+    }
+
+    seenTagIds.add(tag.id);
+    nextTags.push(toTagSummary(tag));
+  }
+
+  return nextTags;
+};
+
 const toMemoUpdateInput = (memo: Memo): UpdateMemoInput => ({
   id: memo.id,
   title: memo.title,
@@ -55,6 +71,47 @@ export const useMemoHistoryCommands = () => {
 
   const getMemoTags = (memoId: number) =>
     getMemoById(memoId)?.memo_tags.map((memoTag) => cloneTagSummary(memoTag.tag)) ?? [];
+
+  const syncMemoTagSet = async (memoId: number, fromTags: TagSummary[], toTags: TagSummary[]) => {
+    const fromTagIds = new Set(fromTags.map((tag) => tag.id));
+    const toTagIds = new Set(toTags.map((tag) => tag.id));
+    const tagsToRemove = fromTags.filter((tag) => !toTagIds.has(tag.id));
+    const tagsToAdd = toTags.filter((tag) => !fromTagIds.has(tag.id));
+    const removedTagIds: number[] = [];
+    const addedTagIds: number[] = [];
+
+    try {
+      for (const tag of tagsToRemove) {
+        await unlinkTagFromMemoRequest(memoId, tag.id);
+        removedTagIds.push(tag.id);
+      }
+
+      for (const tag of tagsToAdd) {
+        await linkTagToMemoRequest(memoId, tag.id);
+        addedTagIds.push(tag.id);
+      }
+    } catch (error) {
+      for (const tagId of [...addedTagIds].reverse()) {
+        try {
+          await unlinkTagFromMemoRequest(memoId, tagId);
+        } catch {
+          // Best effort rollback for partially-applied tag replacements.
+        }
+      }
+
+      for (const tagId of [...removedTagIds].reverse()) {
+        try {
+          await linkTagToMemoRequest(memoId, tagId);
+        } catch {
+          // Best effort rollback for partially-applied tag replacements.
+        }
+      }
+
+      throw error;
+    }
+
+    memoStore.replaceMemoTags(memoId, toTags);
+  };
 
   const createMemo = async (input: CreateMemoInput): Promise<CommandResult<Memo>> => {
     let memoSnapshot: Memo | null = null;
@@ -289,6 +346,45 @@ export const useMemoHistoryCommands = () => {
 
   const removeTagFromMemo = (memoId: number, tag: TagItem) => changeMemoTag(memoId, tag, "remove");
 
+  const replaceMemoTags = async (memoId: number, tags: TagItem[]): Promise<CommandResult<void>> => {
+    const currentMemo = getMemoById(memoId);
+    if (!currentMemo) {
+      return {
+        ok: false,
+        reason: "error",
+      };
+    }
+
+    const previousTags = getMemoTags(memoId);
+    const nextTags = toUniqueTagSummaries(tags);
+    const hasSameTags =
+      previousTags.length === nextTags.length &&
+      previousTags.every((tag) => nextTags.some((nextTag) => nextTag.id === tag.id));
+
+    if (hasSameTags) {
+      return {
+        ok: true,
+        value: undefined,
+      };
+    }
+
+    const action: UndoableAction = {
+      label: "Replace memo tags",
+      async do() {
+        await syncMemoTagSet(memoId, previousTags, nextTags);
+      },
+      async undo() {
+        await syncMemoTagSet(memoId, nextTags, previousTags);
+      },
+      async redo() {
+        await syncMemoTagSet(memoId, previousTags, nextTags);
+      },
+    };
+
+    const result = await history.execute(action);
+    return result.ok ? { ok: true, value: undefined } : result;
+  };
+
   const createTag = async (input: CreateTagInput): Promise<CommandResult<TagItem>> => {
     let createdTag: TagItem | null = null;
     let tagSnapshot: RestoreTagInput | null = null;
@@ -417,6 +513,7 @@ export const useMemoHistoryCommands = () => {
     reorderMemos,
     addTagToMemo,
     removeTagFromMemo,
+    replaceMemoTags,
     createTag,
     deleteTag,
     undo: history.undo,

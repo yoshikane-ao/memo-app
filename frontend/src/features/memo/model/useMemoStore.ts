@@ -123,6 +123,15 @@ export const useMemoStore = defineStore("memo", () => {
     }
   };
 
+  const ensureLoaded = async () => {
+    if (items.value.length > 0 || loading.value) {
+      return true;
+    }
+
+    await fetchAll();
+    return error.value === null;
+  };
+
   const createMemo = async (input: CreateMemoInput) => {
     error.value = null;
 
@@ -203,6 +212,7 @@ export const useMemoStore = defineStore("memo", () => {
     loading,
     error,
     fetchAll,
+    ensureLoaded,
     createMemo,
     updateMemo,
     deleteMemo,

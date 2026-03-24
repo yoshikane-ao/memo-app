@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import type {
+  MemoTagSource,
   MemoTagsUpdatedPayload,
   TagItem,
   TagRelationEditorEmits,
   TagRelationEditorProps,
 } from "../../model/tag.types";
 import { useMemoHistoryCommands } from "../../../memo/model/useMemoHistoryCommands";
+import { useMemoStore } from "../../../memo/model/useMemoStore";
 import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 import { useTagStore } from "../../model/useTagStore";
 import TagPickerField from "../TagSelection/TagPickerField.vue";
@@ -15,9 +17,24 @@ const props = defineProps<TagRelationEditorProps>();
 const emit = defineEmits<TagRelationEditorEmits>();
 
 const commands = useMemoHistoryCommands();
+const memoStore = useMemoStore();
 const feedback = useFeedbackStore();
 const tagStore = useTagStore();
 const localTags = ref<TagItem[]>([...props.tags]);
+
+const memoSources = computed<MemoTagSource[]>(() =>
+  memoStore.items
+    .filter((memo) => memo.id !== props.memoId)
+    .map((memo) => ({
+      memoId: memo.id,
+      title: memo.title,
+      content: memo.content,
+      tags: memo.memo_tags.map((memoTag) => ({
+        id: memoTag.tag.id,
+        title: memoTag.tag.title,
+      })),
+    }))
+);
 
 const emitMemoTagsUpdated = (tags: TagItem[] = localTags.value) => {
   const payload: MemoTagsUpdatedPayload = {
@@ -101,8 +118,27 @@ const handleTagDeleted = async (tag: TagItem) => {
   emit("tag-deleted", tag.id);
 };
 
+const handleApplyTagsFromMemo = async (source: MemoTagSource) => {
+  const success = await commands.replaceMemoTags(props.memoId, source.tags);
+
+  if (!success.ok) {
+    if (success.reason === "error") {
+      feedback.showError("Failed to apply tags from memo.");
+    }
+    return;
+  }
+
+  const nextTags = source.tags.map((tag) => ({
+    id: tag.id,
+    title: tag.title,
+  }));
+  localTags.value = nextTags;
+  emitMemoTagsUpdated(nextTags);
+};
+
 onMounted(() => {
   void tagStore.ensureLoaded();
+  void memoStore.ensureLoaded();
 });
 
 watch(
@@ -119,10 +155,12 @@ watch(
     <TagPickerField
       :selectedTags="localTags"
       :availableTags="tagStore.items"
+      :memoSources="memoSources"
       @toggle-tag="void handleTagToggle($event)"
       @remove-tag="void handleTagRemove($event)"
       @create-tag="void handleCreateTag($event)"
       @delete-tag="void handleTagDeleted($event)"
+      @apply-tags-from-memo="void handleApplyTagsFromMemo($event)"
     />
   </div>
 </template>

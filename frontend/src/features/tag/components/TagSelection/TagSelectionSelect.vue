@@ -1,10 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { useMemoHistoryCommands } from "../../../memo/model/useMemoHistoryCommands";
+import { useMemoStore } from "../../../memo/model/useMemoStore";
 import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 import TagPickerField from "./TagPickerField.vue";
 import { useTagStore } from "../../model/useTagStore";
-import type { TagItem, TagSelectionSelectEmits, TagSelectionSelectProps } from "../../model/tag.types";
+import type {
+  MemoTagSource,
+  TagItem,
+  TagSelectionSelectEmits,
+  TagSelectionSelectProps,
+} from "../../model/tag.types";
 
 const props = withDefaults(defineProps<TagSelectionSelectProps>(), {
   resetKey: 0,
@@ -12,6 +18,7 @@ const props = withDefaults(defineProps<TagSelectionSelectProps>(), {
 const emit = defineEmits<TagSelectionSelectEmits>();
 
 const tagStore = useTagStore();
+const memoStore = useMemoStore();
 const commands = useMemoHistoryCommands();
 const feedback = useFeedbackStore();
 const isMounted = ref(false);
@@ -27,9 +34,22 @@ const addSelectedTag = (tags: TagItem[], tag: TagItem) => {
 const removeSelectedTag = (tags: TagItem[], tagId: number) =>
   tags.filter((currentTag) => currentTag.id !== tagId);
 
+const memoSources = computed<MemoTagSource[]>(() =>
+  memoStore.items.map((memo) => ({
+    memoId: memo.id,
+    title: memo.title,
+    content: memo.content,
+    tags: memo.memo_tags.map((memoTag) => ({
+      id: memoTag.tag.id,
+      title: memoTag.tag.title,
+    })),
+  }))
+);
+
 onMounted(() => {
   isMounted.value = true;
   void tagStore.ensureLoaded();
+  void memoStore.ensureLoaded();
 });
 
 const handleToggleTag = (tag: TagItem) => {
@@ -77,6 +97,16 @@ const handleDeleteTag = async (tag: TagItem) => {
   emit("tag-deleted", tag.id);
 };
 
+const handleApplyTagsFromMemo = (source: MemoTagSource) => {
+  emit(
+    "update:selectedTags",
+    source.tags.map((tag) => ({
+      id: tag.id,
+      title: tag.title,
+    }))
+  );
+};
+
 watch(
   () => tagStore.items,
   (tags) => {
@@ -97,10 +127,12 @@ watch(
   <TagPickerField
     :selectedTags="selectedTags"
     :availableTags="tagStore.items"
+    :memoSources="memoSources"
     :resetKey="resetKey"
     @toggle-tag="handleToggleTag"
     @remove-tag="handleRemoveTag"
     @create-tag="void handleCreateTag($event)"
     @delete-tag="void handleDeleteTag($event)"
+    @apply-tags-from-memo="handleApplyTagsFromMemo"
   />
 </template>

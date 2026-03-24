@@ -21,9 +21,17 @@ export interface TagSelectionSelectProps {
   resetKey?: number;
 }
 
+export interface MemoTagSource {
+  memoId: number;
+  title: string;
+  content: string;
+  tags: TagItem[];
+}
+
 export interface TagPickerFieldProps {
   selectedTags: TagItem[];
   availableTags: TagItem[];
+  memoSources?: MemoTagSource[];
   resetKey?: number;
 }
 
@@ -54,6 +62,7 @@ export type TagPickerFieldEmits = {
   (e: "remove-tag", tag: TagItem): void;
   (e: "create-tag", title: string): void;
   (e: "delete-tag", tag: TagItem): void;
+  (e: "apply-tags-from-memo", source: MemoTagSource): void;
 };
 
 export type TagRelationEditorEmits = {
