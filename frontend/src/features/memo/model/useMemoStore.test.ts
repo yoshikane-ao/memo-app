@@ -51,7 +51,7 @@ describe("useMemoStore", () => {
   });
 
   it("fetchAll replaces items with repository results", async () => {
-    const memos = [makeMemo(), makeMemo({ id: 2, title: "Beta" })];
+    const memos = [makeMemo(), makeMemo({ id: 2, orderIndex: 1, title: "Beta" })];
     vi.mocked(fetchMemoList).mockResolvedValue(memos);
     const store = useMemoStore();
 
@@ -63,8 +63,8 @@ describe("useMemoStore", () => {
   });
 
   it("createMemo prepends the created memo", async () => {
-    const existing = makeMemo({ id: 2, title: "Existing" });
-    const created = makeMemo({ id: 1, title: "Created" });
+    const existing = makeMemo({ id: 1, title: "Existing" });
+    const created = makeMemo({ id: 2, title: "Created" });
     vi.mocked(createMemoRequest).mockResolvedValue(created);
     const store = useMemoStore();
     store.items = [existing];
@@ -83,7 +83,7 @@ describe("useMemoStore", () => {
     vi.mocked(updateMemoRequest).mockResolvedValue();
     const store = useMemoStore();
     const target = makeMemo();
-    const untouched = makeMemo({ id: 2, title: "Beta" });
+    const untouched = makeMemo({ id: 2, orderIndex: 1, title: "Beta" });
     store.items = [target, untouched];
 
     const success = await store.updateMemo({
@@ -95,15 +95,15 @@ describe("useMemoStore", () => {
     });
 
     expect(success).toBe(true);
-    expect(store.items[0]).toMatchObject({
+    expect(store.items.find((memo) => memo.id === 1)).toMatchObject({
       id: 1,
       title: "Updated",
       content: "Updated memo",
       width: 220,
       height: 72,
     });
-    expect(store.items[0].memo_tags).toEqual(target.memo_tags);
-    expect(store.items[1]).toEqual(untouched);
+    expect(store.items.find((memo) => memo.id === 1)?.memo_tags).toEqual(target.memo_tags);
+    expect(store.items.find((memo) => memo.id === 2)).toEqual(untouched);
   });
 
   it("reorderMemos sends order indices and rewrites local order", async () => {

@@ -15,17 +15,31 @@ const DELETE_ERROR = "Failed to delete tag.";
 const LINK_ERROR = "Failed to link tag.";
 const UNLINK_ERROR = "Failed to unlink tag.";
 
+const cloneTag = (tag: TagItem): TagItem => ({
+  ...tag,
+});
+
 export const useTagStore = defineStore("tag", () => {
   const items = ref<TagItem[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
+  const setItems = (nextItems: TagItem[]) => {
+    items.value = [...nextItems.map(cloneTag)].sort((left, right) => left.id - right.id);
+  };
+
   const addLocalTag = (tag: TagItem) => {
-    if (items.value.some((currentTag) => currentTag.id === tag.id)) {
+    const nextTag = cloneTag(tag);
+    const existingIndex = items.value.findIndex((currentTag) => currentTag.id === nextTag.id);
+
+    if (existingIndex === -1) {
+      setItems([...items.value, nextTag]);
       return;
     }
 
-    items.value = [...items.value, tag];
+    const nextItems = [...items.value];
+    nextItems.splice(existingIndex, 1, nextTag);
+    setItems(nextItems);
   };
 
   const removeLocalTag = (tagId: number) => {
@@ -37,7 +51,7 @@ export const useTagStore = defineStore("tag", () => {
     error.value = null;
 
     try {
-      items.value = await fetchTagList();
+      setItems(await fetchTagList());
       return true;
     } catch (fetchError) {
       console.error(fetchError);
@@ -120,6 +134,7 @@ export const useTagStore = defineStore("tag", () => {
     deleteTag,
     linkTagToMemo,
     unlinkTagFromMemo,
+    setItems,
     addLocalTag,
     removeLocalTag,
   };

@@ -15,6 +15,7 @@ const emit = defineEmits<MemoComposerFormEmits>();
       :content="content"
       @update:title="emit('update:title', $event)"
       @update:content="emit('update:content', $event)"
+      @submit-requested="emit('submit')"
     />
 
     <div class="register-bottom-row">
@@ -26,8 +27,9 @@ const emit = defineEmits<MemoComposerFormEmits>();
       />
 
       <TagSelectionSelect
+        :selectedTags="selectedTags"
         :resetKey="tagSelectionResetKey"
-        @update:selectedTitles="emit('update:selectedTitles', $event)"
+        @update:selectedTags="emit('update:selectedTags', $event)"
         @tag-deleted="emit('tag-deleted', $event)"
       />
     </div>

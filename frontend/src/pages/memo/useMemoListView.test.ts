@@ -61,6 +61,21 @@ describe("useMemoListView", () => {
     expect(view.displayedMemos.value.map((memo) => memo.id)).toEqual([2]);
   });
 
+  it("treats keyword search as case-sensitive", () => {
+    const items = ref([
+      makeMemo({ id: 1, title: "Alpha", content: "First memo" }),
+      makeMemo({ id: 2, title: "alpha", content: "first memo" }),
+    ]);
+    const view = useMemoListView(items);
+
+    view.keyword.value = "First";
+    view.searchType.value = "content";
+    expect(view.displayedMemos.value.map((memo) => memo.id)).toEqual([1]);
+
+    view.keyword.value = "first";
+    expect(view.displayedMemos.value.map((memo) => memo.id)).toEqual([2]);
+  });
+
   it("sorts newest and oldest by createdAt", () => {
     const items = ref([
       makeMemo({ id: 1, createdAt: "2026-03-20T10:00:00.000Z" }),

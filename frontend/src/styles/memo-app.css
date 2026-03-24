@@ -53,6 +53,26 @@ body {
   min-height: 100vh;
 }
 
+.feedback-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+}
+
+.feedback-banner-error {
+  background: rgba(232, 85, 85, 0.12);
+  border-color: rgba(232, 85, 85, 0.35);
+  color: #ffb2b2;
+}
+
+.feedback-banner-info {
+  background: var(--accent-soft);
+  border-color: rgba(108, 140, 255, 0.35);
+  color: #bdd0ff;
+}
+
 .memo-container {
   display: flex;
   flex-direction: column;

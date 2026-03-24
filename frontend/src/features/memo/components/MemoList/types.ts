@@ -17,8 +17,8 @@ export interface MemoCardProps {
 
 export interface MemoCardActionsProps {
   memoId: number;
-  content: string;
   isSaveDisabled: boolean;
+  isCopied: boolean;
 }
 
 export interface MemoCardTagsProps {
@@ -54,6 +54,7 @@ export type MemoCardEmits = {
 };
 
 export type MemoCardActionsEmits = {
+  (e: "copy-requested"): void;
   (e: "save-requested"): void;
   (e: "delete-requested"): void;
 };

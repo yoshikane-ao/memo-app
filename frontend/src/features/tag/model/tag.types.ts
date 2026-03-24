@@ -8,11 +8,22 @@ export interface CreateTagInput {
   memoId?: number;
 }
 
+export interface RestoreTagInput extends TagItem {
+  linkedMemoIds?: number[];
+}
+
 export interface TagFilterSelectProps {
   selectedTags?: number[];
 }
 
 export interface TagSelectionSelectProps {
+  selectedTags: TagItem[];
+  resetKey?: number;
+}
+
+export interface TagPickerFieldProps {
+  selectedTags: TagItem[];
+  availableTags: TagItem[];
   resetKey?: number;
 }
 
@@ -34,8 +45,15 @@ export type TagFilterSelectEmits = {
 };
 
 export type TagSelectionSelectEmits = {
-  (e: "update:selectedTitles", value: string[]): void;
+  (e: "update:selectedTags", value: TagItem[]): void;
   (e: "tag-deleted", tagId: TagDeletedPayload): void;
+};
+
+export type TagPickerFieldEmits = {
+  (e: "toggle-tag", tag: TagItem): void;
+  (e: "remove-tag", tag: TagItem): void;
+  (e: "create-tag", title: string): void;
+  (e: "delete-tag", tag: TagItem): void;
 };
 
 export type TagRelationEditorEmits = {

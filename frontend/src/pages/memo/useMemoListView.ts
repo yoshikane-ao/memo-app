@@ -21,14 +21,12 @@ export function useMemoListView(items: Ref<Memo[]>) {
     }
 
     if (keyword.value.trim()) {
-      const query = keyword.value.trim().toLowerCase();
+      const query = keyword.value.trim();
 
       result = result.filter((memo) => {
-        const matchTitle = memo.title.toLowerCase().includes(query);
-        const matchContent = memo.content.toLowerCase().includes(query);
-        const matchTag = memo.memo_tags.some((memoTag) =>
-          memoTag.tag.title.toLowerCase().includes(query)
-        );
+        const matchTitle = memo.title.includes(query);
+        const matchContent = memo.content.includes(query);
+        const matchTag = memo.memo_tags.some((memoTag) => memoTag.tag.title.includes(query));
 
         if (searchType.value === "title") {
           return matchTitle;

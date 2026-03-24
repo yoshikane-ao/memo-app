@@ -1,4 +1,5 @@
 import { computed, reactive, ref } from "vue";
+import type { TagItem } from "../../../tag";
 import type { MemoComposerDraft } from "./types";
 
 export function useMemoComposerDraft() {
@@ -6,7 +7,7 @@ export function useMemoComposerDraft() {
     title: "",
     content: "",
   });
-  const selectedTagTitles = ref<string[]>([]);
+  const selectedTags = ref<TagItem[]>([]);
   const tagSelectionResetKey = ref(0);
 
   const isSubmitDisabled = computed(
@@ -21,25 +22,25 @@ export function useMemoComposerDraft() {
     draft.content = value;
   };
 
-  const setSelectedTagTitles = (value: string[]) => {
-    selectedTagTitles.value = value;
+  const setSelectedTags = (value: TagItem[]) => {
+    selectedTags.value = value;
   };
 
   const resetDraft = () => {
     draft.title = "";
     draft.content = "";
-    selectedTagTitles.value = [];
+    selectedTags.value = [];
     tagSelectionResetKey.value += 1;
   };
 
   return {
     draft,
-    selectedTagTitles,
+    selectedTags,
     tagSelectionResetKey,
     isSubmitDisabled,
     updateTitle,
     updateContent,
-    setSelectedTagTitles,
+    setSelectedTags,
     resetDraft,
   };
 }

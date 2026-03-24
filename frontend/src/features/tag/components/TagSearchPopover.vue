@@ -1,104 +1,47 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
-import { useTagStore } from "../model/useTagStore";
 import type { TagItem } from "../model/tag.types";
 
 const props = defineProps<{
-  memoId?: number;
-  linkedTagIds?: number[];
+  tags: TagItem[];
+  selectedTagIds?: number[];
 }>();
 
 const emit = defineEmits<{
   (e: "close"): void;
-  (e: "tag-added", tag: TagItem): void;
-  (e: "tag-removed", tag: TagItem): void;
+  (e: "toggle-tag", tag: TagItem): void;
+  (e: "create-tag", title: string): void;
   (e: "tag-deleted", tag: TagItem): void;
 }>();
 
 const modalRef = ref<HTMLElement | null>(null);
 const searchQuery = ref("");
-const tagStore = useTagStore();
 
 const filteredTags = computed(() => {
   const query = searchQuery.value.trim().toLowerCase();
 
   if (!query) {
-    return tagStore.items;
+    return props.tags;
   }
 
-  return tagStore.items.filter((tag) => tag.title.toLowerCase().includes(query));
+  return props.tags.filter((tag) => tag.title.toLowerCase().includes(query));
 });
 
 const hasExactMatch = computed(() =>
-  tagStore.items.some((tag) => tag.title === searchQuery.value.trim())
+  props.tags.some((tag) => tag.title === searchQuery.value.trim())
 );
 
-const isLinked = (tagId: number) => (props.linkedTagIds ?? []).includes(tagId);
+const isSelected = (tagId: number) => (props.selectedTagIds ?? []).includes(tagId);
 
-const toggleTag = async (tag: TagItem) => {
-  const linked = isLinked(tag.id);
-
-  if (!props.memoId) {
-    if (linked) {
-      emit("tag-removed", tag);
-    } else {
-      emit("tag-added", tag);
-    }
-    return;
-  }
-
-  const success = linked
-    ? await tagStore.unlinkTagFromMemo(props.memoId, tag.id)
-    : await tagStore.linkTagToMemo(props.memoId, tag.id);
-
-  if (!success) {
-    window.alert(linked ? "Failed to remove tag." : "Failed to add tag.");
-    return;
-  }
-
-  if (linked) {
-    emit("tag-removed", tag);
-  } else {
-    emit("tag-added", tag);
-  }
-};
-
-const handleCreateTag = async () => {
+const handleCreateTag = () => {
   const title = searchQuery.value.trim();
 
   if (title === "") {
     return;
   }
 
-  const createdTag = await tagStore.createTag({
-    memoId: props.memoId,
-    title,
-  });
-
-  if (!createdTag) {
-    window.alert("Failed to create tag.");
-    return;
-  }
-
-  emit("tag-added", createdTag);
+  emit("create-tag", title);
   searchQuery.value = "";
-};
-
-const handleDeleteTag = async (tag: TagItem) => {
-  const confirmed = window.confirm(`Delete #${tag.title} from the system?`);
-
-  if (!confirmed) {
-    return;
-  }
-
-  const success = await tagStore.deleteTag(tag.id);
-
-  if (!success) {
-    window.alert("Failed to delete tag.");
-    return;
-  }
-
-  emit("tag-deleted", tag);
 };
 
 const handleClickOutside = (event: MouseEvent) => {
@@ -108,8 +51,6 @@ const handleClickOutside = (event: MouseEvent) => {
 };
 
 onMounted(() => {
-  void tagStore.ensureLoaded();
-
   setTimeout(() => {
     document.addEventListener("click", handleClickOutside, true);
   }, 100);
@@ -134,17 +75,17 @@ onBeforeUnmount(() => {
         v-for="tag in filteredTags"
         :key="tag.id"
         class="tag-popup-item"
-        :class="{ 'is-selected': isLinked(tag.id) }"
+        :class="{ 'is-selected': isSelected(tag.id) }"
       >
-        <button type="button" class="tag-popup-select-btn" @click="toggleTag(tag)">
-          <span v-if="isLinked(tag.id)" class="tag-popup-indicator">+</span>
+        <button type="button" class="tag-popup-select-btn" @click="emit('toggle-tag', tag)">
+          <span v-if="isSelected(tag.id)" class="tag-popup-indicator">+</span>
           # {{ tag.title }}
         </button>
         <button
           type="button"
           class="tag-popup-danger-btn"
           title="Delete tag"
-          @click.prevent.stop="handleDeleteTag(tag)"
+          @click.prevent.stop="emit('tag-deleted', tag)"
         >
           x
         </button>

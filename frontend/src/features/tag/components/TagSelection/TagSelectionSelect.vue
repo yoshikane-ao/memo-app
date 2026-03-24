@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-import TagBadgeList from "../TagBadgeList.vue";
-import TagSearchPopover from "../TagSearchPopover.vue";
+import { useMemoHistoryCommands } from "../../../memo/model/useMemoHistoryCommands";
+import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
+import TagPickerField from "./TagPickerField.vue";
 import { useTagStore } from "../../model/useTagStore";
 import type { TagItem, TagSelectionSelectEmits, TagSelectionSelectProps } from "../../model/tag.types";
 
@@ -11,82 +12,95 @@ const props = withDefaults(defineProps<TagSelectionSelectProps>(), {
 const emit = defineEmits<TagSelectionSelectEmits>();
 
 const tagStore = useTagStore();
-const showTagSearch = ref(false);
-const selectedTags = ref<TagItem[]>([]);
+const commands = useMemoHistoryCommands();
+const feedback = useFeedbackStore();
+const isMounted = ref(false);
 
-const addTag = (tag: TagItem) => {
-  if (!selectedTags.value.some((currentTag) => currentTag.id === tag.id)) {
-    selectedTags.value = [...selectedTags.value, tag];
+const addSelectedTag = (tags: TagItem[], tag: TagItem) => {
+  if (tags.some((currentTag) => currentTag.id === tag.id)) {
+    return tags;
   }
+
+  return [...tags, tag];
 };
 
-const removeTag = (tag: TagItem) => {
-  selectedTags.value = selectedTags.value.filter((currentTag) => currentTag.id !== tag.id);
-};
-
-const closeTagSearch = () => {
-  showTagSearch.value = false;
-};
-
-const resetSelection = () => {
-  selectedTags.value = [];
-  showTagSearch.value = false;
-};
+const removeSelectedTag = (tags: TagItem[], tagId: number) =>
+  tags.filter((currentTag) => currentTag.id !== tagId);
 
 onMounted(() => {
+  isMounted.value = true;
   void tagStore.ensureLoaded();
 });
 
-watch(
-  selectedTags,
-  (value) => {
-    emit(
-      "update:selectedTitles",
-      value.map((tag) => tag.title)
-    );
-  },
-  { deep: true, immediate: true }
-);
+const handleToggleTag = (tag: TagItem) => {
+  const nextTags = props.selectedTags.some((currentTag) => currentTag.id === tag.id)
+    ? removeSelectedTag(props.selectedTags, tag.id)
+    : addSelectedTag(props.selectedTags, tag);
 
-watch(
-  () => props.resetKey,
-  () => {
-    resetSelection();
+  emit("update:selectedTags", nextTags);
+};
+
+const handleRemoveTag = (tag: TagItem) => {
+  emit("update:selectedTags", removeSelectedTag(props.selectedTags, tag.id));
+};
+
+const handleCreateTag = async (title: string) => {
+  const createdTag = await commands.createTag({ title });
+
+  if (!createdTag.ok) {
+    if (createdTag.reason === "error") {
+      feedback.showError("Failed to create tag.");
+    }
+    return;
   }
-);
+
+  emit("update:selectedTags", addSelectedTag(props.selectedTags, createdTag.value));
+};
+
+const handleDeleteTag = async (tag: TagItem) => {
+  const confirmed = window.confirm(`Delete #${tag.title} from the system?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  const success = await commands.deleteTag(tag.id);
+
+  if (!success.ok) {
+    if (success.reason === "error") {
+      feedback.showError("Failed to delete tag.");
+    }
+    return;
+  }
+
+  emit("update:selectedTags", removeSelectedTag(props.selectedTags, tag.id));
+  emit("tag-deleted", tag.id);
+};
 
 watch(
   () => tagStore.items,
   (tags) => {
     const validTagIds = tags.map((tag) => tag.id);
-    selectedTags.value = selectedTags.value.filter((tag) => validTagIds.includes(tag.id));
+    const filteredTags = props.selectedTags.filter((tag) => validTagIds.includes(tag.id));
+
+    if (!isMounted.value || filteredTags.length === props.selectedTags.length) {
+      return;
+    }
+
+    emit("update:selectedTags", filteredTags);
   },
   { deep: true }
 );
 </script>
 
 <template>
-  <div class="tag-selection-field">
-    <div class="tag-dropdown-wrapper">
-      <button class="tag-add-btn" title="Add tag" @click.stop="showTagSearch = !showTagSearch">
-        + Tag
-      </button>
-
-      <TagSearchPopover
-        v-if="showTagSearch"
-        :linkedTagIds="selectedTags.map((tag) => tag.id)"
-        @tag-added="addTag"
-        @tag-removed="removeTag"
-        @tag-deleted="
-          removeTag($event);
-          emit('tag-deleted', $event.id);
-        "
-        @close="closeTagSearch"
-      />
-    </div>
-
-    <div v-if="selectedTags.length > 0" class="selected-tags-preview">
-      <TagBadgeList :tags="selectedTags" @remove="removeTag" />
-    </div>
-  </div>
+  <TagPickerField
+    :selectedTags="selectedTags"
+    :availableTags="tagStore.items"
+    :resetKey="resetKey"
+    @toggle-tag="handleToggleTag"
+    @remove-tag="handleRemoveTag"
+    @create-tag="void handleCreateTag($event)"
+    @delete-tag="void handleDeleteTag($event)"
+  />
 </template>

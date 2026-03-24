@@ -1,29 +1,31 @@
 <script setup lang="ts">
-import { useMemoStore } from "../../model/useMemoStore";
 import MemoList from "./MemoList.vue";
 import type {
   MemoListContainerEmits,
   MemoListContainerProps,
   SaveMemoPayload,
 } from "./types";
+import { useMemoHistoryCommands } from "../../model/useMemoHistoryCommands";
+import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 
 const props = defineProps<MemoListContainerProps>();
 const emit = defineEmits<MemoListContainerEmits>();
-const memoStore = useMemoStore();
+const commands = useMemoHistoryCommands();
+const feedback = useFeedbackStore();
 
 const handleReorderRequested = async (items: MemoListContainerProps["items"]) => {
   if (!props.canReorder) {
     return;
   }
 
-  const isSaved = await memoStore.reorderMemos(items);
-  if (!isSaved) {
-    alert("Failed to save sort order.");
+  const isSaved = await commands.reorderMemos(items);
+  if (!isSaved.ok && isSaved.reason === "error") {
+    feedback.showError("Failed to save sort order.");
   }
 };
 
 const handleSaveRequested = async (payload: SaveMemoPayload) => {
-  const isSaved = await memoStore.updateMemo({
+  const isSaved = await commands.updateMemo({
     id: payload.memoId,
     title: payload.title,
     content: payload.content,
@@ -31,8 +33,8 @@ const handleSaveRequested = async (payload: SaveMemoPayload) => {
     height: payload.height,
   });
 
-  if (!isSaved) {
-    alert("Failed to update memo.");
+  if (!isSaved.ok && isSaved.reason === "error") {
+    feedback.showError("Failed to update memo.");
   }
 };
 
@@ -42,14 +44,10 @@ const handleDeleteRequested = async (memoId: number) => {
     return;
   }
 
-  const isDeleted = await memoStore.deleteMemo(memoId);
-  if (!isDeleted) {
-    alert("Failed to delete memo.");
+  const isDeleted = await commands.deleteMemo(memoId);
+  if (!isDeleted.ok && isDeleted.reason === "error") {
+    feedback.showError("Failed to delete memo.");
   }
-};
-
-const handleMemoTagsUpdated = (payload: { memoId: number; tags: { id: number; title: string }[] }) => {
-  memoStore.replaceMemoTags(payload.memoId, payload.tags);
 };
 </script>
 
@@ -60,7 +58,6 @@ const handleMemoTagsUpdated = (payload: { memoId: number; tags: { id: number; ti
     @reorder-requested="handleReorderRequested"
     @save-requested="handleSaveRequested"
     @delete-requested="handleDeleteRequested"
-    @memo-tags-updated="handleMemoTagsUpdated"
     @tag-deleted="emit('tag-deleted', $event)"
   />
 </template>

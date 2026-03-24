@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
+import { useMemoHistoryCommands } from "../../../memo/model/useMemoHistoryCommands";
+import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 import TagBadgeList from "../TagBadgeList.vue";
 import TagSearchPopover from "../TagSearchPopover.vue";
 import { useTagStore } from "../../model/useTagStore";
@@ -11,6 +13,8 @@ const props = withDefaults(defineProps<TagFilterSelectProps>(), {
 const emit = defineEmits<TagFilterSelectEmits>();
 
 const tagStore = useTagStore();
+const commands = useMemoHistoryCommands();
+const feedback = useFeedbackStore();
 const localSelectedTags = ref<number[]>([...props.selectedTags]);
 const isDropdownOpen = ref(false);
 
@@ -31,6 +35,48 @@ const addTag = (tagId: number) => {
 
 const removeTag = (tagId: number) => {
   localSelectedTags.value = localSelectedTags.value.filter((currentTagId) => currentTagId !== tagId);
+};
+
+const handleToggleTag = (tag: TagItem) => {
+  if (localSelectedTags.value.includes(tag.id)) {
+    removeTag(tag.id);
+    return;
+  }
+
+  addTag(tag.id);
+};
+
+const handleCreateTag = async (title: string) => {
+  const createdTag = await commands.createTag({ title });
+
+  if (!createdTag.ok) {
+    if (createdTag.reason === "error") {
+      feedback.showError("Failed to create tag.");
+    }
+    return;
+  }
+
+  addTag(createdTag.value.id);
+};
+
+const handleDeleteTag = async (tag: TagItem) => {
+  const confirmed = window.confirm(`Delete #${tag.title} from the system?`);
+
+  if (!confirmed) {
+    return;
+  }
+
+  const success = await commands.deleteTag(tag.id);
+
+  if (!success.ok) {
+    if (success.reason === "error") {
+      feedback.showError("Failed to delete tag.");
+    }
+    return;
+  }
+
+  removeTag(tag.id);
+  emit("tag-deleted", tag.id);
 };
 
 onMounted(() => {
@@ -80,13 +126,11 @@ watch(
 
     <TagSearchPopover
       v-if="isDropdownOpen"
-      :linkedTagIds="localSelectedTags"
-      @tag-added="addTag($event.id)"
-      @tag-removed="removeTag($event.id)"
-      @tag-deleted="
-        removeTag($event.id);
-        emit('tag-deleted', $event.id);
-      "
+      :tags="tagStore.items"
+      :selectedTagIds="localSelectedTags"
+      @toggle-tag="handleToggleTag"
+      @create-tag="void handleCreateTag($event)"
+      @tag-deleted="void handleDeleteTag($event)"
       @close="isDropdownOpen = false"
     />
   </div>

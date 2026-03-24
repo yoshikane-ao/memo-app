@@ -1,5 +1,5 @@
 import { api } from "../../../shared/api/client";
-import type { CreateTagInput, TagItem } from "../model/tag.types";
+import type { CreateTagInput, RestoreTagInput, TagItem } from "../model/tag.types";
 
 export async function fetchTagList(): Promise<TagItem[]> {
   const response = await api.get<{ items?: TagItem[] }>("/tags/list");
@@ -11,6 +11,11 @@ export async function createTag(input: CreateTagInput): Promise<TagItem> {
     memoId: input.memoId,
     title: input.title,
   });
+  return response.data;
+}
+
+export async function restoreTag(input: RestoreTagInput): Promise<TagItem> {
+  const response = await api.post<TagItem>("/tags/restore", input);
   return response.data;
 }
 

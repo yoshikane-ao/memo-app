@@ -1,13 +1,22 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import { applyAutoHeight, applyAutoWidth } from "../../../../shared/composables/textareaAutosize";
+import { useActiveCopyTarget } from "../../../../shared/copy/activeCopyTarget";
+import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
+import {
+  handleMultilineEnterSubmit,
+  handleSingleLineEnterSubmit,
+} from "../../../../shared/keyboard/handleEnterSubmit";
 import MemoCardActions from "./MemoCardActions.vue";
 import MemoCardTags from "./MemoCardTags.vue";
 import type { MemoCardEmits, MemoCardProps } from "./types";
 
 const props = defineProps<MemoCardProps>();
 const emit = defineEmits<MemoCardEmits>();
+const { setActiveTarget, clearActiveTarget } = useActiveCopyTarget();
+const feedback = useFeedbackStore();
 
+const memoRowRef = ref<HTMLElement | null>(null);
 const titleTextareaRef = ref<HTMLTextAreaElement | null>(null);
 const contentTextareaRef = ref<HTMLTextAreaElement | null>(null);
 
@@ -15,6 +24,8 @@ const draftTitle = ref(props.memo.title);
 const draftContent = ref(props.memo.content);
 const currentWidth = ref<number | undefined>(props.memo.width ?? undefined);
 const currentHeight = ref<number | undefined>(props.memo.height ?? undefined);
+const isCopied = ref(false);
+let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 const titleStyle = computed(() =>
   currentWidth.value == null ? undefined : `${currentWidth.value}px`
@@ -73,6 +84,14 @@ const handleContentInput = (event: Event) => {
   syncContentLayout();
 };
 
+const handleTitleKeydown = (event: KeyboardEvent) => {
+  handleSingleLineEnterSubmit(event, handleSaveRequested, () => !isSaveDisabled.value);
+};
+
+const handleContentKeydown = (event: KeyboardEvent) => {
+  handleMultilineEnterSubmit(event, handleSaveRequested, () => !isSaveDisabled.value);
+};
+
 const handleSaveRequested = () => {
   if (isSaveDisabled.value) {
     return;
@@ -85,6 +104,39 @@ const handleSaveRequested = () => {
     width: currentWidth.value,
     height: currentHeight.value,
   });
+};
+
+const activateCopyTarget = () => {
+  setActiveTarget({
+    id: props.memo.id,
+    getRoot: () => memoRowRef.value,
+    copy: copyMemoContent,
+  });
+};
+
+const markCopied = () => {
+  isCopied.value = true;
+
+  if (copiedTimer) {
+    clearTimeout(copiedTimer);
+  }
+
+  copiedTimer = setTimeout(() => {
+    isCopied.value = false;
+    copiedTimer = null;
+  }, 500);
+};
+
+const copyMemoContent = async () => {
+  try {
+    await navigator.clipboard.writeText(draftContent.value);
+    markCopied();
+    return true;
+  } catch (error) {
+    console.error("Failed to copy memo content.", error);
+    feedback.showError("Failed to copy memo.");
+    return false;
+  }
 };
 
 watch(
@@ -127,10 +179,23 @@ onMounted(() => {
     syncContentLayout();
   });
 });
+
+onBeforeUnmount(() => {
+  if (copiedTimer) {
+    clearTimeout(copiedTimer);
+  }
+
+  clearActiveTarget(props.memo.id);
+});
 </script>
 
 <template>
-  <div class="memo-row">
+  <div
+    ref="memoRowRef"
+    class="memo-row"
+    @focusin="activateCopyTarget"
+    @pointerdown.capture="activateCopyTarget"
+  >
     <div class="title-cell">
       <textarea
         :id="`title-${memo.id}`"
@@ -141,6 +206,7 @@ onMounted(() => {
         spellcheck="false"
         class="title-input"
         @input="handleTitleInput"
+        @keydown="handleTitleKeydown"
       />
     </div>
 
@@ -154,6 +220,7 @@ onMounted(() => {
         spellcheck="false"
         class="content-input"
         @input="handleContentInput"
+        @keydown="handleContentKeydown"
       />
 
       <MemoCardTags
@@ -167,8 +234,9 @@ onMounted(() => {
     <div class="actions-cell">
       <MemoCardActions
         :memoId="memo.id"
-        :content="draftContent"
+        :isCopied="isCopied"
         :isSaveDisabled="isSaveDisabled"
+        @copy-requested="void copyMemoContent()"
         @save-requested="handleSaveRequested"
         @delete-requested="emit('delete-requested', memo.id)"
       />

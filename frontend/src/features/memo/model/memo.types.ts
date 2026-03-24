@@ -43,8 +43,8 @@ export interface UpdateMemoInput {
   id: number;
   title: string;
   content: string;
-  width?: number;
-  height?: number;
+  width?: number | null;
+  height?: number | null;
 }
 
 export interface ReorderMemoInput {

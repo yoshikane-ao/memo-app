@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { useMemoStore } from "../../model/useMemoStore";
 import MemoComposerForm from "./MemoComposerForm.vue";
 import { useMemoComposerDraft } from "./useMemoComposerDraft";
 import type { MemoComposerContainerEmits } from "./types";
+import { useMemoHistoryCommands } from "../../model/useMemoHistoryCommands";
+import { useFeedbackStore } from "../../../../shared/feedback/useFeedbackStore";
 
 const emit = defineEmits<MemoComposerContainerEmits>();
 
-const memoStore = useMemoStore();
+const commands = useMemoHistoryCommands();
+const feedback = useFeedbackStore();
 const {
   draft,
-  selectedTagTitles,
+  selectedTags,
   tagSelectionResetKey,
   isSubmitDisabled,
   updateTitle,
   updateContent,
-  setSelectedTagTitles,
+  setSelectedTags,
   resetDraft,
 } = useMemoComposerDraft();
 
@@ -23,19 +25,21 @@ const handleSubmit = async () => {
     return;
   }
 
-  const createdMemo = await memoStore.createMemo({
+  const createdMemo = await commands.createMemo({
     title: draft.title,
     content: draft.content,
-    tags: selectedTagTitles.value,
+    tags: selectedTags.value.map((tag) => tag.title),
   });
 
-  if (!createdMemo) {
-    window.alert("Failed to create memo.");
+  if (!createdMemo.ok) {
+    if (createdMemo.reason === "error") {
+      feedback.showError("Failed to create memo.");
+    }
     return;
   }
 
   resetDraft();
-  emit("memo-created", createdMemo.id);
+  emit("memo-created", createdMemo.value.id);
 };
 
 const handleTagDeleted = (tagId: number) => {
@@ -48,10 +52,11 @@ const handleTagDeleted = (tagId: number) => {
     :title="draft.title"
     :content="draft.content"
     :isSubmitDisabled="isSubmitDisabled"
+    :selectedTags="selectedTags"
     :tagSelectionResetKey="tagSelectionResetKey"
     @update:title="updateTitle"
     @update:content="updateContent"
-    @update:selectedTitles="setSelectedTagTitles"
+    @update:selectedTags="setSelectedTags"
     @submit="handleSubmit"
     @tag-deleted="handleTagDeleted"
   />

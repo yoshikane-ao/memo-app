@@ -2,31 +2,36 @@
 import { onMounted } from "vue";
 import { storeToRefs } from "pinia";
 import "../../styles/memo-app.css";
+import FeedbackBanner from "../../shared/feedback/FeedbackBanner.vue";
 import {
   MemoComposerContainer,
   MemoListContainer,
   MemoToolbar,
   useMemoStore,
 } from "../../features/memo";
-import type { TagDeletedPayload } from "../../features/tag";
 import { useMemoListView } from "./useMemoListView";
+import { useCopyShortcuts } from "../../shared/copy/useCopyShortcuts";
+import { useHistoryManager } from "../../shared/history/useHistoryManager";
+import { useHistoryShortcuts } from "../../shared/history/useHistoryShortcuts";
 
 const memoStore = useMemoStore();
+const history = useHistoryManager();
 const { items } = storeToRefs(memoStore);
 const { keyword, searchType, sortOrder, selectedTags, displayedMemos, canReorder } =
   useMemoListView(items);
 
-const handleTagDeleted = (tagId: TagDeletedPayload) => {
-  memoStore.removeDeletedTagReference(tagId);
-};
+useHistoryShortcuts();
+useCopyShortcuts();
 
 onMounted(() => {
+  history.clear();
   void memoStore.fetchAll();
 });
 </script>
 
 <template>
-  <MemoComposerContainer @tag-deleted="handleTagDeleted" />
+  <FeedbackBanner />
+  <MemoComposerContainer />
   <MemoToolbar
     :keyword="keyword"
     :searchType="searchType"
@@ -36,11 +41,6 @@ onMounted(() => {
     @update:searchType="searchType = $event"
     @update:sortOrder="sortOrder = $event"
     @update:selectedTags="selectedTags = $event"
-    @tag-deleted="handleTagDeleted"
   />
-  <MemoListContainer
-    :items="displayedMemos"
-    :canReorder="canReorder"
-    @tag-deleted="handleTagDeleted"
-  />
+  <MemoListContainer :items="displayedMemos" :canReorder="canReorder" />
 </template>

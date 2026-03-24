@@ -27,6 +27,11 @@ export async function createMemo(input: CreateMemoInput): Promise<Memo> {
   return toMemo(response.data);
 }
 
+export async function restoreMemo(input: Memo): Promise<Memo> {
+  const response = await api.post<MemoDto>("/memos/restore", input);
+  return toMemo(response.data);
+}
+
 export async function updateMemo(input: UpdateMemoInput): Promise<void> {
   await api.put("/memos/update", {
     id: input.id,
