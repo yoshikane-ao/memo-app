@@ -27,7 +27,7 @@ jobs:
       - name: Deploy to EC2
         shell: bash
         run: |
-          ssh -i ~/.ssh/id_ed25519 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << EOF
+          ssh -i ~/.ssh/id_ed25519 "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
             set -euo pipefail
 
             echo "== whoami =="
@@ -44,24 +44,43 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
+            echo "== write compose env =="
+            cat > .env <<EOT
+            JWT_SECRET=${{ secrets.JWT_SECRET }}
+            JWT_EXPIRES_IN=1h
+            EOT
+            chmod 600 .env
+
             echo "== docker status =="
             sudo systemctl start docker || true
             sudo systemctl is-active docker
             sudo docker version
 
-            echo "== deploy db =="
+            echo "== compose config check =="
+            sudo docker compose config
+
+            echo "== stop old containers =="
+            sudo docker compose down || true
+
+            echo "== build and start db =="
             sudo docker compose up -d --build db
 
             echo "== migrate =="
-            sudo docker compose run --build --rm api npx prisma migrate deploy
+            sudo docker compose run --rm api npx prisma migrate deploy
 
             echo "== deploy app =="
             sudo docker compose up -d --build api web
 
+            echo "== ps =="
+            sudo docker compose ps
+
+            echo "== api logs =="
+            sudo docker compose logs api --tail=100 || true
+
+            echo "== web logs =="
+            sudo docker compose logs web --tail=100 || true
+
             echo "== cleanup =="
             sudo docker image prune -af || true
             sudo docker builder prune -af || true
-
-            echo "== ps =="
-            sudo docker compose ps
           EOF
