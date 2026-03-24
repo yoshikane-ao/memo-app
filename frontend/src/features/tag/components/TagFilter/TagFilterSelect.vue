@@ -17,6 +17,8 @@ const commands = useMemoHistoryCommands();
 const feedback = useFeedbackStore();
 const localSelectedTags = ref<number[]>([...props.selectedTags]);
 const isDropdownOpen = ref(false);
+const isCreatingTag = ref(false);
+const dropdownContainerRef = ref<HTMLElement | null>(null);
 
 const isSameTagIdList = (left: number[], right: number[]) =>
   left.length === right.length && left.every((value, index) => value === right[index]);
@@ -47,16 +49,26 @@ const handleToggleTag = (tag: TagItem) => {
 };
 
 const handleCreateTag = async (title: string) => {
-  const createdTag = await commands.createTag({ title });
-
-  if (!createdTag.ok) {
-    if (createdTag.reason === "error") {
-      feedback.showError("Failed to create tag.");
-    }
+  if (isCreatingTag.value) {
     return;
   }
 
-  addTag(createdTag.value.id);
+  isCreatingTag.value = true;
+
+  try {
+    const createdTag = await commands.createTag({ title });
+
+    if (!createdTag.ok) {
+      if (createdTag.reason === "error") {
+        feedback.showError("Failed to create tag.");
+      }
+      return;
+    }
+
+    addTag(createdTag.value.id);
+  } finally {
+    isCreatingTag.value = false;
+  }
 };
 
 const handleDeleteTag = async (tag: TagItem) => {
@@ -113,14 +125,14 @@ watch(
 </script>
 
 <template>
-  <div class="dropdown-container">
+  <div ref="dropdownContainerRef" class="dropdown-container">
     <div class="tag-filter-trigger-row">
       <button type="button" class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
         Filter tags {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : "" }}
       </button>
 
       <div v-if="selectedTagItems.length > 0" class="tag-filter-selected-preview">
-        <TagBadgeList :tags="selectedTagItems" :removable="false" />
+        <TagBadgeList :tags="selectedTagItems" @remove="removeTag($event.id)" />
       </div>
     </div>
 
@@ -128,6 +140,8 @@ watch(
       v-if="isDropdownOpen"
       :tags="tagStore.items"
       :selectedTagIds="localSelectedTags"
+      :isCreating="isCreatingTag"
+      :boundaryEl="dropdownContainerRef"
       @toggle-tag="handleToggleTag"
       @create-tag="void handleCreateTag($event)"
       @tag-deleted="void handleDeleteTag($event)"

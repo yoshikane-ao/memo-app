@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import MemoTagSourceTab from "./MemoTagSourceTab.vue";
 import TagCatalogPanel from "./TagCatalogPanel.vue";
 import TagPickerPopoverShell from "./TagPickerPopoverShell.vue";
@@ -9,6 +9,8 @@ const props = defineProps<{
   tags: TagItem[];
   selectedTagIds?: number[];
   memoSources?: MemoTagSource[];
+  isCreating?: boolean;
+  boundaryEl?: HTMLElement | null;
 }>();
 
 const emit = defineEmits<{
@@ -24,15 +26,52 @@ type PickerTab = "tags" | "memos";
 const modalRef = ref<HTMLElement | null>(null);
 const activeTab = ref<PickerTab>("tags");
 const hasMemoTab = computed(() => props.memoSources !== undefined);
+let previousFocusedElement: HTMLElement | null = null;
 let outsideClickTimer: ReturnType<typeof setTimeout> | null = null;
 
+const focusFirstElement = () => {
+  const root = modalRef.value;
+  if (!root) {
+    return;
+  }
+
+  const preferredFocusable = root.querySelector<HTMLElement>("[data-tag-popover-autofocus]");
+  if (preferredFocusable) {
+    preferredFocusable.focus();
+    return;
+  }
+
+  const firstFocusable = root.querySelector<HTMLElement>(
+    'input:not([disabled]), button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+  );
+
+  firstFocusable?.focus();
+};
+
 const handleClickOutside = (event: MouseEvent) => {
-  if (modalRef.value && !modalRef.value.contains(event.target as Node)) {
+  const target = event.target as Node | null;
+  if (!target) {
+    return;
+  }
+
+  if (props.boundaryEl?.contains(target)) {
+    return;
+  }
+
+  if (modalRef.value && !modalRef.value.contains(target)) {
     emit("close");
   }
 };
 
 onMounted(() => {
+  if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+    previousFocusedElement = document.activeElement;
+  }
+
+  void nextTick(() => {
+    focusFirstElement();
+  });
+
   outsideClickTimer = setTimeout(() => {
     if (typeof document === "undefined") {
       return;
@@ -51,6 +90,10 @@ onBeforeUnmount(() => {
   if (typeof document !== "undefined") {
     document.removeEventListener("click", handleClickOutside, true);
   }
+
+  if (previousFocusedElement?.isConnected) {
+    previousFocusedElement.focus();
+  }
 });
 </script>
 
@@ -66,6 +109,7 @@ onBeforeUnmount(() => {
         v-if="activeTab === 'tags'"
         :tags="tags"
         :selectedTagIds="selectedTagIds"
+        :isCreating="isCreating"
         @toggle-tag="emit('toggle-tag', $event)"
         @create-tag="emit('create-tag', $event)"
         @tag-deleted="emit('tag-deleted', $event)"

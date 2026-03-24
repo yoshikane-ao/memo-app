@@ -48,6 +48,7 @@ const TagPickerFieldStub = defineComponent({
     <div class="tag-picker-stub">
       <button class="remove-tag" @click="$emit('remove-tag', { id: 1, title: 'work' })">remove</button>
       <button class="toggle-tag" @click="$emit('toggle-tag', { id: 3, title: 'later' })">toggle</button>
+      <button class="create-tag" @click="$emit('create-tag', 'urgent')">create</button>
       <button class="delete-tag" @click="$emit('delete-tag', { id: 1, title: 'work' })">delete</button>
       <button class="apply-from-memo" @click="$emit('apply-tags-from-memo', { memoId: 5, title: 'Source', content: 'Source body', tags: [{ id: 2, title: 'home' }] })">apply-from-memo</button>
     </div>
@@ -127,10 +128,19 @@ describe("TagRelationEditor", () => {
     ]);
   });
 
-  it("adds a tag from the picker and emits the expanded tag list", async () => {
-    commandsMock.addTagToMemo.mockResolvedValue({ ok: true, value: undefined });
+  it("keeps a newly added tag single even if props update during the add command", async () => {
+    let wrapper: ReturnType<typeof mount>;
+    const addedTag = makeTag({ id: 3, title: "later" });
 
-    const wrapper = mount(TagRelationEditor, {
+    commandsMock.addTagToMemo.mockImplementation(async () => {
+      await wrapper.setProps({
+        tags: [makeTag(), addedTag],
+      });
+
+      return { ok: true, value: undefined };
+    });
+
+    wrapper = mount(TagRelationEditor, {
       props: {
         memoId: 8,
         tags: [makeTag()],
@@ -146,16 +156,63 @@ describe("TagRelationEditor", () => {
     await wrapper.get(".toggle-tag").trigger("click");
     await flushPromises();
 
+    expect(wrapper.getComponent(TagPickerFieldStub).props("selectedTags")).toEqual([
+      makeTag(),
+      addedTag,
+    ]);
     expect(wrapper.emitted("memo-tags-updated")?.[0]).toEqual([
       {
         memoId: 8,
         tags: [
           { id: 1, title: "work" },
-          { id: 3, title: "later" },
+          addedTag,
         ],
       },
     ]);
-    expect(commandsMock.addTagToMemo).toHaveBeenCalledWith(8, { id: 3, title: "later" });
+    expect(commandsMock.addTagToMemo).toHaveBeenCalledWith(8, addedTag);
+  });
+
+  it("keeps a newly created tag single even if props update during creation", async () => {
+    let wrapper: ReturnType<typeof mount>;
+    const createdTag = makeTag({ id: 4, title: "urgent" });
+
+    commandsMock.createTag.mockImplementation(async () => {
+      await wrapper.setProps({
+        tags: [makeTag(), createdTag],
+      });
+
+      return { ok: true, value: createdTag };
+    });
+
+    wrapper = mount(TagRelationEditor, {
+      props: {
+        memoId: 8,
+        tags: [makeTag()],
+      },
+      global: {
+        plugins: [pinia],
+        stubs: {
+          TagPickerField: TagPickerFieldStub,
+        },
+      },
+    });
+
+    await wrapper.get(".create-tag").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.getComponent(TagPickerFieldStub).props("selectedTags")).toEqual([
+      makeTag(),
+      createdTag,
+    ]);
+    expect(wrapper.emitted("memo-tags-updated")?.[0]).toEqual([
+      {
+        memoId: 8,
+        tags: [
+          { id: 1, title: "work" },
+          createdTag,
+        ],
+      },
+    ]);
   });
 
   it("replaces tags with the selected memo's tag set in one action", async () => {

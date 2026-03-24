@@ -1,7 +1,7 @@
 import { defineComponent } from "vue";
 import { createPinia, setActivePinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TagItem } from "../../model/tag.types";
 import { useMemoStore } from "../../../memo/model/useMemoStore";
 import { useTagStore } from "../../model/useTagStore";
@@ -76,6 +76,10 @@ describe("TagSelectionSelect", () => {
         memo_tags: [{ memo_id: 8, tag_id: 2, tag: makeTag({ id: 2, title: "home" }) }],
       },
     ]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("reflects selected tags and emits controlled updates", async () => {
@@ -168,5 +172,55 @@ describe("TagSelectionSelect", () => {
     expect(wrapper.emitted("update:selectedTags")?.[0]).toEqual([
       [{ id: 2, title: "home" }],
     ]);
+  });
+
+  it("closes the tag popup when the trigger is clicked again", async () => {
+    vi.useFakeTimers();
+
+    const wrapper = mount(TagSelectionSelect, {
+      attachTo: document.body,
+      props: {
+        selectedTags: [],
+        resetKey: 0,
+      },
+    });
+
+    await wrapper.get(".tag-add-btn").trigger("click");
+    expect(wrapper.find(".tag-popup").exists()).toBe(true);
+
+    vi.advanceTimersByTime(150);
+    await wrapper.get(".tag-add-btn").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find(".tag-popup").exists()).toBe(false);
+    wrapper.unmount();
+  });
+
+  it("moves focus into the popup so Shift+Enter can close it", async () => {
+    const wrapper = mount(TagSelectionSelect, {
+      attachTo: document.body,
+      props: {
+        selectedTags: [],
+        resetKey: 0,
+      },
+    });
+
+    const trigger = wrapper.get(".tag-add-btn");
+    await trigger.trigger("click");
+    await flushPromises();
+
+    expect(document.activeElement).toBe(wrapper.get(".tag-popup-input").element);
+
+    document.activeElement?.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        shiftKey: true,
+        bubbles: true,
+      })
+    );
+    await flushPromises();
+
+    expect(wrapper.find(".tag-popup").exists()).toBe(false);
+    wrapper.unmount();
   });
 });

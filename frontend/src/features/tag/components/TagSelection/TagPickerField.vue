@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<TagPickerFieldProps>(), {
 const emit = defineEmits<TagPickerFieldEmits>();
 
 const showTagSearch = ref(false);
+const dropdownWrapperRef = ref<HTMLElement | null>(null);
 
 const selectedTagIds = computed(() => props.selectedTags.map((tag) => tag.id));
 
@@ -27,7 +28,7 @@ watch(
 
 <template>
   <div class="tag-selection-field">
-    <div class="tag-dropdown-wrapper">
+    <div ref="dropdownWrapperRef" class="tag-dropdown-wrapper">
       <button class="tag-add-btn" title="Add tag" @click.stop="showTagSearch = !showTagSearch">
         + Tag
       </button>
@@ -37,6 +38,8 @@ watch(
         :tags="availableTags"
         :selectedTagIds="selectedTagIds"
         :memoSources="memoSources"
+        :isCreating="isCreating"
+        :boundaryEl="dropdownWrapperRef"
         @toggle-tag="emit('toggle-tag', $event)"
         @create-tag="emit('create-tag', $event)"
         @delete-tag="emit('delete-tag', $event)"

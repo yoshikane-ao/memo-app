@@ -22,6 +22,7 @@ const memoStore = useMemoStore();
 const commands = useMemoHistoryCommands();
 const feedback = useFeedbackStore();
 const isMounted = ref(false);
+const isCreatingTag = ref(false);
 
 const addSelectedTag = (tags: TagItem[], tag: TagItem) => {
   if (tags.some((currentTag) => currentTag.id === tag.id)) {
@@ -65,16 +66,26 @@ const handleRemoveTag = (tag: TagItem) => {
 };
 
 const handleCreateTag = async (title: string) => {
-  const createdTag = await commands.createTag({ title });
-
-  if (!createdTag.ok) {
-    if (createdTag.reason === "error") {
-      feedback.showError("Failed to create tag.");
-    }
+  if (isCreatingTag.value) {
     return;
   }
 
-  emit("update:selectedTags", addSelectedTag(props.selectedTags, createdTag.value));
+  isCreatingTag.value = true;
+
+  try {
+    const createdTag = await commands.createTag({ title });
+
+    if (!createdTag.ok) {
+      if (createdTag.reason === "error") {
+        feedback.showError("Failed to create tag.");
+      }
+      return;
+    }
+
+    emit("update:selectedTags", addSelectedTag(props.selectedTags, createdTag.value));
+  } finally {
+    isCreatingTag.value = false;
+  }
 };
 
 const handleDeleteTag = async (tag: TagItem) => {
@@ -129,6 +140,7 @@ watch(
     :availableTags="tagStore.items"
     :memoSources="memoSources"
     :resetKey="resetKey"
+    :isCreating="isCreatingTag"
     @toggle-tag="handleToggleTag"
     @remove-tag="handleRemoveTag"
     @create-tag="void handleCreateTag($event)"
