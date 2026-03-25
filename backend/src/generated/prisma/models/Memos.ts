@@ -47,6 +47,7 @@ export type MemosMinAggregateOutputType = {
   height: number | null
   title: string | null
   content: string | null
+  deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -58,6 +59,7 @@ export type MemosMaxAggregateOutputType = {
   height: number | null
   title: string | null
   content: string | null
+  deletedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -69,6 +71,7 @@ export type MemosCountAggregateOutputType = {
   height: number
   title: number
   content: number
+  deletedAt: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -96,6 +99,7 @@ export type MemosMinAggregateInputType = {
   height?: true
   title?: true
   content?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -107,6 +111,7 @@ export type MemosMaxAggregateInputType = {
   height?: true
   title?: true
   content?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -118,6 +123,7 @@ export type MemosCountAggregateInputType = {
   height?: true
   title?: true
   content?: true
+  deletedAt?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -216,6 +222,7 @@ export type MemosGroupByOutputType = {
   height: number | null
   title: string
   content: string
+  deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
   _count: MemosCountAggregateOutputType | null
@@ -250,11 +257,11 @@ export type MemosWhereInput = {
   height?: Prisma.IntNullableFilter<"Memos"> | number | null
   title?: Prisma.StringFilter<"Memos"> | string
   content?: Prisma.StringFilter<"Memos"> | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"Memos"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Memos"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Memos"> | Date | string
   histories?: Prisma.MemoHistoriesListRelationFilter
   memo_tags?: Prisma.Memo_tagsListRelationFilter
-  memoLayouts?: Prisma.XOR<Prisma.MemoLayoutsNullableScalarRelationFilter, Prisma.MemoLayoutsWhereInput> | null
 }
 
 export type MemosOrderByWithRelationInput = {
@@ -264,11 +271,11 @@ export type MemosOrderByWithRelationInput = {
   height?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   histories?: Prisma.MemoHistoriesOrderByRelationAggregateInput
   memo_tags?: Prisma.memo_tagsOrderByRelationAggregateInput
-  memoLayouts?: Prisma.MemoLayoutsOrderByWithRelationInput
 }
 
 export type MemosWhereUniqueInput = Prisma.AtLeast<{
@@ -281,11 +288,11 @@ export type MemosWhereUniqueInput = Prisma.AtLeast<{
   height?: Prisma.IntNullableFilter<"Memos"> | number | null
   title?: Prisma.StringFilter<"Memos"> | string
   content?: Prisma.StringFilter<"Memos"> | string
+  deletedAt?: Prisma.DateTimeNullableFilter<"Memos"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Memos"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Memos"> | Date | string
   histories?: Prisma.MemoHistoriesListRelationFilter
   memo_tags?: Prisma.Memo_tagsListRelationFilter
-  memoLayouts?: Prisma.XOR<Prisma.MemoLayoutsNullableScalarRelationFilter, Prisma.MemoLayoutsWhereInput> | null
 }, "id">
 
 export type MemosOrderByWithAggregationInput = {
@@ -295,6 +302,7 @@ export type MemosOrderByWithAggregationInput = {
   height?: Prisma.SortOrderInput | Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MemosCountOrderByAggregateInput
@@ -314,6 +322,7 @@ export type MemosScalarWhereWithAggregatesInput = {
   height?: Prisma.IntNullableWithAggregatesFilter<"Memos"> | number | null
   title?: Prisma.StringWithAggregatesFilter<"Memos"> | string
   content?: Prisma.StringWithAggregatesFilter<"Memos"> | string
+  deletedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Memos"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Memos"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Memos"> | Date | string
 }
@@ -324,11 +333,11 @@ export type MemosCreateInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput
   memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsCreateNestedOneWithoutMemoInput
 }
 
 export type MemosUncheckedCreateInput = {
@@ -338,11 +347,11 @@ export type MemosUncheckedCreateInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   histories?: Prisma.MemoHistoriesUncheckedCreateNestedManyWithoutMemoInput
   memo_tags?: Prisma.memo_tagsUncheckedCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedCreateNestedOneWithoutMemoInput
 }
 
 export type MemosUpdateInput = {
@@ -351,11 +360,11 @@ export type MemosUpdateInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput
   memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUpdateOneWithoutMemoNestedInput
 }
 
 export type MemosUncheckedUpdateInput = {
@@ -365,11 +374,11 @@ export type MemosUncheckedUpdateInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   histories?: Prisma.MemoHistoriesUncheckedUpdateManyWithoutMemoNestedInput
   memo_tags?: Prisma.memo_tagsUncheckedUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedUpdateOneWithoutMemoNestedInput
 }
 
 export type MemosCreateManyInput = {
@@ -379,6 +388,7 @@ export type MemosCreateManyInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -389,6 +399,7 @@ export type MemosUpdateManyMutationInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -400,6 +411,7 @@ export type MemosUncheckedUpdateManyInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -411,6 +423,7 @@ export type MemosCountOrderByAggregateInput = {
   height?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -429,6 +442,7 @@ export type MemosMaxOrderByAggregateInput = {
   height?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -440,6 +454,7 @@ export type MemosMinOrderByAggregateInput = {
   height?: Prisma.SortOrder
   title?: Prisma.SortOrder
   content?: Prisma.SortOrder
+  deletedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -476,6 +491,10 @@ export type StringFieldUpdateOperationsInput = {
   set?: string
 }
 
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
 }
@@ -508,30 +527,16 @@ export type MemosUpdateOneRequiredWithoutMemo_tagsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.MemosUpdateToOneWithWhereWithoutMemo_tagsInput, Prisma.MemosUpdateWithoutMemo_tagsInput>, Prisma.MemosUncheckedUpdateWithoutMemo_tagsInput>
 }
 
-export type MemosCreateNestedOneWithoutMemoLayoutsInput = {
-  create?: Prisma.XOR<Prisma.MemosCreateWithoutMemoLayoutsInput, Prisma.MemosUncheckedCreateWithoutMemoLayoutsInput>
-  connectOrCreate?: Prisma.MemosCreateOrConnectWithoutMemoLayoutsInput
-  connect?: Prisma.MemosWhereUniqueInput
-}
-
-export type MemosUpdateOneRequiredWithoutMemoLayoutsNestedInput = {
-  create?: Prisma.XOR<Prisma.MemosCreateWithoutMemoLayoutsInput, Prisma.MemosUncheckedCreateWithoutMemoLayoutsInput>
-  connectOrCreate?: Prisma.MemosCreateOrConnectWithoutMemoLayoutsInput
-  upsert?: Prisma.MemosUpsertWithoutMemoLayoutsInput
-  connect?: Prisma.MemosWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.MemosUpdateToOneWithWhereWithoutMemoLayoutsInput, Prisma.MemosUpdateWithoutMemoLayoutsInput>, Prisma.MemosUncheckedUpdateWithoutMemoLayoutsInput>
-}
-
 export type MemosCreateWithoutHistoriesInput = {
   orderIndex?: number
   width?: number | null
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsCreateNestedOneWithoutMemoInput
 }
 
 export type MemosUncheckedCreateWithoutHistoriesInput = {
@@ -541,10 +546,10 @@ export type MemosUncheckedCreateWithoutHistoriesInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   memo_tags?: Prisma.memo_tagsUncheckedCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedCreateNestedOneWithoutMemoInput
 }
 
 export type MemosCreateOrConnectWithoutHistoriesInput = {
@@ -569,10 +574,10 @@ export type MemosUpdateWithoutHistoriesInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUpdateOneWithoutMemoNestedInput
 }
 
 export type MemosUncheckedUpdateWithoutHistoriesInput = {
@@ -582,10 +587,10 @@ export type MemosUncheckedUpdateWithoutHistoriesInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   memo_tags?: Prisma.memo_tagsUncheckedUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedUpdateOneWithoutMemoNestedInput
 }
 
 export type MemosCreateWithoutMemo_tagsInput = {
@@ -594,10 +599,10 @@ export type MemosCreateWithoutMemo_tagsInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsCreateNestedOneWithoutMemoInput
 }
 
 export type MemosUncheckedCreateWithoutMemo_tagsInput = {
@@ -607,10 +612,10 @@ export type MemosUncheckedCreateWithoutMemo_tagsInput = {
   height?: number | null
   title: string
   content: string
+  deletedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   histories?: Prisma.MemoHistoriesUncheckedCreateNestedManyWithoutMemoInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedCreateNestedOneWithoutMemoInput
 }
 
 export type MemosCreateOrConnectWithoutMemo_tagsInput = {
@@ -635,10 +640,10 @@ export type MemosUpdateWithoutMemo_tagsInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUpdateOneWithoutMemoNestedInput
 }
 
 export type MemosUncheckedUpdateWithoutMemo_tagsInput = {
@@ -648,76 +653,10 @@ export type MemosUncheckedUpdateWithoutMemo_tagsInput = {
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   title?: Prisma.StringFieldUpdateOperationsInput | string
   content?: Prisma.StringFieldUpdateOperationsInput | string
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   histories?: Prisma.MemoHistoriesUncheckedUpdateManyWithoutMemoNestedInput
-  memoLayouts?: Prisma.MemoLayoutsUncheckedUpdateOneWithoutMemoNestedInput
-}
-
-export type MemosCreateWithoutMemoLayoutsInput = {
-  orderIndex?: number
-  width?: number | null
-  height?: number | null
-  title: string
-  content: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput
-  memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput
-}
-
-export type MemosUncheckedCreateWithoutMemoLayoutsInput = {
-  id?: number
-  orderIndex?: number
-  width?: number | null
-  height?: number | null
-  title: string
-  content: string
-  createdAt?: Date | string
-  updatedAt?: Date | string
-  histories?: Prisma.MemoHistoriesUncheckedCreateNestedManyWithoutMemoInput
-  memo_tags?: Prisma.memo_tagsUncheckedCreateNestedManyWithoutMemoInput
-}
-
-export type MemosCreateOrConnectWithoutMemoLayoutsInput = {
-  where: Prisma.MemosWhereUniqueInput
-  create: Prisma.XOR<Prisma.MemosCreateWithoutMemoLayoutsInput, Prisma.MemosUncheckedCreateWithoutMemoLayoutsInput>
-}
-
-export type MemosUpsertWithoutMemoLayoutsInput = {
-  update: Prisma.XOR<Prisma.MemosUpdateWithoutMemoLayoutsInput, Prisma.MemosUncheckedUpdateWithoutMemoLayoutsInput>
-  create: Prisma.XOR<Prisma.MemosCreateWithoutMemoLayoutsInput, Prisma.MemosUncheckedCreateWithoutMemoLayoutsInput>
-  where?: Prisma.MemosWhereInput
-}
-
-export type MemosUpdateToOneWithWhereWithoutMemoLayoutsInput = {
-  where?: Prisma.MemosWhereInput
-  data: Prisma.XOR<Prisma.MemosUpdateWithoutMemoLayoutsInput, Prisma.MemosUncheckedUpdateWithoutMemoLayoutsInput>
-}
-
-export type MemosUpdateWithoutMemoLayoutsInput = {
-  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput
-  memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput
-}
-
-export type MemosUncheckedUpdateWithoutMemoLayoutsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number
-  width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  title?: Prisma.StringFieldUpdateOperationsInput | string
-  content?: Prisma.StringFieldUpdateOperationsInput | string
-  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  histories?: Prisma.MemoHistoriesUncheckedUpdateManyWithoutMemoNestedInput
-  memo_tags?: Prisma.memo_tagsUncheckedUpdateManyWithoutMemoNestedInput
 }
 
 
@@ -767,11 +706,11 @@ export type MemosSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   height?: boolean
   title?: boolean
   content?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   histories?: boolean | Prisma.Memos$historiesArgs<ExtArgs>
   memo_tags?: boolean | Prisma.Memos$memo_tagsArgs<ExtArgs>
-  memoLayouts?: boolean | Prisma.Memos$memoLayoutsArgs<ExtArgs>
   _count?: boolean | Prisma.MemosCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["memos"]>
 
@@ -782,6 +721,7 @@ export type MemosSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   height?: boolean
   title?: boolean
   content?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["memos"]>
@@ -793,6 +733,7 @@ export type MemosSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   height?: boolean
   title?: boolean
   content?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["memos"]>
@@ -804,15 +745,15 @@ export type MemosSelectScalar = {
   height?: boolean
   title?: boolean
   content?: boolean
+  deletedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MemosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderIndex" | "width" | "height" | "title" | "content" | "createdAt" | "updatedAt", ExtArgs["result"]["memos"]>
+export type MemosOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "orderIndex" | "width" | "height" | "title" | "content" | "deletedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["memos"]>
 export type MemosInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   histories?: boolean | Prisma.Memos$historiesArgs<ExtArgs>
   memo_tags?: boolean | Prisma.Memos$memo_tagsArgs<ExtArgs>
-  memoLayouts?: boolean | Prisma.Memos$memoLayoutsArgs<ExtArgs>
   _count?: boolean | Prisma.MemosCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type MemosIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -823,7 +764,6 @@ export type $MemosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   objects: {
     histories: Prisma.$MemoHistoriesPayload<ExtArgs>[]
     memo_tags: Prisma.$memo_tagsPayload<ExtArgs>[]
-    memoLayouts: Prisma.$MemoLayoutsPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -832,6 +772,7 @@ export type $MemosPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     height: number | null
     title: string
     content: string
+    deletedAt: Date | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["memos"]>
@@ -1230,7 +1171,6 @@ export interface Prisma__MemosClient<T, Null = never, ExtArgs extends runtime.Ty
   readonly [Symbol.toStringTag]: "PrismaPromise"
   histories<T extends Prisma.Memos$historiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Memos$historiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MemoHistoriesPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   memo_tags<T extends Prisma.Memos$memo_tagsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Memos$memo_tagsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$memo_tagsPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  memoLayouts<T extends Prisma.Memos$memoLayoutsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Memos$memoLayoutsArgs<ExtArgs>>): Prisma.Prisma__MemoLayoutsClient<runtime.Types.Result.GetResult<Prisma.$MemoLayoutsPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1266,6 +1206,7 @@ export interface MemosFieldRefs {
   readonly height: Prisma.FieldRef<"Memos", 'Int'>
   readonly title: Prisma.FieldRef<"Memos", 'String'>
   readonly content: Prisma.FieldRef<"Memos", 'String'>
+  readonly deletedAt: Prisma.FieldRef<"Memos", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Memos", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Memos", 'DateTime'>
 }
@@ -1706,25 +1647,6 @@ export type Memos$memo_tagsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.Memo_tagsScalarFieldEnum | Prisma.Memo_tagsScalarFieldEnum[]
-}
-
-/**
- * Memos.memoLayouts
- */
-export type Memos$memoLayoutsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the MemoLayouts
-   */
-  select?: Prisma.MemoLayoutsSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the MemoLayouts
-   */
-  omit?: Prisma.MemoLayoutsOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.MemoLayoutsInclude<ExtArgs> | null
-  where?: Prisma.MemoLayoutsWhereInput
 }
 
 /**

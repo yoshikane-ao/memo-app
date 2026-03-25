@@ -1,7 +1,7 @@
 {
-  "name": "41_auth_jwt",
+  "name": "memo-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Memo app backend API",
   "main": "index.js",
   "scripts": {
     "test": "jest",
@@ -9,7 +9,8 @@
     "test:watch": "jest --watch",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "node ./node_modules/typescript/bin/tsc",
-    "start": "node dist/src/server.js"
+    "start": "node dist/src/server.js",
+    "e2e:serve": "npm run build && node dist/src/test/e2eApiServer.js"
   },
   "keywords": [],
   "author": "",

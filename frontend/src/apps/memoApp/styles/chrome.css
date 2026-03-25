@@ -1,0 +1,241 @@
+.memo-app-page .feedback-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  font-size: 0.8rem;
+}
+
+.memo-app-page .feedback-banner-error {
+  background: rgba(232, 85, 85, 0.12);
+  border-color: rgba(232, 85, 85, 0.35);
+  color: #ffb2b2;
+}
+
+.memo-app-page .feedback-banner-info {
+  background: var(--memo-accent-soft);
+  border-color: rgba(108, 140, 255, 0.35);
+  color: #bdd0ff;
+}
+
+.memo-app-page .custom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border: none;
+  border-radius: var(--memo-radius);
+  background: var(--memo-accent);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  transition: all var(--memo-transition);
+  white-space: nowrap;
+}
+
+.memo-app-page .custom-button:hover {
+  background: var(--memo-accent-hover);
+}
+
+.memo-app-page .custom-button:disabled {
+  background: var(--memo-border);
+  color: var(--memo-text-muted);
+  cursor: not-allowed;
+}
+
+.memo-app-page .copy-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border: 1px solid rgba(108, 140, 255, 0.34);
+  border-radius: 4px;
+  background: rgba(108, 140, 255, 0.14);
+  color: #d6e2ff;
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.35px;
+  opacity: 1;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .copy-btn:hover {
+  background: rgba(108, 140, 255, 0.22);
+  border-color: rgba(108, 140, 255, 0.62);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.memo-app-page .copy-btn:active {
+  transform: translateY(0);
+}
+
+.memo-app-page .copy-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(108, 140, 255, 0.18);
+}
+
+.memo-app-page .view-control-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.memo-app-page .memo-scope-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.memo-app-page .memo-scope-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  border: 1px solid var(--memo-border);
+  border-radius: 999px;
+  background: var(--memo-bg-input);
+  color: var(--memo-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .memo-scope-tab:hover {
+  border-color: var(--memo-accent);
+  color: var(--memo-accent);
+}
+
+.memo-app-page .memo-scope-tab.is-active {
+  border-color: rgba(108, 140, 255, 0.45);
+  background: var(--memo-accent-soft);
+  color: #bdd0ff;
+}
+
+.memo-app-page .search-input-compact {
+  width: 140px;
+  padding: 3px 8px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-primary);
+  font-family: var(--memo-font-sans);
+  font-size: 0.72rem;
+  outline: none;
+  transition: border-color var(--memo-transition);
+}
+
+.memo-app-page .search-input-compact:focus {
+  border-color: var(--memo-accent);
+}
+
+.memo-app-page .search-input-compact::placeholder {
+  color: var(--memo-text-muted);
+}
+
+.memo-app-page .dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.memo-app-page .dropdown-toggle {
+  padding: 5px 12px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-secondary);
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.8rem;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .dropdown-toggle:hover {
+  border-color: var(--memo-accent);
+  color: var(--memo-accent);
+}
+
+.memo-app-page .filter-select-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.memo-app-page .filter-select-wrap::after {
+  content: "v";
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--memo-text-secondary);
+  font-size: 0.68rem;
+  pointer-events: none;
+  transition: color var(--memo-transition);
+}
+
+.memo-app-page .filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 5px 30px 5px 12px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-secondary);
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.8rem;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .filter-select:hover,
+.memo-app-page .filter-select:focus {
+  border-color: var(--memo-accent);
+  color: var(--memo-accent);
+  outline: none;
+}
+
+.memo-app-page .filter-select-wrap:hover::after,
+.memo-app-page .filter-select-wrap:focus-within::after {
+  color: var(--memo-accent);
+}
+
+.memo-app-page .tag-filter-trigger-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.memo-app-page .tag-filter-selected-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.memo-app-page ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.memo-app-page ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.memo-app-page ::-webkit-scrollbar-thumb {
+  background: var(--memo-text-muted);
+  border-radius: 2px;
+}
+
+.memo-app-page ::-webkit-scrollbar-thumb:hover {
+  background: var(--memo-text-secondary);
+}

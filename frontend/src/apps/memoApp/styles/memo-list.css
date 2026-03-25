@@ -1,0 +1,155 @@
+.memo-app-page .memo-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.memo-app-page .memo-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 36px;
+  border-bottom: 1px solid var(--memo-border);
+  transition: background var(--memo-transition), box-shadow var(--memo-transition);
+}
+
+.memo-app-page .memo-row:hover {
+  background: var(--memo-bg-hover);
+}
+
+.memo-app-page .memo-row:focus-within {
+  background: var(--memo-bg-input);
+  box-shadow: inset 0 0 0 1px var(--memo-border-focus);
+}
+
+.memo-app-page .actions-cell {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+  gap: 6px;
+  padding: 8px 6px;
+  border-left: 1px solid var(--memo-border);
+}
+
+.memo-app-page .sortable-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.memo-app-page .sortable-item {
+  display: flex;
+  align-items: flex-start;
+  transition: opacity var(--memo-transition);
+}
+
+.memo-app-page .sortable-item.is-keyboard-reordering {
+  background: rgba(108, 140, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.22);
+  border-radius: var(--memo-radius);
+}
+
+.memo-app-page .sortable-item.dragging {
+  opacity: 0.4;
+}
+
+.memo-app-page .drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--memo-text-muted);
+  cursor: grab;
+  font-size: 1.1rem;
+  user-select: none;
+}
+
+.memo-app-page .drag-handle:hover {
+  color: var(--memo-accent);
+}
+
+.memo-app-page .drag-handle:active {
+  cursor: grabbing;
+}
+
+.memo-app-page .drag-handle:focus-visible {
+  outline: none;
+  color: var(--memo-accent);
+  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.35);
+  border-radius: var(--memo-radius);
+}
+
+.memo-app-page .drag-handle.is-keyboard-reordering {
+  background: rgba(108, 140, 255, 0.16);
+  color: #d6e2ff;
+  border-radius: var(--memo-radius);
+}
+
+.memo-app-page .item-content {
+  flex: 1;
+  width: 100%;
+}
+
+.memo-app-page .memo-empty {
+  padding: 24px 12px;
+  color: var(--memo-text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.memo-app-page .update-btn {
+  background: rgba(66, 133, 244, 0.24);
+  border: 1px solid rgba(66, 133, 244, 0.58);
+  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.12);
+  color: #d9e7ff;
+}
+
+.memo-app-page .update-btn:hover:not(:disabled) {
+  background: rgba(66, 133, 244, 0.34);
+  border-color: rgba(108, 166, 255, 0.9);
+  color: #fff;
+}
+
+.memo-app-page .delete-btn {
+  background: rgba(145, 43, 43, 0.15);
+  border: 1px solid rgba(244, 66, 66, 0.4);
+  color: #f88a8a;
+}
+
+.memo-app-page .delete-btn:hover:not(:disabled) {
+  background: rgba(244, 66, 66, 0.25);
+  border-color: rgba(244, 66, 66, 0.8);
+}
+
+.memo-app-page .delete-btn,
+.memo-app-page .update-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  transition: all var(--memo-transition);
+  white-space: nowrap;
+}
+
+.memo-app-page .custom-button.update-btn:disabled {
+  opacity: 1;
+  background: rgba(66, 133, 244, 0.12);
+  border: 1px solid rgba(66, 133, 244, 0.24);
+  box-shadow: none;
+  color: #7e93b5;
+  cursor: not-allowed;
+}
+
+.memo-app-page .custom-button.delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}

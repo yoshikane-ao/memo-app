@@ -387,8 +387,7 @@ export const ModelName = {
   Memos: 'Memos',
   MemoHistories: 'MemoHistories',
   Tags: 'Tags',
-  memo_tags: 'memo_tags',
-  MemoLayouts: 'MemoLayouts'
+  memo_tags: 'memo_tags'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -404,7 +403,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "memos" | "memoHistories" | "tags" | "memo_tags" | "memoLayouts"
+    modelProps: "memos" | "memoHistories" | "tags" | "memo_tags"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -704,80 +703,6 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
-    MemoLayouts: {
-      payload: Prisma.$MemoLayoutsPayload<ExtArgs>
-      fields: Prisma.MemoLayoutsFieldRefs
-      operations: {
-        findUnique: {
-          args: Prisma.MemoLayoutsFindUniqueArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload> | null
-        }
-        findUniqueOrThrow: {
-          args: Prisma.MemoLayoutsFindUniqueOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        findFirst: {
-          args: Prisma.MemoLayoutsFindFirstArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload> | null
-        }
-        findFirstOrThrow: {
-          args: Prisma.MemoLayoutsFindFirstOrThrowArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        findMany: {
-          args: Prisma.MemoLayoutsFindManyArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>[]
-        }
-        create: {
-          args: Prisma.MemoLayoutsCreateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        createMany: {
-          args: Prisma.MemoLayoutsCreateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        createManyAndReturn: {
-          args: Prisma.MemoLayoutsCreateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>[]
-        }
-        delete: {
-          args: Prisma.MemoLayoutsDeleteArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        update: {
-          args: Prisma.MemoLayoutsUpdateArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        deleteMany: {
-          args: Prisma.MemoLayoutsDeleteManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateMany: {
-          args: Prisma.MemoLayoutsUpdateManyArgs<ExtArgs>
-          result: BatchPayload
-        }
-        updateManyAndReturn: {
-          args: Prisma.MemoLayoutsUpdateManyAndReturnArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>[]
-        }
-        upsert: {
-          args: Prisma.MemoLayoutsUpsertArgs<ExtArgs>
-          result: runtime.Types.Utils.PayloadToResult<Prisma.$MemoLayoutsPayload>
-        }
-        aggregate: {
-          args: Prisma.MemoLayoutsAggregateArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.AggregateMemoLayouts>
-        }
-        groupBy: {
-          args: Prisma.MemoLayoutsGroupByArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.MemoLayoutsGroupByOutputType>[]
-        }
-        count: {
-          args: Prisma.MemoLayoutsCountArgs<ExtArgs>
-          result: runtime.Types.Utils.Optional<Prisma.MemoLayoutsCountAggregateOutputType> | number
-        }
-      }
-    }
   }
 } & {
   other: {
@@ -824,6 +749,7 @@ export const MemosScalarFieldEnum = {
   height: 'height',
   title: 'title',
   content: 'content',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -856,18 +782,6 @@ export const Memo_tagsScalarFieldEnum = {
 } as const
 
 export type Memo_tagsScalarFieldEnum = (typeof Memo_tagsScalarFieldEnum)[keyof typeof Memo_tagsScalarFieldEnum]
-
-
-export const MemoLayoutsScalarFieldEnum = {
-  id: 'id',
-  memoId: 'memoId',
-  width: 'width',
-  height: 'height',
-  sortOrder: 'sortOrder',
-  updatedAt: 'updatedAt'
-} as const
-
-export type MemoLayoutsScalarFieldEnum = (typeof MemoLayoutsScalarFieldEnum)[keyof typeof MemoLayoutsScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -1054,7 +968,6 @@ export type GlobalOmitConfig = {
   memoHistories?: Prisma.MemoHistoriesOmit
   tags?: Prisma.TagsOmit
   memo_tags?: Prisma.memo_tagsOmit
-  memoLayouts?: Prisma.MemoLayoutsOmit
 }
 
 /* Types for Logging */

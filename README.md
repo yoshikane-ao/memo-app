@@ -1,169 +1,136 @@
-1. データベース設計
-2. API設計
-3. API実装
+# Memo App
 
-機能
-・検索
-・タグ
-・タブ
-・タイトル入力
-・コンテンツ入力
-・コンテンツのサイズ調整
-・コピー範囲指定
-・アコーディオン形式の表示方法の実装
-・ワンクリックコピー
-・表形式の入力
+Memo management application with a Vue frontend and an Express + Prisma backend.
 
+## Structure
 
-### API設計
-【エンドポイント】
-一覧 : GET : /memos
-一件取得 : GET : /memos/:id
-作成 : PUT : memos
-更新 : PUT : memos/:id
-削除 : DELETE : memos/:id
+```text
+memo-app/
+|- backend/
+|- docs/
+|- frontend/
+|- tooling/
+|- docker-compose.yml
+`- README.md
+```
 
+- `backend` serves the API.
+- `docs` holds project documentation such as the architecture overview.
+- `frontend` serves the web UI.
+- `tooling` holds shared configuration such as base TypeScript settings.
+- `docs/ARCHITECTURE.md` describes the active directory structure and component design.
+- Root-level files are intentionally kept minimal: repository metadata, docs entry points, and cross-project orchestration only.
 
--- 1. グループ（アコーディオンの親要素）
-CREATE TABLE memo_groups (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL, -- アコーディオンのタイトル
-  display_order INTEGER DEFAULT 0, -- 表示順序を制御したい場合に便利
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+## Runtime Flow
 
--- 2. メモ本体
-CREATE TABLE memos (
-  id SERIAL PRIMARY KEY,
-  group_id INTEGER REFERENCES memo_groups(id) ON DELETE SET NULL, -- どのグループに属するか
-  title TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+- Frontend boot starts at `frontend/src/app/router/index.ts`.
+- `/` redirects to `/menu`.
+- `/menu` renders the app menu, and app pages live under `/menu/{section}/{app}`.
+- The memo app currently exposes `/menu/workspace/memo` and `/menu/workspace/memo/trash`.
+- `frontend/src/app/router/appRegistry.ts` aggregates app definitions.
+- `frontend/src/layouts/MenuLayout.vue` provides the shared menu shell.
+- `frontend/src/pages/menu/MenuHomePage.vue` renders the app launcher.
+- `frontend/src/apps/memoApp` is the memo app boundary for pages, features, and styles.
+- `frontend/src/apps/memoApp/routes.ts` owns memo app menu metadata and route creation.
+- `frontend/src/apps/memoApp/index.ts` is the memo app public entry point for the shared router.
+- `frontend/src/apps/memoApp/pages/useMemoPageSetup.ts` handles first load, history reset, and shortcut wiring.
+- Write operations flow through `useMemoHistoryCommands.ts`:
+  - memo writes are implemented in `memoCommandHandlers.ts`
+  - tag writes are implemented in `tagCommandHandlers.ts`
+- Read/load state lives in Pinia stores:
+  - `useMemoStore.ts`
+  - `useTagStore.ts`
+- API requests are normalized at `frontend/src/shared/api/client.ts` and `apiError.ts`.
+- Backend boot starts at `backend/src/app.ts` and `backend/src/server.ts`.
+- Backend runtime configuration comes from `backend/src/config.ts`.
 
--- 3. タグマスター
-CREATE TABLE tags (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL UNIQUE
-);
+## Local Setup
 
--- 4. メモとタグの中間テーブル（多対多）
-CREATE TABLE memo_tags (
-  memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-  tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (memo_id, tag_id)
-);
+### Backend
 
--- 5. タブ（現在開いているメモや、お気に入りタブなど）
-CREATE TABLE tabs (
-  id SERIAL PRIMARY KEY,
-  memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-  display_order INTEGER NOT NULL
-);
+1. Copy `backend/.env.example` to `backend/.env`.
+2. Set `DATABASE_URL` for your local PostgreSQL instance.
+3. Optionally override:
+   - `HOST`
+   - `PORT`
+   - `RATE_LIMIT_WINDOW_MS`
+   - `RATE_LIMIT_MAX_REQUESTS`
 
---　6. 変更履歴テーブル
-CREATE TABLE memo_histories (
-  id SERIAL PRIMARY KEY,
-  memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
+Run:
 
--- インデックス
-CREATE INDEX idx_memo_group_id ON memos(group_id);
-CREATE INDEX idx_memo_title ON memos(title);
-CREATE INDEX idx_memo_histories_memo_id ON memo_histories(memo_id);
+```powershell
+cd backend
+npm install
+npm run build
+npm run test:api
+npm run dev
+```
 
+### Frontend
 
+1. Copy `frontend/.env.example` to `frontend/.env`.
+2. Usually you can leave API settings unset and use relative requests.
+   During local development, Vite proxies `/health`, `/memos`, and `/tags`
+   to the backend port from `backend/.env`.
+3. Only set `VITE_API_BASE_URL` or `API_PROXY_TARGET` if you need to override that default.
+   If neither is set, the fallback target is `http://127.0.0.1:3004`.
 
+Run:
 
+```powershell
+cd frontend
+npm install
+npm run build
+npm run test:unit
+npm run dev
+```
 
+## Docker
 
+`docker-compose.yml` starts:
 
+- PostgreSQL
+- backend API
+- frontend web server
 
+Run:
 
+```powershell
+docker compose up --build
+```
 
+When the frontend is served behind the bundled nginx proxy, API requests can use relative paths and do not require a local `.env` override.
 
+## Verification
 
+Backend:
 
+```powershell
+cd backend
+npm run test:api
+npm run build
+```
 
+Backend env example:
 
+```text
+HOST=0.0.0.0
+PORT=3004
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX_REQUESTS=60
+DATABASE_URL="postgresql://postgres:password@localhost:5432/memo?schema=public"
+```
 
+Frontend:
 
+```powershell
+cd frontend
+npm run test:unit
+npm run test:e2e
+npm run build
+```
 
-CREATE TABLE memo (
-  id SERIAL PRIMARY KEY,
-  title TEXT,
-  content TEXT,
-);
-
-CREATE TABLE tag (
-  id SERIAL PRIMARY KEY,
-  tag TEXT NOT NULL,
-);
-
-CREATE TABLE memo (
-  id SERIAL PRIMARY KEY,
-  title TEXT,
-  content TEXT,
-);
-
-CREATE TABLE memotag (
-  id SERIAL PRIMARY KEY,
-  tagId TEXT NOT NULL UNIQUE,
-  memoId TEXT NOT NULL UNIQU,
-);
-
-
-
-
-
--- 1. メモ本体
-CREATE TABLE memos (
-  id SERIAL PRIMARY KEY,
-  title TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-  ALTER TABLE memos ADD COLUMN category_id INTEGER REFERENCES categories(id);
-  histry
-);
-
--- 2. タグマスター
-CREATE TABLE tags (
-  id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE -- 同じ名前のタグは作らせない
-);
-
--- 3. 中間テーブル（多対多の紐付け）
-CREATE TABLE memo_tags (
-  memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-  tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
-  PRIMARY KEY (memo_id, tag_id) -- 複合主キーで重複登録を防止
-);
-
-
-CREATE TABLE accordion (
-    id SERIAL PRIMARY KEY,
-    pull_down_title
-);
-
-CREATE TABLE accordions (
-    id SERIAL PRIMARY KEY,
-    pull_down_title
-    memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-);
-
-CREATE TABLE tab (
-    id SERIAL PRIMARY KEY,
-    memo_id INTEGER REFERENCES memos(id) ON DELETE CASCADE,
-);
-
-CREATE TABLE tab_collection (
-    id SERIAL PRIMARY KEY,
-);
-
--- 検索を高速化するためのインデックス
-CREATE INDEX idx_memo_title ON memos(title);
+Frontend unit coverage includes component behavior, store/command tests, page setup tests,
+API error normalization, and a Vite proxy smoke test for `/health`, `/memos`, and `/tags`.
+Frontend browser coverage also includes a Playwright smoke test for initial memo load,
+memo creation, trash, restore, and reload persistence through a test-only backend/server pair.

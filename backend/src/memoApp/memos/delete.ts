@@ -1,26 +1,34 @@
-// メモの削除
 import { Router } from "express";
-import { PrismaClient } from "../../generated/prisma/client";
 import { prisma } from "../../db";
+import { handleRouteError, parseParams, positiveIntField } from "../shared/requestValidation";
 
 const deleteRouter = Router();
 
+const parseDeleteParams = (value: unknown) =>
+  parseParams(value, {
+    id: positiveIntField(),
+  });
+
 deleteRouter.delete("/:id", async (req, res) => {
-    try {
+  try {
+    const { id } = parseDeleteParams(req.params);
 
-        const id = Number(req.params.id);
+    const deletedMemo = await prisma.memos.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
+      include: {
+        memo_tags: {
+          include: { tag: true },
+        },
+      },
+    });
 
-        const deletedMemo = await prisma.memos.delete({
-            where: { id: Number(id) },
-        });
-
-        res.status(200).json(deletedMemo);
-    } catch (error) {
-        console.error(error);
-
-        res.status(500).json({ message: "削除中にエラーが発生しました。" });
-    }
+    res.status(200).json(deletedMemo);
+  } catch (error) {
+    return handleRouteError(res, error, "Failed to move memo to trash.", "Memo not found.");
+  }
 });
-
 
 export default deleteRouter;

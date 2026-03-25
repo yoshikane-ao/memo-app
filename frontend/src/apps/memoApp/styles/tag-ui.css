@@ -1,0 +1,327 @@
+.memo-app-page .tag-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 22px;
+  padding: 0 10px 8px;
+}
+
+.memo-app-page .tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--memo-tag-bg);
+  color: var(--memo-tag-color);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.memo-app-page .tag-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--memo-tag-color);
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.75;
+  transition: opacity var(--memo-transition), color var(--memo-transition);
+}
+
+.memo-app-page .tag-remove-btn:hover {
+  color: var(--memo-danger);
+  opacity: 1;
+}
+
+.memo-app-page .tag-add-btn {
+  padding: 1px 8px;
+  border: 1px dashed var(--memo-text-muted);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--memo-text-muted);
+  cursor: pointer;
+  font-size: 0.68rem;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .tag-add-btn:hover {
+  border-color: var(--memo-accent);
+  background: var(--memo-accent-soft);
+  color: var(--memo-accent);
+}
+
+.memo-app-page .tag-dropdown-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.memo-app-page .tag-selection-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.memo-app-page .selected-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--memo-border);
+}
+
+.memo-app-page .tag-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  width: 320px;
+  padding: 10px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+}
+
+.memo-app-page .tag-popup-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.memo-app-page .tag-popup-tab {
+  padding: 6px 10px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-secondary);
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .tag-popup-tab:hover {
+  border-color: var(--memo-accent);
+  color: var(--memo-text-primary);
+}
+
+.memo-app-page .tag-popup-tab.is-active {
+  border-color: rgba(108, 140, 255, 0.45);
+  background: var(--memo-accent-soft);
+  color: #bdd0ff;
+}
+
+.memo-app-page .tag-popup-input {
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-primary);
+  font-family: var(--memo-font-sans);
+  font-size: 0.8rem;
+}
+
+.memo-app-page .tag-popup-input:focus {
+  outline: none;
+  border-color: var(--memo-border-focus);
+}
+
+.memo-app-page .tag-popup-list {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.memo-app-page .tag-popup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--memo-radius);
+  transition: background 0.1s;
+}
+
+.memo-app-page .tag-popup-item:hover {
+  background: var(--memo-bg-hover);
+}
+
+.memo-app-page .tag-popup-item.is-selected {
+  background: var(--memo-accent-soft);
+}
+
+.memo-app-page .tag-popup-item.is-active {
+  background: rgba(108, 140, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.45);
+}
+
+.memo-app-page .tag-popup-item.is-active .tag-popup-select-btn {
+  color: #eef3ff;
+}
+
+.memo-app-page .tag-popup-item.is-selected .tag-popup-select-btn {
+  color: #8cacff;
+  font-weight: 600;
+}
+
+.memo-app-page .tag-popup-select-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background: none;
+  color: #ccc;
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.memo-app-page .tag-popup-select-btn:focus,
+.memo-app-page .tag-popup-danger-btn:focus {
+  outline: none;
+}
+
+.memo-app-page .tag-popup-select-btn:hover,
+.memo-app-page .tag-popup-select-btn.is-active-control {
+  color: #fff;
+}
+
+.memo-app-page .tag-popup-indicator {
+  margin-right: 4px;
+  color: var(--memo-accent);
+  font-weight: 700;
+}
+
+.memo-app-page .tag-popup-danger-btn {
+  padding: 2px 6px;
+  border: 1px solid rgba(232, 85, 85, 0.3);
+  border-radius: 3px;
+  background: rgba(232, 85, 85, 0.15);
+  color: var(--memo-danger);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .tag-popup-danger-btn.is-active-control,
+.memo-app-page .tag-popup-danger-btn:hover {
+  border-color: var(--memo-danger);
+  background: var(--memo-danger);
+  color: #fff;
+}
+
+.memo-app-page .tag-popup-danger-btn.is-active-control {
+  box-shadow: 0 0 0 1px rgba(232, 85, 85, 0.25);
+}
+
+.memo-app-page .tag-popup-close-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 5px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: transparent;
+  color: var(--memo-text-secondary);
+  cursor: pointer;
+  font-family: var(--memo-font-sans);
+  font-size: 0.75rem;
+}
+
+.memo-app-page .tag-popup-close-btn:hover {
+  background: var(--memo-bg-hover);
+  color: #ccc;
+}
+
+.memo-app-page .tag-register-container {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--memo-border);
+}
+
+.memo-app-page .add-tag-button {
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--memo-radius);
+  background: none;
+  color: var(--memo-accent);
+  cursor: pointer;
+  font-size: 0.85rem;
+  text-align: left;
+  transition: background var(--memo-transition);
+}
+
+.memo-app-page .add-tag-button:hover {
+  background: var(--memo-bg-hover);
+}
+
+.memo-app-page .plus-icon {
+  margin-right: 8px;
+  font-weight: 700;
+}
+
+.memo-app-page .memo-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.memo-app-page .memo-source-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-input);
+  color: var(--memo-text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--memo-transition), background var(--memo-transition);
+}
+
+.memo-app-page .memo-source-item:hover {
+  border-color: var(--memo-accent);
+  background: rgba(108, 140, 255, 0.06);
+}
+
+.memo-app-page .memo-source-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.memo-app-page .memo-source-preview {
+  color: var(--memo-text-secondary);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.memo-app-page .memo-source-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.memo-app-page .memo-source-empty-tags,
+.memo-app-page .memo-source-empty {
+  color: var(--memo-text-muted);
+  font-size: 0.74rem;
+}

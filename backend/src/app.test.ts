@@ -1,14 +1,14 @@
 jest.mock("./memoApp/memos/memosRouter", () => {
-  const express = require("express");
+  const { Router } = jest.requireActual<typeof import("express")>("express");
   return {
-    memosRouter: express.Router(),
+    memosRouter: Router(),
   };
 });
 
 jest.mock("./memoApp/tags/tagsRouter", () => {
-  const express = require("express");
+  const { Router } = jest.requireActual<typeof import("express")>("express");
   return {
-    tagsRouter: express.Router(),
+    tagsRouter: Router(),
   };
 });
 
@@ -22,6 +22,26 @@ describe("buildApp", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ status: "ok" });
+  });
+
+  it("applies cors and security headers", async () => {
+    const app = buildApp();
+    const response = await request(app).get("/health").set("Origin", "http://example.com");
+
+    expect(response.status).toBe(200);
+    expect(response.headers["access-control-allow-origin"]).toBe("*");
+    expect(response.headers["x-content-type-options"]).toBe("nosniff");
+  });
+
+  it("rate limits repeated requests", async () => {
+    const app = buildApp();
+    let lastResponse = await request(app).get("/health");
+
+    for (let index = 0; index < 60; index += 1) {
+      lastResponse = await request(app).get("/health");
+    }
+
+    expect(lastResponse.status).toBe(429);
   });
 
   it("returns 404 for unknown routes", async () => {

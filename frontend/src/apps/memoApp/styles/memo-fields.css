@@ -1,0 +1,54 @@
+.memo-app-page .title-cell {
+  flex: 0 0 auto;
+  display: flex;
+  border-right: 1px solid var(--memo-border);
+}
+
+.memo-app-page .title-input {
+  width: 180px;
+  min-width: 80px;
+  max-width: 500px;
+  resize: none;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--memo-text-primary);
+  font-family: var(--memo-font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.memo-app-page .title-input:focus {
+  outline: none;
+  background: transparent;
+}
+
+.memo-app-page .content-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.memo-app-page .content-input {
+  width: 100%;
+  min-height: 32px;
+  resize: none;
+  overflow: hidden;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--memo-text-secondary);
+  font-family: var(--memo-font-sans);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.memo-app-page .content-input:focus {
+  outline: none;
+  background: transparent;
+  color: var(--memo-text-primary);
+}
