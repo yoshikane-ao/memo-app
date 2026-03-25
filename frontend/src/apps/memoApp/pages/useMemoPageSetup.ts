@@ -1,4 +1,4 @@
-import { onMounted, toRef } from "vue";
+import { computed, toRef, watch } from "vue";
 import { useMemoStore } from "../features/memo";
 import type { MemoCollectionScope } from "../features/memo";
 import { useMemoListView, type MemoListViewOptions } from "./useMemoListView";
@@ -15,15 +15,19 @@ export const useMemoPageSetup = (options: MemoPageSetupOptions = {}) => {
   const memoStore = useMemoStore();
   const history = useHistoryManager();
   const items = toRef(memoStore, "items");
-  const scope = options.scope ?? "active";
+  const scope = computed(() => options.scope ?? "active");
 
   useHistoryShortcuts();
   useCopyShortcuts();
 
-  onMounted(() => {
-    history.clear();
-    void memoStore.fetchAll(scope);
-  });
+  watch(
+    scope,
+    (nextScope) => {
+      history.clear();
+      void memoStore.fetchAll(nextScope);
+    },
+    { immediate: true }
+  );
 
   return useMemoListView(items, options.listView);
 };
