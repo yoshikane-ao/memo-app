@@ -6,10 +6,24 @@ import { config } from "./config";
 import { memosRouter } from "./memoApp/memos/memosRouter";
 import { tagsRouter } from "./memoApp/tags/tagsRouter";
 
+<<<<<<< HEAD
 const createRateLimiter = () =>
   rateLimit({
     windowMs: config.rateLimitWindowMs,
     limit: config.rateLimitMaxRequests,
+=======
+
+// 初期セットアップ
+export function buildApp() {
+  const app = express();
+  const cors = require('cors');
+  app.use(cors());
+  // helmetを使用してセキュリティヘッダーを設定
+  app.use(helmet());
+  const limiter = rateLimit({
+    windowMs: 60 * 1000,
+    limit: 60,
+>>>>>>> main
   });
 
 const registerRoutes = (app: express.Express) => {
