@@ -24,20 +24,39 @@ const mockedPrisma = prisma as unknown as {
   };
 };
 
+const makeMemoResponse = (overrides: Record<string, unknown> = {}) => ({
+  id: 1,
+  orderIndex: 0,
+  width: 180,
+  height: 48,
+  title: "Alpha",
+  content: "First memo",
+  deletedAt: "2026-03-25T00:00:00.000Z",
+  createdAt: "2026-03-20T10:00:00.000Z",
+  updatedAt: "2026-03-25T00:00:00.000Z",
+  memo_tags: [],
+  ...overrides,
+});
+
 describe("memo trash routes", () => {
   beforeEach(() => {
     mockedPrisma.memos.update.mockReset();
     mockedPrisma.memos.findUnique.mockReset();
     mockedPrisma.memos.delete.mockReset();
-    mockedPrisma.memos.update.mockResolvedValue({ id: 1, deletedAt: "2026-03-25T00:00:00.000Z" });
+    mockedPrisma.memos.update.mockResolvedValue(makeMemoResponse());
     mockedPrisma.memos.findUnique.mockResolvedValue({ id: 1, deletedAt: new Date("2026-03-25T00:00:00.000Z") });
-    mockedPrisma.memos.delete.mockResolvedValue({ id: 1 });
+    mockedPrisma.memos.delete.mockResolvedValue(makeMemoResponse());
   });
 
   it("moves a memo to trash instead of hard deleting it", async () => {
     const response = await request(buildJsonTestApp(deleteRouter)).delete("/1");
 
     expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: 1,
+      deletedAt: "2026-03-25T00:00:00.000Z",
+      memo_tags: [],
+    });
     expect(mockedPrisma.memos.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: {
@@ -55,6 +74,11 @@ describe("memo trash routes", () => {
     const response = await request(buildJsonTestApp(restoreRouter)).post("/1");
 
     expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      id: 1,
+      deletedAt: "2026-03-25T00:00:00.000Z",
+      memo_tags: [],
+    });
     expect(mockedPrisma.memos.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: {
@@ -72,6 +96,10 @@ describe("memo trash routes", () => {
     const response = await request(buildJsonTestApp(purgeRouter)).delete("/1");
 
     expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: 1,
+      memo_tags: [],
+    });
     expect(mockedPrisma.memos.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
     });

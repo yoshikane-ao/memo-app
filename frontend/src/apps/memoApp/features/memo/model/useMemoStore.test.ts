@@ -50,6 +50,7 @@ describe("useMemoStore", () => {
 
     expect(success).toBe(true);
     expect(store.items).toEqual(memos);
+    expect(store.trashItems).toEqual([]);
     expect(store.loading).toBe(false);
     expect(store.error).toBeNull();
     expect(store.loadedScope).toBe("active");
@@ -73,11 +74,12 @@ describe("useMemoStore", () => {
     const success = await store.fetchAll();
 
     expect(success).toBe(false);
-    expect(store.error).toBe("Failed to fetch memos.");
+    expect(store.error).toBe("boom");
     expect(store.items).toEqual([]);
+    expect(store.trashItems).toEqual([]);
   });
 
-  it("clears the current list when switching to another scope before refetching", async () => {
+  it("keeps the active list isolated when fetching the trash scope fails", async () => {
     vi.mocked(fetchMemoList).mockRejectedValue(new Error("boom"));
     const store = useMemoStore();
     store.items = [makeMemo()];
@@ -85,7 +87,8 @@ describe("useMemoStore", () => {
     const success = await store.fetchAll("trash");
 
     expect(success).toBe(false);
-    expect(store.items).toEqual([]);
+    expect(store.items).toEqual([makeMemo()]);
+    expect(store.trashItems).toEqual([]);
     expect(store.loadedScope).toBe("trash");
   });
 
@@ -112,23 +115,31 @@ describe("useMemoStore", () => {
       "trash"
     );
 
-    expect(store.items.map((memo) => memo.id)).toEqual([2, 1, 3]);
+    expect(store.items).toEqual([]);
+    expect(store.trashItems.map((memo) => memo.id)).toEqual([2, 1, 3]);
     expect(store.loadedScope).toBe("trash");
   });
 
-  it("upsertLocalMemo adds and updates memos locally", () => {
+  it("upsertLocalMemo routes memos into the correct collection", () => {
     const store = useMemoStore();
     const existing = makeMemo({ id: 1, title: "Existing" });
     const created = makeMemo({ id: 2, title: "Created", orderIndex: 1 });
+    const trashed = makeMemo({
+      id: 3,
+      title: "Trashed",
+      deletedAt: "2026-03-25T10:00:00.000Z",
+    });
     store.items = [existing];
 
     store.upsertLocalMemo(created);
+    store.upsertLocalMemo(trashed);
     store.upsertLocalMemo(makeMemo({ id: 1, title: "Updated existing" }));
 
     expect(store.items.map((memo) => memo.title)).toEqual(["Updated existing", "Created"]);
+    expect(store.trashItems.map((memo) => memo.title)).toEqual(["Trashed"]);
   });
 
-  it("updates local tag relations without duplicating entries", () => {
+  it("updates local tag relations across active and trash collections", () => {
     const store = useMemoStore();
     store.items = [
       makeMemo(),
@@ -143,15 +154,29 @@ describe("useMemoStore", () => {
         ],
       }),
     ];
+    store.trashItems = [
+      makeMemo({
+        id: 3,
+        deletedAt: "2026-03-25T10:00:00.000Z",
+        memo_tags: [
+          {
+            memo_id: 3,
+            tag_id: 1,
+            tag: makeTag(),
+          },
+        ],
+      }),
+    ];
 
     store.removeDeletedTagReference(1);
-    expect(store.items[0].memo_tags).toEqual([]);
+    expect(store.items.find((memo) => memo.id === 1)?.memo_tags).toEqual([]);
+    expect(store.trashItems.find((memo) => memo.id === 3)?.memo_tags).toEqual([]);
 
     const nextTags = [makeTag({ id: 3, title: "later" })];
     store.replaceMemoTags(2, nextTags);
     store.addLocalTagToMemo(2, nextTags[0]);
 
-    expect(store.items[1].memo_tags).toEqual([
+    expect(store.items.find((memo) => memo.id === 2)?.memo_tags).toEqual([
       {
         memo_id: 2,
         tag_id: 3,
@@ -163,9 +188,12 @@ describe("useMemoStore", () => {
   it("removes memos locally", () => {
     const store = useMemoStore();
     store.items = [makeMemo(), makeMemo({ id: 2, title: "Second" })];
+    store.trashItems = [makeMemo({ id: 3, deletedAt: "2026-03-25T10:00:00.000Z" })];
 
     store.removeLocalMemo(1);
+    store.removeLocalMemo(3);
 
     expect(store.items.map((memo) => memo.id)).toEqual([2]);
+    expect(store.trashItems).toEqual([]);
   });
 });

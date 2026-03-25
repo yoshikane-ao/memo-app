@@ -49,3 +49,38 @@ model memo_tags {
 
   @@id([memo_id, tag_id])
 }
+
+model Quizs {
+  id                Int                 @id @default(autoincrement())
+  word              String
+  mean              String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  quizTagsRelations quizTagsRelations[]
+  quizSets          quizSet[]
+}
+
+model quizTag {
+  id                Int                 @id @default(autoincrement())
+  tagName           String              @unique
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  quizTagsRelations quizTagsRelations[]
+}
+
+model quizTagsRelations {
+  quiz_id    Int @map("quiz_id")
+  quizTag_id Int @map("quizTag_id")
+
+  Quizs   Quizs   @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+  quizTag quizTag @relation(fields: [quizTag_id], references: [id], onDelete: Cascade)
+
+  @@id([quiz_id, quizTag_id])
+}
+
+model quizSet {
+  id      Int @id @default(autoincrement())
+  quiz_id Int @map("quiz_id")
+
+  Quizs Quizs @relation(fields: [quiz_id], references: [id], onDelete: Cascade)
+}

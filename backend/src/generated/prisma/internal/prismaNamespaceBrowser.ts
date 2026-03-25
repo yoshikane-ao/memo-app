@@ -54,7 +54,11 @@ export const ModelName = {
   Memos: 'Memos',
   MemoHistories: 'MemoHistories',
   Tags: 'Tags',
-  memo_tags: 'memo_tags'
+  memo_tags: 'memo_tags',
+  Quizs: 'Quizs',
+  quizTag: 'quizTag',
+  quizTagsRelations: 'quizTagsRelations',
+  quizSet: 'quizSet'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -113,6 +117,43 @@ export const Memo_tagsScalarFieldEnum = {
 } as const
 
 export type Memo_tagsScalarFieldEnum = (typeof Memo_tagsScalarFieldEnum)[keyof typeof Memo_tagsScalarFieldEnum]
+
+
+export const QuizsScalarFieldEnum = {
+  id: 'id',
+  word: 'word',
+  mean: 'mean',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuizsScalarFieldEnum = (typeof QuizsScalarFieldEnum)[keyof typeof QuizsScalarFieldEnum]
+
+
+export const QuizTagScalarFieldEnum = {
+  id: 'id',
+  tagName: 'tagName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type QuizTagScalarFieldEnum = (typeof QuizTagScalarFieldEnum)[keyof typeof QuizTagScalarFieldEnum]
+
+
+export const QuizTagsRelationsScalarFieldEnum = {
+  quiz_id: 'quiz_id',
+  quizTag_id: 'quizTag_id'
+} as const
+
+export type QuizTagsRelationsScalarFieldEnum = (typeof QuizTagsRelationsScalarFieldEnum)[keyof typeof QuizTagsRelationsScalarFieldEnum]
+
+
+export const QuizSetScalarFieldEnum = {
+  id: 'id',
+  quiz_id: 'quiz_id'
+} as const
+
+export type QuizSetScalarFieldEnum = (typeof QuizSetScalarFieldEnum)[keyof typeof QuizSetScalarFieldEnum]
 
 
 export const SortOrder = {

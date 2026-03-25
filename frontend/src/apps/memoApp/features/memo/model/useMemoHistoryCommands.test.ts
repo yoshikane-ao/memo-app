@@ -91,14 +91,22 @@ describe("useMemoHistoryCommands", () => {
       value: createdMemo,
     });
     expect(memoStore.items).toEqual([createdMemo]);
+    expect(memoStore.trashItems).toEqual([]);
 
     await commands.undo();
     expect(moveMemoToTrashRequest).toHaveBeenCalledWith(5);
     expect(memoStore.items).toEqual([]);
+    expect(memoStore.trashItems).toEqual([
+      makeMemo({
+        ...createdMemo,
+        deletedAt: "2026-03-25T00:00:00.000Z",
+      }),
+    ]);
 
     await commands.redo();
     expect(restoreMemoRequest).toHaveBeenCalledWith(5);
     expect(memoStore.items).toEqual([createdMemo]);
+    expect(memoStore.trashItems).toEqual([]);
   });
 
   it("moves an active memo to trash and restores it through undo", async () => {
@@ -117,21 +125,24 @@ describe("useMemoHistoryCommands", () => {
     const result = await commands.moveMemoToTrash(9);
     expect(result).toEqual({ ok: true, value: undefined });
     expect(memoStore.items).toEqual([]);
+    expect(memoStore.trashItems).toEqual([trashedMemo]);
 
     await commands.undo();
     expect(restoreMemoRequest).toHaveBeenCalledWith(9);
     expect(memoStore.items).toEqual([activeMemo]);
+    expect(memoStore.trashItems).toEqual([]);
 
     await commands.redo();
     expect(moveMemoToTrashRequest).toHaveBeenCalledWith(9);
     expect(memoStore.items).toEqual([]);
+    expect(memoStore.trashItems).toEqual([trashedMemo]);
   });
 
   it("purges a trashed memo without recording history", async () => {
     vi.mocked(purgeMemoRequest).mockResolvedValue();
 
     const memoStore = useMemoStore();
-    memoStore.items = [
+    memoStore.trashItems = [
       makeMemo({
         id: 12,
         title: "To purge",
@@ -144,7 +155,7 @@ describe("useMemoHistoryCommands", () => {
 
     expect(result).toEqual({ ok: true, value: undefined });
     expect(purgeMemoRequest).toHaveBeenCalledWith(12);
-    expect(memoStore.items).toEqual([]);
+    expect(memoStore.trashItems).toEqual([]);
     expect(commands.canUndo.value).toBe(false);
   });
 

@@ -53,8 +53,6 @@ const handleTrashRequested = async (memoId: number) => {
     feedback.showError(getCommandErrorMessage(isMoved, "Failed to move memo to trash."));
     return;
   }
-
-  await router.push(memoPaths.trash);
 };
 </script>
 

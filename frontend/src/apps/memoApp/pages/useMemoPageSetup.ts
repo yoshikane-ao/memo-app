@@ -1,4 +1,4 @@
-import { computed, toRef, watch } from "vue";
+import { computed, watch } from "vue";
 import { useMemoStore } from "../features/memo";
 import type { MemoCollectionScope } from "../features/memo";
 import { useMemoListView, type MemoListViewOptions } from "./useMemoListView";
@@ -14,8 +14,8 @@ type MemoPageSetupOptions = {
 export const useMemoPageSetup = (options: MemoPageSetupOptions = {}) => {
   const memoStore = useMemoStore();
   const history = useHistoryManager();
-  const items = toRef(memoStore, "items");
   const scope = computed(() => options.scope ?? "active");
+  const items = computed(() => memoStore.getItemsForScope(scope.value));
 
   useHistoryShortcuts();
   useCopyShortcuts();

@@ -37,3 +37,23 @@ export type Tags = Prisma.TagsModel
  * 
  */
 export type memo_tags = Prisma.memo_tagsModel
+/**
+ * Model Quizs
+ * 
+ */
+export type Quizs = Prisma.QuizsModel
+/**
+ * Model quizTag
+ * 
+ */
+export type quizTag = Prisma.quizTagModel
+/**
+ * Model quizTagsRelations
+ * 
+ */
+export type quizTagsRelations = Prisma.quizTagsRelationsModel
+/**
+ * Model quizSet
+ * 
+ */
+export type quizSet = Prisma.quizSetModel

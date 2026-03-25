@@ -28,7 +28,7 @@ const {
 
 vi.mock("../features/memo", () => ({
   useMemoStore: () => ({
-    items: [],
+    getItemsForScope: vi.fn(() => []),
     fetchAll: fetchAllMock,
   }),
 }));
