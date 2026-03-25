@@ -77,6 +77,18 @@ describe("useMemoStore", () => {
     expect(store.items).toEqual([]);
   });
 
+  it("clears the current list when switching to another scope before refetching", async () => {
+    vi.mocked(fetchMemoList).mockRejectedValue(new Error("boom"));
+    const store = useMemoStore();
+    store.items = [makeMemo()];
+
+    const success = await store.fetchAll("trash");
+
+    expect(success).toBe(false);
+    expect(store.items).toEqual([]);
+    expect(store.loadedScope).toBe("trash");
+  });
+
   it("setItems sorts memos by orderIndex and id", () => {
     const store = useMemoStore();
     const first = makeMemo({ id: 1, orderIndex: 1, title: "First" });

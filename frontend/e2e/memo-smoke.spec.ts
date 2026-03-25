@@ -29,9 +29,7 @@ test("creates, trashes, and restores a memo through the menu flow", async ({ pag
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator(".delete-btn").last().click();
 
-  await expect(page.locator(".sortable-list .sortable-item")).toHaveCount(1);
-  await page.getByRole("link", { name: "ごみ箱" }).click();
-
+  await expect(page).toHaveURL(/\/menu\/workspace\/memo\/trash$/);
   await expect(page.locator(".memo-row-readonly")).toHaveCount(1);
   await expect(page.locator(".memo-row-readonly")).toContainText("Browser memo");
 

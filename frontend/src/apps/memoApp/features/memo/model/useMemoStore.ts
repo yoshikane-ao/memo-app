@@ -91,6 +91,10 @@ export const useMemoStore = defineStore("memo", () => {
   };
 
   const fetchAll = async (scope: MemoCollectionScope = "active") => {
+    if (loadedScope.value !== scope) {
+      setItems([], scope);
+    }
+
     loading.value = true;
     error.value = null;
 
