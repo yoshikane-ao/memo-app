@@ -1,0 +1,52 @@
+.memo-app-page .memo-row-readonly {
+  align-items: stretch;
+}
+
+.memo-app-page .title-display {
+  width: 180px;
+  min-width: 80px;
+  max-width: 500px;
+  padding: 8px 10px;
+  color: var(--memo-text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.memo-app-page .content-display {
+  margin: 0;
+  padding: 8px 10px 4px;
+  color: var(--memo-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.memo-app-page .memo-meta-text {
+  margin: 0;
+  padding: 0 10px 8px;
+  color: var(--memo-text-muted);
+  font-size: 0.72rem;
+}
+
+.memo-app-page .restore-btn {
+  background: rgba(80, 182, 120, 0.16);
+  border: 1px solid rgba(80, 182, 120, 0.38);
+  color: #c9f3d8;
+}
+
+.memo-app-page .restore-btn:hover {
+  background: rgba(80, 182, 120, 0.24);
+}
+
+.memo-app-page .purge-btn {
+  background: rgba(145, 43, 43, 0.15);
+  border: 1px solid rgba(244, 66, 66, 0.4);
+  color: #f88a8a;
+}
+
+.memo-app-page .purge-btn:hover {
+  background: rgba(244, 66, 66, 0.25);
+}

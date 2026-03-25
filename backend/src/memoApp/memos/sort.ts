@@ -1,31 +1,43 @@
 import { Router } from "express";
 import { prisma } from "../../db";
+import {
+  arrayField,
+  handleRouteError,
+  nonNegativeIntField,
+  objectField,
+  parseBody,
+  positiveIntField,
+} from "../shared/requestValidation";
 
 const sortRouter = Router();
 
+const parseSortBody = (value: unknown) =>
+  parseBody(value, {
+    items: arrayField(
+      objectField({
+        id: positiveIntField(),
+        orderIndex: nonNegativeIntField(),
+      })
+    ),
+  });
+
 sortRouter.put("/", async (req, res) => {
-    const { items } = req.body;
-    
-    if (!Array.isArray(items)) {
-        return res.status(400).json({ message: "不正なリクエストです。" });
-    }
+  try {
+    const { items } = parseSortBody(req.body);
 
-    try {
-        // トランザクションで一括更新
-        await prisma.$transaction(
-            items.map((item: { id: number; orderIndex: number }) =>
-                prisma.memos.update({
-                    where: { id: item.id },
-                    data: { orderIndex: item.orderIndex }
-                })
-            )
-        );
+    await prisma.$transaction(
+      items.map((item) =>
+        prisma.memos.update({
+          where: { id: item.id },
+          data: { orderIndex: item.orderIndex },
+        })
+      )
+    );
 
-        res.status(200).json({ message: "並び順を更新しました。" });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "並び順の更新中にエラーが発生しました。" });
-    }
+    res.status(200).json({ message: "Memo order updated." });
+  } catch (error) {
+    return handleRouteError(res, error, "Failed to update memo order.", "Memo not found.");
+  }
 });
 
 export default sortRouter;

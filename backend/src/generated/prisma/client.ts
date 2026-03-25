@@ -59,8 +59,3 @@ export type Tags = Prisma.TagsModel
  * 
  */
 export type memo_tags = Prisma.memo_tagsModel
-/**
- * Model MemoLayouts
- * 
- */
-export type MemoLayouts = Prisma.MemoLayoutsModel

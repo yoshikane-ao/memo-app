@@ -11,17 +11,17 @@ datasource db {
 }
 
 model Memos {
-  id          Int             @id @default(autoincrement())
-  orderIndex  Int             @default(0)
-  width       Int?
-  height      Int?
-  title       String
-  content     String
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  histories   MemoHistories[]
-  memo_tags   memo_tags[]
-  memoLayouts MemoLayouts?
+  id         Int             @id @default(autoincrement())
+  orderIndex Int             @default(0)
+  width      Int?
+  height     Int?
+  title      String
+  content    String
+  deletedAt  DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  histories  MemoHistories[]
+  memo_tags  memo_tags[]
 }
 
 model MemoHistories {
@@ -39,7 +39,7 @@ model Tags {
   memo_tags memo_tags[]
 }
 
-// メモとタグの中間テーブル
+// Memo/tag join table
 model memo_tags {
   memo_id Int @map("memo_id")
   tag_id  Int @map("tag_id")
@@ -48,21 +48,4 @@ model memo_tags {
   tag  Tags  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
 
   @@id([memo_id, tag_id])
-}
-
-model MemoLayouts {
-  id     Int @id @default(autoincrement())
-  memoId Int @unique @map("memo_id")
-
-  // --- レイアウト情報 ---
-  width  Int @default(300)
-  height Int @default(200)
-
-  // --- 並び替え順 (追加) ---
-  sortOrder Int      @default(0) @map("sort_order")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  memo Memos @relation(fields: [memoId], references: [id], onDelete: Cascade)
-
-  @@map("memo_layouts")
 }

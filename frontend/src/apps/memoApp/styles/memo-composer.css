@@ -1,0 +1,26 @@
+.memo-app-page .memo-register-wrapper {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+  background: var(--memo-bg-surface);
+}
+
+.memo-app-page .register-row {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: 8px;
+  border: 1px solid var(--memo-border);
+  border-radius: var(--memo-radius);
+}
+
+.memo-app-page .register-bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.memo-app-page .register-bottom-row .tag-dropdown-wrapper {
+  position: relative;
+}

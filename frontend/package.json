@@ -1,13 +1,16 @@
 {
-  "name": "frontend",
+  "name": "memo-frontend",
   "private": true,
   "version": "0.0.0",
+  "description": "Memo app frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
+    "test:e2e": "playwright test",
+    "e2e:serve": "npm run build && node e2e/webServer.mjs",
     "preview": "vite preview",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev"
@@ -20,6 +23,7 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.12.0",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/test-utils": "^2.4.6",

@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetHistoryManager, useHistoryManager } from "./useHistoryManager";
+import { activateTestPinia } from "../../test/pinia";
 
 describe("useHistoryManager", () => {
   beforeEach(() => {
+    activateTestPinia();
     resetHistoryManager();
     vi.restoreAllMocks();
   });

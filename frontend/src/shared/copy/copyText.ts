@@ -20,10 +20,10 @@ const fallbackCopyText = (text: string) => {
   const activeElement = document.activeElement;
   const textSelection = canRestoreTextSelection(activeElement)
     ? {
-        start: activeElement.selectionStart,
-        end: activeElement.selectionEnd,
-        direction: activeElement.selectionDirection,
-      }
+      start: activeElement.selectionStart,
+      end: activeElement.selectionEnd,
+      direction: activeElement.selectionDirection,
+    }
     : null;
   const selection = document.getSelection();
   const range =

@@ -1,29 +1,42 @@
 import { Router } from "express";
 import { prisma } from "../../db";
+import {
+  arrayField,
+  handleRouteError,
+  parseBody,
+  positiveIntField,
+  stringField,
+} from "../shared/requestValidation";
 import { syncSerialSequence } from "../shared/syncSerialSequence";
 
-type RestoreTagPayload = {
-  id: number;
-  title: string;
-  linkedMemoIds?: number[];
-};
+const parseRestoreTagBody = (value: unknown) =>
+  parseBody(value, {
+    id: positiveIntField(),
+    title: stringField(),
+    linkedMemoIds: arrayField(positiveIntField(), {
+      optional: true,
+      defaultValue: [],
+      dedupeBy: (memoId) => memoId,
+    }),
+  });
 
 const restoreRouter = Router();
 
 restoreRouter.post("/", async (req, res) => {
-  const payload = req.body as RestoreTagPayload;
-
   try {
+    const body = parseRestoreTagBody(req.body);
+    const linkedMemoIds = body.linkedMemoIds ?? [];
+
     const restoredTag = await prisma.$transaction(async (tx) => {
       const existingTagById = await tx.tags.findUnique({
-        where: { id: payload.id },
+        where: { id: body.id },
       });
 
       let tag = existingTagById;
 
       if (!tag) {
         const existingTagByTitle = await tx.tags.findUnique({
-          where: { title: payload.title },
+          where: { title: body.title },
         });
 
         if (existingTagByTitle) {
@@ -31,16 +44,14 @@ restoreRouter.post("/", async (req, res) => {
         } else {
           tag = await tx.tags.create({
             data: {
-              id: payload.id,
-              title: payload.title,
+              id: body.id,
+              title: body.title,
             },
           });
 
           await syncSerialSequence(tx, "Tags");
         }
       }
-
-      const linkedMemoIds = [...new Set((payload.linkedMemoIds ?? []).map(Number))];
 
       if (linkedMemoIds.length > 0) {
         const existingMemos = await tx.memos.findMany({
@@ -84,8 +95,7 @@ restoreRouter.post("/", async (req, res) => {
 
     res.status(201).json(restoredTag);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to restore tag." });
+    return handleRouteError(res, error, "Failed to restore tag.");
   }
 });
 

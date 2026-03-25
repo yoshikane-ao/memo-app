@@ -54,8 +54,7 @@ export const ModelName = {
   Memos: 'Memos',
   MemoHistories: 'MemoHistories',
   Tags: 'Tags',
-  memo_tags: 'memo_tags',
-  MemoLayouts: 'MemoLayouts'
+  memo_tags: 'memo_tags'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -81,6 +80,7 @@ export const MemosScalarFieldEnum = {
   height: 'height',
   title: 'title',
   content: 'content',
+  deletedAt: 'deletedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -113,18 +113,6 @@ export const Memo_tagsScalarFieldEnum = {
 } as const
 
 export type Memo_tagsScalarFieldEnum = (typeof Memo_tagsScalarFieldEnum)[keyof typeof Memo_tagsScalarFieldEnum]
-
-
-export const MemoLayoutsScalarFieldEnum = {
-  id: 'id',
-  memoId: 'memoId',
-  width: 'width',
-  height: 'height',
-  sortOrder: 'sortOrder',
-  updatedAt: 'updatedAt'
-} as const
-
-export type MemoLayoutsScalarFieldEnum = (typeof MemoLayoutsScalarFieldEnum)[keyof typeof MemoLayoutsScalarFieldEnum]
 
 
 export const SortOrder = {

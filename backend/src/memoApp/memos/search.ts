@@ -1,48 +1,87 @@
 import { Router } from "express";
+import type { Prisma } from "../../generated/prisma/client";
 import { prisma } from "../../db";
+import {
+  handleRouteError,
+  optionalEnumField,
+  parseQuery,
+  stringField,
+} from "../shared/requestValidation";
 
 const searchRouter = Router();
 
-searchRouter.get("/", async (req, res) => {
-  try {
-    const q = (req.query.q as string)?.trim();
-    const type = (req.query.type as string) || 'all';
+const searchTypes = ["all", "title", "content", "tag"] as const;
+const searchScopes = ["active", "trash", "all"] as const;
 
-    // 検索キーワードがない場合は、ここでは何もせず次に回すか、エラーを返す
-    if (!q) {
-      return res.status(400).json({ message: "検索キーワードが必要です。" });
-    }
+type SearchType = (typeof searchTypes)[number];
+type SearchScope = (typeof searchScopes)[number];
 
-    const searchCondition = { contains: q };
-    let whereClause: any = {};
+const parseSearchQuery = (value: unknown) =>
+  parseQuery(value, {
+    q: stringField(),
+    type: optionalEnumField(searchTypes, { defaultValue: "all" }),
+    scope: optionalEnumField(searchScopes, { defaultValue: "active" }),
+  });
 
-    // --- 検索ロジック (元のコードを維持) ---
-    if (type === 'title') {
-      whereClause = { title: searchCondition };
-    } else if (type === 'content') {
-      whereClause = { content: searchCondition };
-    } else if (type === 'tag') {
-      whereClause = { memo_tags: { some: { tag: { title: searchCondition } } } };
-    } else {
-      whereClause = {
+const buildSearchWhere = (q: string, type: SearchType): Prisma.MemosWhereInput => {
+  const searchCondition = { contains: q };
+
+  switch (type) {
+    case "title":
+      return { title: searchCondition };
+    case "content":
+      return { content: searchCondition };
+    case "tag":
+      return {
+        memo_tags: {
+          some: {
+            tag: {
+              title: searchCondition,
+            },
+          },
+        },
+      };
+    default:
+      return {
         OR: [
           { title: searchCondition },
           { content: searchCondition },
-          { memo_tags: { some: { tag: { title: searchCondition } } } }
-        ]
+          { memo_tags: { some: { tag: { title: searchCondition } } } },
+        ],
       };
-    }
+  }
+};
+
+const buildScopeWhere = (scope: SearchScope): Prisma.MemosWhereInput => {
+  switch (scope) {
+    case "trash":
+      return { deletedAt: { not: null } };
+    case "all":
+      return {};
+    default:
+      return { deletedAt: null };
+  }
+};
+
+searchRouter.get("/", async (req, res) => {
+  try {
+    const { q, type, scope } = parseSearchQuery(req.query);
 
     const memos = await prisma.memos.findMany({
-      where: whereClause,
-      orderBy: { id: 'asc' },
-      include: { memo_tags: { include: { tag: true } } }
+      where: {
+        AND: [buildScopeWhere(scope ?? "active"), buildSearchWhere(q, type ?? "all")],
+      },
+      orderBy: { id: "asc" },
+      include: {
+        memo_tags: {
+          include: { tag: true },
+        },
+      },
     });
 
     res.status(200).json({ items: memos });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "検索中にエラーが発生しました。" });
+    return handleRouteError(res, error, "Failed to search memos.");
   }
 });
 
