@@ -5,9 +5,6 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 
 
-const router = express.Router();
-const app = buildApp();
-
 // 初期セットアップ
 export function buildApp() {
   const app = express();
