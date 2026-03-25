@@ -31,7 +31,7 @@ export const createTagCommandHandlers = ({
   tagStore,
   history,
 }: TagCommandDependencies) => {
-  const getMemoById = (memoId: number) => memoStore.items.find((memo) => memo.id === memoId);
+  const getMemoById = (memoId: number) => memoStore.findMemoById(memoId);
 
   const getMemoTags = (memoId: number) =>
     getMemoById(memoId)?.memo_tags.map((memoTag) => cloneTagSummary(memoTag.tag)) ?? [];
@@ -245,7 +245,7 @@ export const createTagCommandHandlers = ({
       };
     }
 
-    const affectedMemoTags = memoStore.items
+    const affectedMemoTags = memoStore.allItems
       .filter((memo) => memo.memo_tags.some((memoTag) => memoTag.tag.id === tagId))
       .map((memo) => ({
         memoId: memo.id,

@@ -24,7 +24,7 @@ type MemoCommandDependencies = {
 };
 
 export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDependencies) => {
-  const getMemoById = (memoId: number) => memoStore.items.find((memo) => memo.id === memoId);
+  const getMemoById = (memoId: number) => memoStore.findMemoById(memoId);
 
   const createMemo = async (input: CreateMemoInput): Promise<CommandResult<Memo>> => {
     let memoSnapshot: Memo | null = null;
@@ -41,7 +41,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
         }
 
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
-        memoStore.removeLocalMemo(memoSnapshot.id);
+        memoStore.upsertLocalMemo(memoSnapshot);
       },
       async redo() {
         if (!memoSnapshot) {
@@ -117,7 +117,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
       label: "Move memo to trash",
       async do() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
-        memoStore.removeLocalMemo(memoSnapshot.id);
+        memoStore.upsertLocalMemo(memoSnapshot);
       },
       async undo() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
@@ -125,7 +125,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
       },
       async redo() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
-        memoStore.removeLocalMemo(memoSnapshot.id);
+        memoStore.upsertLocalMemo(memoSnapshot);
       },
     };
 
@@ -147,7 +147,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
       label: "Restore memo from trash",
       async do() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
-        memoStore.removeLocalMemo(memoSnapshot.id);
+        memoStore.upsertLocalMemo(memoSnapshot);
       },
       async undo() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
@@ -155,7 +155,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
       },
       async redo() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
-        memoStore.removeLocalMemo(memoSnapshot.id);
+        memoStore.upsertLocalMemo(memoSnapshot);
       },
     };
 
@@ -196,7 +196,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
             orderIndex: memo.orderIndex,
           }))
         );
-        memoStore.setItems(reorderedItems);
+        memoStore.setItems(reorderedItems, "active");
       },
       async undo() {
         await reorderMemosRequest(
@@ -205,7 +205,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
             orderIndex: index,
           }))
         );
-        memoStore.setItems(previousItems);
+        memoStore.setItems(previousItems, "active");
       },
       async redo() {
         await reorderMemosRequest(
@@ -214,7 +214,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
             orderIndex: memo.orderIndex,
           }))
         );
-        memoStore.setItems(reorderedItems);
+        memoStore.setItems(reorderedItems, "active");
       },
     };
 

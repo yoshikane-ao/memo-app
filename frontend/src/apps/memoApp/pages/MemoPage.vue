@@ -16,8 +16,8 @@ const { keyword, searchType, sortOrder, selectedTags, displayedMemos, canReorder
 <template>
   <section class="memo-app-page">
     <FeedbackBanner />
-    <MemoScopeTabs scope="active" />
     <MemoComposerContainer />
+    <MemoScopeTabs scope="active" />
     <MemoToolbar
       :keyword="keyword"
       :searchType="searchType"
