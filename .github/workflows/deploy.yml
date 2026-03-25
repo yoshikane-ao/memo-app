@@ -74,7 +74,7 @@ jobs:
             [ "${DB_STATUS}" = "healthy" ]
 
             echo "== migrate =="
-            sudo docker compose run --build --rm api npx prisma migrate deploy
+            sudo docker compose run -T --build --rm api npx prisma migrate deploy < /dev/null
 
             echo "== deploy app =="
             sudo docker compose up -d --build api web
