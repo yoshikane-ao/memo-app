@@ -29,9 +29,24 @@ describe("useHistoryManager", () => {
     expect(success).toEqual({ ok: true });
     expect(history.canUndo.value).toBe(true);
     expect(history.canRedo.value).toBe(false);
+    expect(history.lastTransition.value).toEqual({
+      actionLabel: "demo",
+      navigationTarget: undefined,
+      phase: "do",
+    });
 
     await history.undo();
+    expect(history.lastTransition.value).toEqual({
+      actionLabel: "demo",
+      navigationTarget: undefined,
+      phase: "undo",
+    });
     await history.redo();
+    expect(history.lastTransition.value).toEqual({
+      actionLabel: "demo",
+      navigationTarget: undefined,
+      phase: "redo",
+    });
 
     expect(calls).toEqual(["do", "undo", "redo"]);
     expect(history.canUndo.value).toBe(true);
@@ -53,5 +68,6 @@ describe("useHistoryManager", () => {
     expect(success.ok).toBe(false);
     expect(history.canUndo.value).toBe(false);
     expect(history.canRedo.value).toBe(false);
+    expect(history.lastTransition.value).toBeNull();
   });
 });

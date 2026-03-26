@@ -9,10 +9,19 @@ export interface MemoToolbarProps {
   showSortOrder?: boolean;
 }
 
+export interface MemoTrashActionsBarProps {
+  trashCount: number;
+  isBusy?: boolean;
+}
+
 export type MemoToolbarEmits = {
   (e: "update:keyword", value: string): void;
   (e: "update:searchType", value: MemoSearchType): void;
   (e: "update:sortOrder", value: MemoSortOrder): void;
   (e: "update:selectedTags", value: number[]): void;
   (e: "tag-deleted", tagId: number): void;
+};
+
+export type MemoTrashActionsBarEmits = {
+  (e: "purge-all-requested"): void;
 };

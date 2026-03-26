@@ -1,12 +1,14 @@
 import {
   createMemo as createMemoRequest,
   moveMemoToTrash as moveMemoToTrashRequest,
+  purgeAllTrashMemos as purgeAllTrashMemosRequest,
   purgeMemo as purgeMemoRequest,
   reorderMemos as reorderMemosRequest,
   restoreMemo as restoreMemoRequest,
   updateMemo as updateMemoRequest,
 } from "../api/memo.repository";
 import { useMemoStore } from "./useMemoStore";
+import { useMemoViewStore } from "../../view/model/useMemoViewStore";
 import { useHistoryManager } from "../../../../../shared/history/useHistoryManager";
 import type { UndoableAction } from "../../../../../shared/history/history.types";
 import type { CommandResult } from "./commandResult";
@@ -17,13 +19,15 @@ import {
   toValueCommandResult,
   toVoidCommandResult,
 } from "./commandHelpers";
+import { memoHistoryNavigation } from "./memoNavigation";
 
 type MemoCommandDependencies = {
   memoStore: ReturnType<typeof useMemoStore>;
+  viewStore: ReturnType<typeof useMemoViewStore>;
   history: ReturnType<typeof useHistoryManager>;
 };
 
-export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDependencies) => {
+export const createMemoCommandHandlers = ({ memoStore, viewStore, history }: MemoCommandDependencies) => {
   const getMemoById = (memoId: number) => memoStore.findMemoById(memoId);
 
   const createMemo = async (input: CreateMemoInput): Promise<CommandResult<Memo>> => {
@@ -115,17 +119,25 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
 
     const action: UndoableAction = {
       label: "Move memo to trash",
+      navigation: {
+        do: memoHistoryNavigation.trash,
+        undo: memoHistoryNavigation.active,
+        redo: memoHistoryNavigation.trash,
+      },
       async do() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("trash");
       },
       async undo() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("active");
       },
       async redo() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("trash");
       },
     };
 
@@ -145,17 +157,25 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
 
     const action: UndoableAction = {
       label: "Restore memo from trash",
+      navigation: {
+        do: memoHistoryNavigation.active,
+        undo: memoHistoryNavigation.trash,
+        redo: memoHistoryNavigation.active,
+      },
       async do() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("active");
       },
       async undo() {
         memoSnapshot = await moveMemoToTrashRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("trash");
       },
       async redo() {
         memoSnapshot = await restoreMemoRequest(memoSnapshot.id);
         memoStore.upsertLocalMemo(memoSnapshot);
+        viewStore.setScope("active");
       },
     };
 
@@ -171,13 +191,39 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
       };
     }
 
-    await purgeMemoRequest(memoId);
-    memoStore.removeLocalMemo(memoId);
+    try {
+      await purgeMemoRequest(memoId);
+      memoStore.removeLocalMemo(memoId);
 
-    return {
-      ok: true,
-      value: undefined,
-    };
+      return {
+        ok: true,
+        value: undefined,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        reason: "error",
+        error,
+      };
+    }
+  };
+
+  const purgeAllTrash = async (): Promise<CommandResult<number>> => {
+    try {
+      const deletedCount = await purgeAllTrashMemosRequest();
+      memoStore.clearTrashItems();
+
+      return {
+        ok: true,
+        value: deletedCount,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        reason: "error",
+        error,
+      };
+    }
   };
 
   const reorderMemos = async (nextItems: Memo[]): Promise<CommandResult<void>> => {
@@ -227,6 +273,7 @@ export const createMemoCommandHandlers = ({ memoStore, history }: MemoCommandDep
     moveMemoToTrash,
     restoreMemoFromTrash,
     purgeMemo,
+    purgeAllTrash,
     reorderMemos,
   };
 };

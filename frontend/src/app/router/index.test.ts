@@ -14,7 +14,7 @@ describe("app router", () => {
     await router.isReady();
 
     expect(router.currentRoute.value.fullPath).toBe("/menu");
-    expect(document.title).toBe("アプリ一覧 | Memo App");
+    expect(document.title).toBe("Memo App");
   });
 
   it("resolves the memo app under the menu section path", async () => {

@@ -24,7 +24,7 @@ const routes: RouteRecordRaw[] = [
         name: "menu-home",
         component: MenuHomePage,
         meta: {
-          pageTitle: "アプリ一覧 | Memo App",
+          pageTitle: "Memo App",
         },
       },
       ...createMenuAppRoutes(),

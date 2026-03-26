@@ -14,6 +14,24 @@ const parsePurgeParams = (value: unknown) =>
     id: positiveIntField(),
   });
 
+purgeRouter.delete("/", async (_req, res) => {
+  try {
+    const result = await prisma.memos.deleteMany({
+      where: {
+        deletedAt: {
+          not: null,
+        },
+      },
+    });
+
+    res.status(200).json({
+      deletedCount: result.count,
+    });
+  } catch (error) {
+    return handleRouteError(res, error, "Failed to permanently delete trash.");
+  }
+});
+
 purgeRouter.delete("/:id", async (req, res) => {
   try {
     const { id } = parsePurgeParams(req.params);

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("creates, trashes, and restores a memo through the menu flow", async ({ page }) => {
+test("creates, trashes, and undoes a memo through the menu flow", async ({ page }) => {
   await page.goto("/");
 
   await expect(page.locator("body")).toHaveCSS("background-color", "rgb(10, 10, 11)");
@@ -26,6 +26,13 @@ test("creates, trashes, and restores a memo through the menu flow", async ({ pag
   await expect(page.locator(".sortable-list .sortable-item")).toHaveCount(2);
   await expect(page.locator("#title-2")).toHaveValue("Browser memo");
 
+  await page.locator('[data-memo-scope="trash"]').click();
+  await expect(page).toHaveURL(/\/menu\/workspace\/memo\/trash$/);
+
+  await page.keyboard.press("Control+KeyZ");
+  await expect(page).toHaveURL(/\/menu\/workspace\/memo$/);
+  await expect(page.locator(".sortable-list .sortable-item")).toHaveCount(2);
+
   page.once("dialog", (dialog) => dialog.accept());
   await page.locator(".delete-btn").last().click();
 
@@ -33,13 +40,8 @@ test("creates, trashes, and restores a memo through the menu flow", async ({ pag
   await expect(page.locator(".memo-row-readonly")).toHaveCount(1);
   await expect(page.locator(".memo-row-readonly")).toContainText("Browser memo");
 
-  await page.reload();
-
-  await expect(page.locator(".memo-row-readonly")).toHaveCount(1);
-  await page.locator(".restore-btn").click();
-  await expect(page.locator(".memo-row-readonly")).toHaveCount(0);
-
-  await page.getByRole("link", { name: "メモ" }).click();
+  await page.keyboard.press("Control+KeyZ");
+  await expect(page).toHaveURL(/\/menu\/workspace\/memo$/);
   await expect(page.locator(".sortable-list .sortable-item")).toHaveCount(2);
   await expect(page.locator("#title-2")).toHaveValue("Browser memo");
 });

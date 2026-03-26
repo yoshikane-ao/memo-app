@@ -95,6 +95,51 @@
   margin-bottom: 8px;
 }
 
+.memo-app-page .memo-trash-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 85, 85, 0.24);
+  border-radius: var(--memo-radius);
+  background: rgba(232, 85, 85, 0.08);
+}
+
+.memo-app-page .memo-trash-actions-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.memo-app-page .memo-trash-actions-title {
+  margin: 0;
+  color: var(--memo-text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.memo-app-page .memo-trash-actions-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--memo-text-secondary);
+  font-size: 0.72rem;
+}
+
+.memo-app-page .memo-trash-actions-button {
+  flex-shrink: 0;
+  background: rgba(232, 85, 85, 0.88);
+}
+
+.memo-app-page .memo-trash-actions-button:hover {
+  background: rgba(232, 85, 85, 0.96);
+}
+
 .memo-app-page .memo-scope-tab {
   display: inline-flex;
   align-items: center;

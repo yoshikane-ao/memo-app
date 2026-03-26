@@ -7,17 +7,28 @@ import {
   MemoScopeTabs,
   MemoToolbar,
 } from "../features/memo";
+import { useMemoHistoryCommands } from "../features/memo/model/useMemoHistoryCommands";
+import type { MemoViewScope } from "../features/view/model/memoView.types";
 import { useMemoPageSetup } from "./useMemoPageSetup";
 
+const commands = useMemoHistoryCommands();
 const { keyword, searchType, sortOrder, selectedTags, displayedMemos, canReorder } =
   useMemoPageSetup();
+
+const handleScopeChange = (scope: MemoViewScope) => {
+  void commands.switchMemoScope(scope);
+};
 </script>
 
 <template>
   <section class="memo-app-page">
     <FeedbackBanner />
     <MemoComposerContainer />
-    <MemoScopeTabs scope="active" />
+    <MemoScopeTabs
+      scope="active"
+      :disabled="commands.isHistoryBusy.value"
+      @scope-change="handleScopeChange"
+    />
     <MemoToolbar
       :keyword="keyword"
       :searchType="searchType"

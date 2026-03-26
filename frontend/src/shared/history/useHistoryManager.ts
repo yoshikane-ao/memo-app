@@ -1,11 +1,20 @@
 import { computed, ref } from "vue";
 import { defineStore, getActivePinia } from "pinia";
-import type { HistoryCommandResult, UndoableAction } from "./history.types";
+import type { HistoryCommandResult, HistoryTransition, UndoableAction } from "./history.types";
 
 const useHistoryStore = defineStore("history", () => {
   const undoStack = ref<UndoableAction[]>([]);
   const redoStack = ref<UndoableAction[]>([]);
   const isRunning = ref(false);
+  const lastTransition = ref<HistoryTransition | null>(null);
+
+  const setLastTransition = (action: UndoableAction, phase: HistoryTransition["phase"]) => {
+    lastTransition.value = {
+      actionLabel: action.label,
+      navigationTarget: action.navigation?.[phase],
+      phase,
+    };
+  };
 
   const execute = async (action: UndoableAction): Promise<HistoryCommandResult> => {
     if (isRunning.value) {
@@ -21,6 +30,7 @@ const useHistoryStore = defineStore("history", () => {
       await action.do();
       undoStack.value = [...undoStack.value, action];
       redoStack.value = [];
+      setLastTransition(action, "do");
       return {
         ok: true,
       };
@@ -51,6 +61,7 @@ const useHistoryStore = defineStore("history", () => {
       await action.undo();
       undoStack.value = undoStack.value.slice(0, -1);
       redoStack.value = [...redoStack.value, action];
+      setLastTransition(action, "undo");
       return {
         ok: true,
       };
@@ -86,6 +97,7 @@ const useHistoryStore = defineStore("history", () => {
 
       redoStack.value = redoStack.value.slice(0, -1);
       undoStack.value = [...undoStack.value, action];
+      setLastTransition(action, "redo");
       return {
         ok: true,
       };
@@ -104,6 +116,7 @@ const useHistoryStore = defineStore("history", () => {
   const clear = () => {
     undoStack.value = [];
     redoStack.value = [];
+    lastTransition.value = null;
   };
 
   const reset = () => {
@@ -115,6 +128,7 @@ const useHistoryStore = defineStore("history", () => {
     undoStack,
     redoStack,
     isRunning,
+    lastTransition,
     execute,
     undo,
     redo,
@@ -138,6 +152,7 @@ export const useHistoryManager = () => {
     canUndo: computed(() => store.undoStack.length > 0),
     canRedo: computed(() => store.redoStack.length > 0),
     isRunning: computed(() => store.isRunning),
+    lastTransition: computed(() => store.lastTransition),
     execute: store.execute,
     undo: store.undo,
     redo: store.redo,

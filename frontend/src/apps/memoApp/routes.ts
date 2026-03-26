@@ -14,9 +14,21 @@ const memoEntry = {
   summary: "すばやく記録して、編集・タグ整理・ごみ箱管理まで行えます。",
   ctaLabel: "ひらく",
   section: workspaceSection,
-  keywords: ["記録", "整理", "タグ", "ごみ箱"],
+  keywords: ["メモ", "記録", "タグ", "ごみ箱"],
 };
 
+const quizEntry = {
+  id: "quiz",
+  slug: "quiz",
+  name: "クイズ",
+  summary: "すばやく記録して、編集・タグ整理・ごみ箱管理まで行えます。",
+  ctaLabel: "ひらく",
+  section: workspaceSection,
+  keywords: ["メモ", "記録", "タグ", "ごみ箱"],
+};
+
+const loadMemoAppShell: NonNullable<RouteRecordRaw["component"]> = () =>
+  import("./pages/MemoAppShell.vue");
 const loadMemoPage: NonNullable<RouteRecordRaw["component"]> = () => import("./pages/MemoPage.vue");
 const loadMemoTrashPage: NonNullable<RouteRecordRaw["component"]> = () =>
   import("./pages/MemoTrashPage.vue");
@@ -33,23 +45,29 @@ export const memoAppDefinition: MenuAppDefinition = {
   createRoutes: () => [
     {
       path: `${memoEntry.section.slug}/${memoEntry.slug}`,
-      name: `menu-${memoEntry.section.slug}-${memoEntry.slug}`,
-      component: loadMemoPage,
-      meta: {
-        pageTitle: `${memoEntry.name} | アプリ一覧`,
-        menuAppId: memoEntry.id,
-        menuSectionSlug: memoEntry.section.slug,
-      },
-    },
-    {
-      path: `${memoEntry.section.slug}/${memoEntry.slug}/trash`,
-      name: `menu-${memoEntry.section.slug}-${memoEntry.slug}-trash`,
-      component: loadMemoTrashPage,
-      meta: {
-        pageTitle: `ごみ箱 | ${memoEntry.name}`,
-        menuAppId: memoEntry.id,
-        menuSectionSlug: memoEntry.section.slug,
-      },
+      component: loadMemoAppShell,
+      children: [
+        {
+          path: "",
+          name: `menu-${memoEntry.section.slug}-${memoEntry.slug}`,
+          component: loadMemoPage,
+          meta: {
+            pageTitle: `${memoEntry.name} | アプリ一覧`,
+            menuAppId: memoEntry.id,
+            menuSectionSlug: memoEntry.section.slug,
+          },
+        },
+        {
+          path: "trash",
+          name: `menu-${memoEntry.section.slug}-${memoEntry.slug}-trash`,
+          component: loadMemoTrashPage,
+          meta: {
+            pageTitle: `ごみ箱 | ${memoEntry.name}`,
+            menuAppId: memoEntry.id,
+            menuSectionSlug: memoEntry.section.slug,
+          },
+        },
+      ],
     },
   ],
 };

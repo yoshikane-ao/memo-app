@@ -9,8 +9,8 @@
     "build": "vue-tsc -b && vite build",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:e2e": "playwright test",
-    "e2e:serve": "npm run build && node e2e/webServer.mjs",
+    "test:e2e": "npm run build && playwright test",
+    "e2e:serve": "node e2e/webServer.mjs",
     "preview": "vite preview",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm run dev"

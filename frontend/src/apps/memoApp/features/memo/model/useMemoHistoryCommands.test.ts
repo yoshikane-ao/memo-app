@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMemo as createMemoRequest,
   moveMemoToTrash as moveMemoToTrashRequest,
+  purgeAllTrashMemos as purgeAllTrashMemosRequest,
   purgeMemo as purgeMemoRequest,
   reorderMemos as reorderMemosRequest,
   restoreMemo as restoreMemoRequest,
@@ -18,12 +19,14 @@ import type { Memo, TagSummary } from "./memo.types";
 import { useMemoStore } from "./useMemoStore";
 import { useMemoHistoryCommands } from "./useMemoHistoryCommands";
 import { useTagStore } from "../../tag/model/useTagStore";
+import { useMemoViewStore } from "../../view/model/useMemoViewStore";
 import { resetHistoryManager } from "../../../../../shared/history/useHistoryManager";
 import { activateTestPinia } from "../../../../../test/pinia";
 
 vi.mock("../api/memo.repository", () => ({
   createMemo: vi.fn(),
   moveMemoToTrash: vi.fn(),
+  purgeAllTrashMemos: vi.fn(),
   purgeMemo: vi.fn(),
   reorderMemos: vi.fn(),
   restoreMemo: vi.fn(),
@@ -119,23 +122,44 @@ describe("useMemoHistoryCommands", () => {
     vi.mocked(restoreMemoRequest).mockResolvedValue(activeMemo);
 
     const memoStore = useMemoStore();
+    const viewStore = useMemoViewStore();
     memoStore.items = [activeMemo];
     const commands = useMemoHistoryCommands();
 
     const result = await commands.moveMemoToTrash(9);
     expect(result).toEqual({ ok: true, value: undefined });
+    expect(viewStore.currentScope).toBe("trash");
     expect(memoStore.items).toEqual([]);
     expect(memoStore.trashItems).toEqual([trashedMemo]);
 
     await commands.undo();
     expect(restoreMemoRequest).toHaveBeenCalledWith(9);
+    expect(viewStore.currentScope).toBe("active");
     expect(memoStore.items).toEqual([activeMemo]);
     expect(memoStore.trashItems).toEqual([]);
 
     await commands.redo();
     expect(moveMemoToTrashRequest).toHaveBeenCalledWith(9);
+    expect(viewStore.currentScope).toBe("trash");
     expect(memoStore.items).toEqual([]);
     expect(memoStore.trashItems).toEqual([trashedMemo]);
+  });
+
+  it("records manual scope switches in undo history", async () => {
+    const viewStore = useMemoViewStore();
+    const commands = useMemoHistoryCommands();
+
+    expect(viewStore.currentScope).toBe("active");
+
+    const switched = await commands.switchMemoScope("trash");
+    expect(switched).toEqual({ ok: true, value: undefined });
+    expect(viewStore.currentScope).toBe("trash");
+
+    await commands.undo();
+    expect(viewStore.currentScope).toBe("active");
+
+    await commands.redo();
+    expect(viewStore.currentScope).toBe("trash");
   });
 
   it("purges a trashed memo without recording history", async () => {
@@ -155,6 +179,32 @@ describe("useMemoHistoryCommands", () => {
 
     expect(result).toEqual({ ok: true, value: undefined });
     expect(purgeMemoRequest).toHaveBeenCalledWith(12);
+    expect(memoStore.trashItems).toEqual([]);
+    expect(commands.canUndo.value).toBe(false);
+  });
+
+  it("purges the entire trash collection without recording history", async () => {
+    vi.mocked(purgeAllTrashMemosRequest).mockResolvedValue(2);
+
+    const memoStore = useMemoStore();
+    memoStore.trashItems = [
+      makeMemo({
+        id: 12,
+        title: "To purge",
+        deletedAt: "2026-03-25T00:00:00.000Z",
+      }),
+      makeMemo({
+        id: 13,
+        title: "To purge 2",
+        deletedAt: "2026-03-26T00:00:00.000Z",
+      }),
+    ];
+    const commands = useMemoHistoryCommands();
+
+    const result = await commands.purgeAllTrash();
+
+    expect(result).toEqual({ ok: true, value: 2 });
+    expect(purgeAllTrashMemosRequest).toHaveBeenCalledTimes(1);
     expect(memoStore.trashItems).toEqual([]);
     expect(commands.canUndo.value).toBe(false);
   });
