@@ -10,18 +10,6 @@ const storeMock = {
   moveMemoToTrash: vi.fn(),
 };
 
-const routerMock = {
-  push: vi.fn(),
-};
-
-vi.mock("vue-router", async () => {
-  const actual = await vi.importActual<typeof import("vue-router")>("vue-router");
-  return {
-    ...actual,
-    useRouter: () => routerMock,
-  };
-});
-
 vi.mock("../../model/useMemoHistoryCommands", () => ({
   useMemoHistoryCommands: () => storeMock,
 }));
@@ -136,7 +124,6 @@ describe("MemoListContainer", () => {
     await flushPromises();
     expect(window.confirm).toHaveBeenCalledWith("Move this memo to trash?");
     expect(storeMock.moveMemoToTrash).toHaveBeenCalledWith(1);
-    expect(routerMock.push).toHaveBeenCalledWith("/menu/workspace/memo/trash");
 
     await wrapper.get(".emit-tag-delete").trigger("click");
     expect(wrapper.emitted("tag-deleted")?.[0]).toEqual([11]);
@@ -167,7 +154,6 @@ describe("MemoListContainer", () => {
     expect(storeMock.reorderMemos).not.toHaveBeenCalled();
     expect(feedbackMock.showError).toHaveBeenCalledWith("Failed to update memo.");
     expect(feedbackMock.showError).toHaveBeenCalledWith("Failed to move memo to trash.");
-    expect(routerMock.push).not.toHaveBeenCalled();
   });
 
   it("does not move to trash when the user cancels confirmation", async () => {
@@ -189,6 +175,5 @@ describe("MemoListContainer", () => {
     await flushPromises();
 
     expect(storeMock.moveMemoToTrash).not.toHaveBeenCalled();
-    expect(routerMock.push).not.toHaveBeenCalled();
   });
 });

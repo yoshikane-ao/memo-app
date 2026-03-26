@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../../db";
+import { handleRouteError } from "../../memoApp/shared/requestValidation";
 
 export type User = { id: number; word: string; mean: string; tag: string; createdAt: string };
 
@@ -13,8 +14,10 @@ type RegisterBody = {
 
 
 registerRouter.post("/", async (req, res) => {
-    const { word, mean, tag }: RegisterBody = req.body;
     try {
+
+        const { word, mean, tag }: RegisterBody = req.body;
+
         const new_quiz = await prisma.quizs.create({
             data: {
                 word,
@@ -40,7 +43,11 @@ registerRouter.post("/", async (req, res) => {
             },
         });
 
-    } catch (error) {
+        res.status(201).json(new_quiz);
 
+    } catch (error) {
+        return handleRouteError(res, error, "Failed to create quiz.");
     }
 })
+
+export default registerRouter;

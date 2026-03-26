@@ -206,6 +206,19 @@ export async function purgeMemo(id: number): Promise<void> {
   }
 }
 
+export async function purgeAllTrashMemos(): Promise<number> {
+  try {
+    const response = await deleteJson<{ deletedCount?: unknown }>("/memos/purge");
+    if (typeof response.deletedCount !== "number") {
+      throw new Error("Invalid purge response.");
+    }
+
+    return response.deletedCount;
+  } catch (error) {
+    throw toTrashSupportError(error);
+  }
+}
+
 export async function reorderMemos(items: ReorderMemoInput[]): Promise<void> {
   await putJson("/memos/sort", { items });
 }

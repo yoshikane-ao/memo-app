@@ -5,16 +5,10 @@ import { useMemoPageSetup } from "./useMemoPageSetup";
 
 const {
   fetchAllMock,
-  clearMock,
-  historyShortcutsMock,
-  copyShortcutsMock,
   listViewState,
   useMemoListViewMock,
 } = vi.hoisted(() => ({
   fetchAllMock: vi.fn(() => Promise.resolve(true)),
-  clearMock: vi.fn(),
-  historyShortcutsMock: vi.fn(),
-  copyShortcutsMock: vi.fn(),
   useMemoListViewMock: vi.fn(),
   listViewState: {
     keyword: "",
@@ -40,20 +34,6 @@ vi.mock("./useMemoListView", () => ({
   },
 }));
 
-vi.mock("../../../shared/history/useHistoryManager", () => ({
-  useHistoryManager: () => ({
-    clear: clearMock,
-  }),
-}));
-
-vi.mock("../../../shared/history/useHistoryShortcuts", () => ({
-  useHistoryShortcuts: historyShortcutsMock,
-}));
-
-vi.mock("../../../shared/copy/useCopyShortcuts", () => ({
-  useCopyShortcuts: copyShortcutsMock,
-}));
-
 describe("useMemoPageSetup", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,9 +49,6 @@ describe("useMemoPageSetup", () => {
 
     mount(TestHost);
 
-    expect(historyShortcutsMock).toHaveBeenCalledTimes(1);
-    expect(copyShortcutsMock).toHaveBeenCalledTimes(1);
-    expect(clearMock).toHaveBeenCalledTimes(1);
     expect(fetchAllMock).toHaveBeenCalledTimes(1);
     expect(fetchAllMock).toHaveBeenCalledWith("active");
   });

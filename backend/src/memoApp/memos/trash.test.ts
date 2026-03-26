@@ -6,6 +6,7 @@ jest.mock("../../db", () => ({
       update: jest.fn(),
       findUnique: jest.fn(),
       delete: jest.fn(),
+      deleteMany: jest.fn(),
     },
   },
 }));
@@ -21,6 +22,7 @@ const mockedPrisma = prisma as unknown as {
     update: jest.Mock;
     findUnique: jest.Mock;
     delete: jest.Mock;
+    deleteMany: jest.Mock;
   };
 };
 
@@ -43,9 +45,11 @@ describe("memo trash routes", () => {
     mockedPrisma.memos.update.mockReset();
     mockedPrisma.memos.findUnique.mockReset();
     mockedPrisma.memos.delete.mockReset();
+    mockedPrisma.memos.deleteMany.mockReset();
     mockedPrisma.memos.update.mockResolvedValue(makeMemoResponse());
     mockedPrisma.memos.findUnique.mockResolvedValue({ id: 1, deletedAt: new Date("2026-03-25T00:00:00.000Z") });
     mockedPrisma.memos.delete.mockResolvedValue(makeMemoResponse());
+    mockedPrisma.memos.deleteMany.mockResolvedValue({ count: 2 });
   });
 
   it("moves a memo to trash instead of hard deleting it", async () => {
@@ -108,6 +112,22 @@ describe("memo trash routes", () => {
       include: {
         memo_tags: {
           include: { tag: true },
+        },
+      },
+    });
+  });
+
+  it("purges all trashed memos with the collection route", async () => {
+    const response = await request(buildJsonTestApp(purgeRouter)).delete("/");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      deletedCount: 2,
+    });
+    expect(mockedPrisma.memos.deleteMany).toHaveBeenCalledWith({
+      where: {
+        deletedAt: {
+          not: null,
         },
       },
     });

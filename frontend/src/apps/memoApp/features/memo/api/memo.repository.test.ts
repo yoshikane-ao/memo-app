@@ -3,6 +3,7 @@ import {
   createMemo,
   fetchMemoList,
   moveMemoToTrash,
+  purgeAllTrashMemos,
   restoreMemo,
 } from "./memo.repository";
 
@@ -143,5 +144,14 @@ describe("memo.repository", () => {
         tags: [],
       })
     ).rejects.toThrow("Invalid memo response.");
+  });
+
+  it("returns the deleted count when the trash collection is purged", async () => {
+    apiClientMocks.deleteJsonMock.mockResolvedValue({
+      deletedCount: 3,
+    });
+
+    await expect(purgeAllTrashMemos()).resolves.toBe(3);
+    expect(apiClientMocks.deleteJsonMock).toHaveBeenCalledWith("/memos/purge");
   });
 });

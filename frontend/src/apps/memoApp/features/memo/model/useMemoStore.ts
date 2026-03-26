@@ -128,6 +128,18 @@ export const useMemoStore = defineStore("memo", () => {
     trashItems.value = trashItems.value.filter((memo) => memo.id !== memoId);
   };
 
+  const clearTrashItems = () => {
+    trashItems.value = [];
+    loadedByScope.value = {
+      ...loadedByScope.value,
+      trash: true,
+    };
+    errorByScope.value = {
+      ...errorByScope.value,
+      trash: null,
+    };
+  };
+
   const findMemoById = (memoId: number) =>
     items.value.find((memo) => memo.id === memoId) ??
     trashItems.value.find((memo) => memo.id === memoId);
@@ -271,6 +283,7 @@ export const useMemoStore = defineStore("memo", () => {
     findMemoById,
     upsertLocalMemo,
     removeLocalMemo,
+    clearTrashItems,
     removeDeletedTagReference,
     replaceMemoTags,
     addLocalTagToMemo,

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router";
 import MemoList from "./MemoList.vue";
 import type {
   MemoListContainerEmits,
@@ -8,14 +7,12 @@ import type {
 } from "./types";
 import { useMemoHistoryCommands } from "../../model/useMemoHistoryCommands";
 import { getCommandErrorMessage } from "../../model/commandResult";
-import { memoPaths } from "../../../../routes";
 import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
 
 const props = defineProps<MemoListContainerProps>();
 const emit = defineEmits<MemoListContainerEmits>();
 const commands = useMemoHistoryCommands();
 const feedback = useFeedbackStore();
-const router = useRouter();
 
 const handleReorderRequested = async (items: MemoListContainerProps["items"]) => {
   if (!props.canReorder) {
