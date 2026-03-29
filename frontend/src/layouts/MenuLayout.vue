@@ -11,11 +11,15 @@ const activeApp = computed(() => {
   const menuAppId = route.meta.menuAppId;
   return typeof menuAppId === "string" ? findMenuAppById(menuAppId) : null;
 });
+
+const isMenuHome = computed(() => {
+  return route.path === menuHomePath || route.name === "menu-home";
+});
 </script>
 
 <template>
   <div class="menu-shell">
-    <header class="menu-shell-header">
+    <header v-if="isMenuHome" class="menu-shell-header">
       <div class="menu-shell-header-row">
         <div class="menu-shell-home">
           <RouterLink :to="menuHomePath" class="menu-shell-home-link">
@@ -40,6 +44,12 @@ const activeApp = computed(() => {
         </template>
       </div>
     </header>
+
+    <div v-else class="menu-shell-compact-nav">
+      <RouterLink :to="menuHomePath" class="menu-shell-compact-link">
+        アプリ一覧へ戻る
+      </RouterLink>
+    </div>
 
     <main class="menu-shell-main">
       <router-view />

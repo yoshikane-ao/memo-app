@@ -1,1 +1,1 @@
-export { memoAppDefinition, memoPaths } from "./routes";
+export { memoAppDefinition, memoPaths, quizAppDefinition, tradeAppDefinition } from "./routes";

@@ -6,6 +6,7 @@ import { config } from "./config";
 import { memosRouter } from "./memoApp/memos/memosRouter";
 import { tagsRouter } from "./memoApp/tags/tagsRouter";
 import { quizRouter } from "./quiz-app/quiz/quizRouter"
+import { tradeAppRoutes } from "./tradeApp/routes"
 
 const createRateLimiter = () =>
   rateLimit({
@@ -22,6 +23,7 @@ const registerRoutes = (app: express.Express) => {
   app.use("/tags", tagsRouter);
   app.use("/quiz", quizRouter);
   // app.use("/quizTag", quizTagRouter);
+  app.use("/trade", tradeAppRoutes);
 };
 
 export function buildApp() {

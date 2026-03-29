@@ -30,17 +30,10 @@ watch(
   { immediate: true }
 );
 
-watch(
-  () => viewStore.currentScope,
-  (scope) => {
-    const targetPath = scope === "trash" ? memoPaths.trash : memoPaths.active;
-    if (route.path === targetPath) {
-      return;
-    }
-
-    void router.push(targetPath);
-  }
-);
+const changeScope = async (scope: "active" | "trash") => {
+  viewStore.setScope(scope);
+  await router.push(scope === "trash" ? memoPaths.trash : memoPaths.active);
+};
 
 onBeforeUnmount(() => {
   history.clear();
