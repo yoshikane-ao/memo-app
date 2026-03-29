@@ -1,0 +1,62 @@
+:root {
+  --bg-main: #0b1120;
+  --bg-panel: #121a2b;
+  --bg-panel-strong: #162033;
+  --border: rgba(160, 180, 220, 0.18);
+  --text-main: #eef4ff;
+  --text-muted: #a9b6d3;
+  --text-subtle: #8794b0;
+  --accent: #74a8ff;
+  --up-text: #65d39b;
+  --down-text: #ff8b8b;
+  --flat-text: #d7dfef;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(52, 95, 179, 0.18), transparent 30%),
+    linear-gradient(180deg, #0b1020 0%, #0a1020 100%);
+  color: var(--text-main);
+  font-family:
+    Inter,
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    sans-serif;
+}
+
+body {
+  min-width: 1200px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  word-break: keep-all;
+}
