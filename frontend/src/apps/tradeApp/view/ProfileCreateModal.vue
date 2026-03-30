@@ -79,7 +79,13 @@ function handleSubmit(): void {
   <Teleport to="body">
     <div v-if="modelValue" class="profile-modal">
       <div class="profile-modal__backdrop" @click="close" />
-      <section class="profile-modal__dialog" :style="{ '--profile-create-bg': `url(${profileCreateBackgroundUrl})` }" role="dialog" aria-modal="true" aria-label="キャラクター作成">
+      <section
+        class="profile-modal__dialog"
+        :style="{ '--profile-create-bg': `url(${profileCreateBackgroundUrl})` }"
+        role="dialog"
+        aria-modal="true"
+        aria-label="キャラクター作成"
+      >
         <header class="profile-modal__header">
           <div>
             <h2>キャラクター作成</h2>
@@ -98,17 +104,19 @@ function handleSubmit(): void {
           </aside>
 
           <div class="profile-modal__fields">
-            <label>
-              <span>キャラクター名</span>
-              <input v-model="form.name" type="text" maxlength="20" placeholder="例: レオ" />
-            </label>
+            <div class="profile-modal__input-grid">
+              <label>
+                <span>キャラクター名</span>
+                <input v-model="form.name" type="text" maxlength="20" placeholder="例: レオ" />
+              </label>
 
-            <label>
-              <span>一言コメント</span>
-              <input v-model="form.tagline" type="text" maxlength="40" placeholder="例: 買いで押し切る" />
-            </label>
+              <label>
+                <span>一言コメント</span>
+                <input v-model="form.tagline" type="text" maxlength="40" placeholder="例: 買いで押し切る" />
+              </label>
+            </div>
 
-            <div>
+            <section class="profile-modal__section">
               <span class="profile-modal__label">アイコン</span>
               <div class="profile-modal__icon-grid">
                 <button
@@ -123,9 +131,9 @@ function handleSubmit(): void {
                   <small>{{ option.label }}</small>
                 </button>
               </div>
-            </div>
+            </section>
 
-            <div>
+            <section class="profile-modal__section">
               <span class="profile-modal__label">テーマカラー</span>
               <div class="profile-modal__theme-grid">
                 <button
@@ -139,7 +147,7 @@ function handleSubmit(): void {
                   {{ option.label }}
                 </button>
               </div>
-            </div>
+            </section>
           </div>
         </div>
 
@@ -170,14 +178,14 @@ function handleSubmit(): void {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  width: min(980px, calc(100vw - 28px));
-  max-height: calc(100vh - 28px);
-  margin: 14px auto;
-  padding: 24px;
-  overflow: auto;
+  gap: 14px;
+  width: min(940px, calc(100vw - 24px));
+  max-height: calc(100vh - 20px);
+  margin: 10px auto;
+  padding: 18px;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 28px;
+  border-radius: 24px;
   background:
     linear-gradient(180deg, rgba(5, 8, 15, 0.84), rgba(5, 8, 15, 0.94)),
     var(--profile-create-bg) center/cover no-repeat;
@@ -210,14 +218,14 @@ function handleSubmit(): void {
 }
 
 .profile-modal__header h2 {
-  margin: 0 0 6px;
-  font-size: 1.3rem;
+  margin: 0 0 4px;
+  font-size: 1.15rem;
 }
 
 .profile-modal__header p {
   margin: 0;
   color: rgba(221, 229, 248, 0.72);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
 }
 
 .profile-modal__close,
@@ -228,20 +236,21 @@ function handleSubmit(): void {
 }
 
 .profile-modal__close {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   background: rgba(4, 8, 18, 0.58);
   backdrop-filter: blur(8px);
   color: #fff;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 .profile-modal__content {
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  gap: 20px;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
 }
 
 .profile-modal__preview {
@@ -249,14 +258,24 @@ function handleSubmit(): void {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  min-height: 280px;
-  padding: 24px;
-  border-radius: 24px;
+  gap: 8px;
+  min-height: 0;
+  padding: 18px;
+  border-radius: 22px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(4, 8, 18, 0.58);
   backdrop-filter: blur(8px);
   text-align: center;
+}
+
+.profile-modal__preview strong {
+  font-size: 1rem;
+}
+
+.profile-modal__preview span {
+  color: rgba(225, 233, 247, 0.82);
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .profile-modal__preview.theme-blue { box-shadow: inset 0 0 0 1px rgba(101, 180, 255, 0.16); }
@@ -267,24 +286,32 @@ function handleSubmit(): void {
 .profile-modal__preview-icon {
   display: grid;
   place-items: center;
-  width: 92px;
-  height: 92px;
-  border-radius: 26px;
+  width: 78px;
+  height: 78px;
+  border-radius: 22px;
   background: rgba(5, 12, 24, 0.62);
-  font-size: 2.4rem;
+  font-size: 2rem;
 }
 
 .profile-modal__fields {
   display: grid;
-  gap: 16px;
-  padding: 18px;
-  border-radius: 24px;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px;
+  border-radius: 22px;
   background: rgba(4, 8, 18, 0.56);
   backdrop-filter: blur(8px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.profile-modal__fields label {
+.profile-modal__input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.profile-modal__fields label,
+.profile-modal__section {
   display: grid;
   gap: 8px;
 }
@@ -292,24 +319,26 @@ function handleSubmit(): void {
 .profile-modal__fields span,
 .profile-modal__label {
   color: rgba(216, 226, 246, 0.88);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .profile-modal__fields input {
   width: 100%;
-  padding: 12px 14px;
+  min-width: 0;
+  padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
+  font-size: 0.92rem;
 }
 
 .profile-modal__icon-grid,
 .profile-modal__theme-grid {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .profile-modal__icon-grid {
@@ -322,9 +351,9 @@ function handleSubmit(): void {
 
 .profile-modal__icon-button,
 .profile-modal__theme-button {
-  padding: 12px 10px;
+  padding: 10px 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
+  border-radius: 14px;
   background: rgba(4, 8, 18, 0.58);
   backdrop-filter: blur(8px);
   color: #f3f6ff;
@@ -334,15 +363,17 @@ function handleSubmit(): void {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  min-height: 72px;
 }
 
 .profile-modal__icon-button span {
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 
 .profile-modal__icon-button small {
   color: rgba(215, 224, 244, 0.8);
+  font-size: 0.72rem;
 }
 
 .profile-modal__icon-button.is-active,
@@ -361,8 +392,8 @@ function handleSubmit(): void {
 }
 
 .profile-modal__footer button {
-  padding: 12px 18px;
-  border-radius: 16px;
+  padding: 10px 16px;
+  border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -383,8 +414,21 @@ function handleSubmit(): void {
 }
 
 @media (max-width: 820px) {
-  .profile-modal__content {
+  .profile-modal__dialog {
+    width: min(96vw, 720px);
+    max-height: calc(100vh - 16px);
+    margin: 8px auto;
+    padding: 14px;
+    overflow: auto;
+  }
+
+  .profile-modal__content,
+  .profile-modal__input-grid {
     grid-template-columns: 1fr;
+  }
+
+  .profile-modal__preview {
+    padding: 14px;
   }
 
   .profile-modal__icon-grid,
