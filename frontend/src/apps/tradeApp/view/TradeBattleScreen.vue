@@ -699,46 +699,22 @@ function handleTurn(payload: TurnActionWithWait): void {
             </button>
         </div>
 
-        <PlayerPanel
-            class="left-panel"
-            :player="leftPlayer"
-            :stocks="state.stocks"
-            :is-active="state.currentPlayer === 'player1'"
-            :asset-diff="leftAssetDiff"
-        />
+        <PlayerPanel class="left-panel" :player="leftPlayer" :stocks="state.stocks"
+            :is-active="state.currentPlayer === 'player1'" :asset-diff="leftAssetDiff" />
 
-        <StockBoard
-            class="chart-panel"
-            :stocks="state.stocks"
-            :turn="state.turn"
+        <StockBoard class="chart-panel" :stocks="state.stocks" :turn="state.turn"
             :cpu-participant-count="cpuMarketStats.participantCount"
             :cpu-investment-total="cpuMarketStats.investmentTotal"
-            :cpu-withdrawal-count="cpuMarketStats.withdrawalCount"
-        />
+            :cpu-withdrawal-count="cpuMarketStats.withdrawalCount" />
 
-        <PlayerPanel
-            class="right-panel"
-            :player="rightPlayer"
-            :stocks="state.stocks"
-            :is-active="state.currentPlayer === 'player2'"
-            :asset-diff="rightAssetDiff"
-        />
+        <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
+            :is-active="state.currentPlayer === 'player2'" :asset-diff="rightAssetDiff" />
 
-        <ActionHistoryPanel
-            class="history-panel"
-            :preview="actionPreview"
-            :player1-name="leftPlayer.name"
-            :player2-name="rightPlayer.name"
-            :cpu-stats="cpuMarketStats"
-        />
+        <ActionHistoryPanel class="history-panel" :preview="actionPreview" :player1-name="leftPlayer.name"
+            :player2-name="rightPlayer.name" :cpu-stats="cpuMarketStats" />
 
-        <ActionPanel
-            class="action-panel-slot"
-            :current-player="activePlayer"
-            :stocks="state.stocks"
-            @preview-change="handlePreviewChange"
-            @confirm="handleTurn"
-        />
+        <ActionPanel class="action-panel-slot" :current-player="activePlayer" :stocks="state.stocks"
+            @preview-change="handlePreviewChange" @confirm="handleTurn" />
     </div>
 </template>
 
@@ -803,11 +779,25 @@ function handleTurn(payload: TurnActionWithWait): void {
     border-color: rgba(122, 171, 255, 0.34);
 }
 
-.left-panel { grid-area: left; }
-.chart-panel { grid-area: chart; }
-.right-panel { grid-area: right; }
-.history-panel { grid-area: history; }
-.action-panel-slot { grid-area: action; }
+.left-panel {
+    grid-area: left;
+}
+
+.chart-panel {
+    grid-area: chart;
+}
+
+.right-panel {
+    grid-area: right;
+}
+
+.history-panel {
+    grid-area: history;
+}
+
+.action-panel-slot {
+    grid-area: action;
+}
 
 @media (min-width: 1700px) {
     .battle-screen {

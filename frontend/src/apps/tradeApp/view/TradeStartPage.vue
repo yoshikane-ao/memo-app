@@ -1,51 +1,933 @@
 <script setup lang="ts">
-const startImageUrl = '/public/start-image.png'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import BattleModeSelector from './start/BattleModeSelector.vue'
+import StartingCashSection from './start/StartingCashSection.vue'
+import TurnOrderSection from './start/TurnOrderSection.vue'
+import ProfileSlotCard from './start/ProfileSlotCard.vue'
+import ProfileCreateModal from './ProfileCreateModal.vue'
+import ProfilePickerModal from './ProfilePickerModal.vue'
+import { useTradeGameStore, type BattleMode, type FirstPlayer } from '../store/useTradeGameStore'
+import {
+  useTradeProfileStore,
+  type CreateTradeProfileInput,
+  type TradeProfile,
+} from '../store/useTradeProfileStore'
+import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
+import { createCpuIdentity, createGuestIdentity } from '../types/playerIdentity'
+import startBackgroundUrl from '../assets/start-screen-background.png'
+
+type StartingCashMode = 'same' | 'separate'
+
+type SelectedPlayerPayload = {
+  kind: PlayerIdentity['kind']
+  label?: string
+  profileId?: string
+}
+
+const router = useRouter()
+const gameStore = useTradeGameStore()
+const profileStore = useTradeProfileStore()
+
+const battleMode = ref<BattleMode>('pvp')
+const firstPlayer = ref<FirstPlayer>('random')
+const startingCashMode = ref<StartingCashMode>('same')
+const sharedStartingCash = ref(12000)
+const player1StartingCash = ref(12000)
+const player2StartingCash = ref(12000)
+const weakCpuCount = ref(42)
+const strongCpuCount = ref(21)
+const statusMessage = ref('')
+
+const p1Identity = ref<PlayerIdentity>(createGuestIdentity('p1'))
+const p2Identity = ref<PlayerIdentity>(createGuestIdentity('p2'))
+
+const pickerSlot = ref<PlayerSlot | null>(null)
+const isPickerOpen = ref(false)
+const isCreateModalOpen = ref(false)
+const createTargetSlot = ref<PlayerSlot>('p1')
+
+const totalCpuCount = computed(() => normalizeNonNegativeInt(weakCpuCount.value) + normalizeNonNegativeInt(strongCpuCount.value))
+
+const p1Profile = computed<TradeProfile | null>(() => resolveProfile(p1Identity.value))
+const p2Profile = computed<TradeProfile | null>(() => resolveProfile(p2Identity.value))
+
+const displayP1Identity = computed(() => {
+  return battleMode.value === 'cvc' ? createCpuIdentity() : p1Identity.value
+})
+
+const displayP2Identity = computed(() => {
+  if (battleMode.value === 'pvc' || battleMode.value === 'cvc') {
+    return createCpuIdentity()
+  }
+  return p2Identity.value
+})
+
+const p1Disabled = computed(() => battleMode.value === 'cvc')
+const p2Disabled = computed(() => battleMode.value === 'pvc' || battleMode.value === 'cvc')
+
+const profileSummaryCopy = computed(() => {
+  if (battleMode.value === 'pvp') {
+    return 'P1 と P2 はゲストのままでも開始できます。プロフィールを選ぶと戦績を保存できます。'
+  }
+  if (battleMode.value === 'pvc') {
+    return 'PLAYER 1 のみプロフィールを選択できます。CPU 側の戦績は保存されません。'
+  }
+  return 'CPU vs CPU ではキャラクター選択は不要です。'
+})
+
+const resolvedPlayer1Name = computed(() => {
+  if (battleMode.value === 'cvc') {
+    return 'CPU 1'
+  }
+
+  if (p1Identity.value.kind === 'profile') {
+    return p1Profile.value?.name || 'PLAYER 1'
+  }
+
+  return p1Identity.value.label
+})
+
+const resolvedPlayer2Name = computed(() => {
+  if (battleMode.value === 'pvc') {
+    return 'CPU'
+  }
+
+  if (battleMode.value === 'cvc') {
+    return 'CPU 2'
+  }
+
+  if (p2Identity.value.kind === 'profile') {
+    return p2Profile.value?.name || 'PLAYER 2'
+  }
+
+  return p2Identity.value.label
+})
+
+const resolvedPlayer1Cash = computed(() => {
+  return startingCashMode.value === 'same'
+    ? normalizeCash(sharedStartingCash.value)
+    : normalizeCash(player1StartingCash.value)
+})
+
+const resolvedPlayer2Cash = computed(() => {
+  return startingCashMode.value === 'same'
+    ? normalizeCash(sharedStartingCash.value)
+    : normalizeCash(player2StartingCash.value)
+})
+
+const canStart = computed(() => totalCpuCount.value <= 100)
+
+onMounted(() => {
+  profileStore.seedIfEmpty()
+  syncModeIdentities(battleMode.value)
+})
+
+function resolveProfile(identity: PlayerIdentity): TradeProfile | null {
+  if (identity.kind !== 'profile') {
+    return null
+  }
+  return profileStore.sortedProfiles.find((profile) => profile.id === identity.profileId) ?? null
+}
+
+function normalizeNonNegativeInt(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0
+  }
+  return Math.max(0, Math.floor(value))
+}
+
+function normalizeCash(value: number): number {
+  return normalizeNonNegativeInt(value)
+}
+
+function setBattleMode(mode: BattleMode): void {
+  battleMode.value = mode
+  syncModeIdentities(mode)
+  statusMessage.value = ''
+}
+
+function syncModeIdentities(mode: BattleMode): void {
+  if (mode === 'pvc') {
+    p2Identity.value = createCpuIdentity()
+    return
+  }
+
+  if (mode === 'cvc') {
+    p1Identity.value = createCpuIdentity()
+    p2Identity.value = createCpuIdentity()
+    return
+  }
+
+  if (p1Identity.value.kind === 'cpu') {
+    p1Identity.value = createGuestIdentity('p1')
+  }
+
+  if (p2Identity.value.kind === 'cpu') {
+    p2Identity.value = createGuestIdentity('p2')
+  }
+}
+
+function setStartingCashMode(value: StartingCashMode): void {
+  startingCashMode.value = value
+  if (value === 'same') {
+    const base = normalizeCash(sharedStartingCash.value || player1StartingCash.value || player2StartingCash.value)
+    sharedStartingCash.value = base
+    player1StartingCash.value = base
+    player2StartingCash.value = base
+  }
+}
+
+function setSharedCash(value: number): void {
+  const normalized = normalizeCash(value)
+  sharedStartingCash.value = normalized
+  if (startingCashMode.value === 'same') {
+    player1StartingCash.value = normalized
+    player2StartingCash.value = normalized
+  }
+}
+
+function setPlayerCash(slot: PlayerSlot, value: number): void {
+  const normalized = normalizeCash(value)
+  if (slot === 'p1') {
+    player1StartingCash.value = normalized
+    return
+  }
+  player2StartingCash.value = normalized
+}
+
+function adjustCpu(target: 'weak' | 'strong', delta: number): void {
+  if (target === 'weak') {
+    weakCpuCount.value = Math.max(0, normalizeNonNegativeInt(weakCpuCount.value) + delta)
+  } else {
+    strongCpuCount.value = Math.max(0, normalizeNonNegativeInt(strongCpuCount.value) + delta)
+  }
+}
+
+function setCpuCount(target: 'weak' | 'strong', value: number): void {
+  const normalized = normalizeNonNegativeInt(value)
+  if (target === 'weak') {
+    weakCpuCount.value = normalized
+  } else {
+    strongCpuCount.value = normalized
+  }
+}
+
+function openPicker(slot: PlayerSlot): void {
+  if (battleMode.value === 'cvc') {
+    return
+  }
+  if (battleMode.value === 'pvc' && slot === 'p2') {
+    return
+  }
+  pickerSlot.value = slot
+  isPickerOpen.value = true
+}
+
+function openCreate(slot: PlayerSlot): void {
+  if (battleMode.value === 'cvc') {
+    return
+  }
+  if (battleMode.value === 'pvc' && slot === 'p2') {
+    return
+  }
+  createTargetSlot.value = slot
+  isCreateModalOpen.value = true
+}
+
+function assignIdentity(slot: PlayerSlot, identity: PlayerIdentity): void {
+  if (slot === 'p1') {
+    p1Identity.value = identity
+    return
+  }
+  p2Identity.value = identity
+}
+
+function handleSelectProfile(identity: PlayerIdentity): void {
+  if (!pickerSlot.value) {
+    return
+  }
+  assignIdentity(pickerSlot.value, identity)
+  if (identity.kind === 'profile') {
+    profileStore.selectProfile(identity.profileId)
+  }
+  statusMessage.value = ''
+}
+
+function handleCreateProfile(payload: CreateTradeProfileInput): void {
+  const created = profileStore.createProfile(payload)
+  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
+  statusMessage.value = `${created.name} を選択しました。`
+}
+
+function resetSlotToGuest(slot: PlayerSlot): void {
+  assignIdentity(slot, createGuestIdentity(slot))
+}
+
+function openStats(slot: PlayerSlot): void {
+  const identity = slot === 'p1' ? p1Identity.value : p2Identity.value
+  if (identity.kind !== 'profile') {
+    return
+  }
+
+  router.push({
+    name: 'menu-workspace-trade-profile-stats',
+    params: { profileId: identity.profileId },
+  }).catch(() => {
+    statusMessage.value = '成績画面のルートがまだありません。配線前の世界はいつもこうです。'
+  })
+}
+
+function persistSelectedIdentities(): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const payload: Record<PlayerSlot, SelectedPlayerPayload> = {
+    p1: serializeIdentity(p1Identity.value),
+    p2: serializeIdentity(p2Identity.value),
+  }
+
+  window.sessionStorage.setItem('trade:selectedIdentities', JSON.stringify(payload))
+}
+
+function serializeIdentity(identity: PlayerIdentity): SelectedPlayerPayload {
+  if (identity.kind === 'profile') {
+    return { kind: 'profile', profileId: identity.profileId }
+  }
+  return { kind: identity.kind, label: identity.label }
+}
+
+function startLocalBattle(): void {
+  if (!canStart.value) {
+    statusMessage.value = 'CPU人数の合計を100人以下にしてください。'
+    return
+  }
+
+  persistSelectedIdentities()
+
+  gameStore.initializeGame({
+    battleMode: battleMode.value,
+    player1Name: resolvedPlayer1Name.value,
+    player2Name: resolvedPlayer2Name.value,
+    firstPlayer: firstPlayer.value,
+    marketCpuCount: totalCpuCount.value,
+    player1StartingCash: resolvedPlayer1Cash.value,
+    player2StartingCash: resolvedPlayer2Cash.value,
+  })
+
+  router.push({ name: 'menu-workspace-trade-battle' })
+}
+
+function showPlaceholder(feature: string): void {
+  statusMessage.value = `${feature} はまだ未接続です。まずはローカル対戦を動かします。`
+}
 </script>
 
 <template>
   <main class="trade-start-page">
-    <section class="start-visual-shell" aria-label="トレードゲームのスタート画面">
-      <img class="start-visual" :src="startImageUrl" alt="CLASH CAPITAL スタート画面ビジュアル" draggable="false" />
+    <section class="hero-layout">
+      <div class="hero-stage">
+        <div class="hero-stage__visual-shell">
+          <img class="hero-stage__background" :src="startBackgroundUrl" alt="CLASH CAPITAL start background" />
+          <div class="hero-stage__shade"></div>
+        </div>
+
+        <div class="hero-stage__ui">
+          <div class="hero-stage__spacer" aria-hidden="true"></div>
+
+          <div class="hero-stage__settings-row">
+            <section class="hero-panel" aria-label="対戦条件">
+              <div class="hero-panel__inner hero-panel__inner--blue">
+                <header class="hero-panel__head">
+                  <p class="hero-panel__eyebrow">対戦条件</p>
+                  <h2>初期資産</h2>
+                </header>
+                <StartingCashSection
+                  :cash-mode="startingCashMode"
+                  :shared-cash="sharedStartingCash"
+                  :player1-cash="player1StartingCash"
+                  :player2-cash="player2StartingCash"
+                  :player1-name="resolvedPlayer1Name"
+                  :player2-name="resolvedPlayer2Name"
+                  @update:cash-mode="setStartingCashMode"
+                  @update:shared-cash="setSharedCash"
+                  @update:player1-cash="setPlayerCash('p1', $event)"
+                  @update:player2-cash="setPlayerCash('p2', $event)"
+                />
+              </div>
+            </section>
+
+            <section class="hero-panel" aria-label="進行設定">
+              <div class="hero-panel__inner hero-panel__inner--neutral">
+                <header class="hero-panel__head">
+                  <p class="hero-panel__eyebrow">進行設定</p>
+                  <h2>先攻とCPU</h2>
+                </header>
+
+                <div class="flow-panel">
+                  <TurnOrderSection
+                    :model-value="firstPlayer"
+                    :player1-name="resolvedPlayer1Name"
+                    :player2-name="resolvedPlayer2Name"
+                    @update:model-value="firstPlayer = $event"
+                  />
+
+                  <div class="cpu-settings">
+                    <div class="cpu-row">
+                      <span>弱CPU</span>
+                      <div class="cpu-row__controls">
+                        <button type="button" @click="adjustCpu('weak', -1)">-</button>
+                        <input type="number" min="0" max="100" :value="weakCpuCount" @input="setCpuCount('weak', Number(($event.target as HTMLInputElement).value))" />
+                        <button type="button" @click="adjustCpu('weak', 1)">+</button>
+                      </div>
+                    </div>
+
+                    <div class="cpu-row">
+                      <span>強CPU</span>
+                      <div class="cpu-row__controls">
+                        <button type="button" @click="adjustCpu('strong', -1)">-</button>
+                        <input type="number" min="0" max="100" :value="strongCpuCount" @input="setCpuCount('strong', Number(($event.target as HTMLInputElement).value))" />
+                        <button type="button" @click="adjustCpu('strong', 1)">+</button>
+                      </div>
+                    </div>
+
+                    <p class="cpu-summary">市場参加CPU 合計: {{ totalCpuCount }}人</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="hero-panel" aria-label="対戦モード">
+              <div class="hero-panel__inner hero-panel__inner--red">
+                <header class="hero-panel__head">
+                  <p class="hero-panel__eyebrow">対戦モード</p>
+                  <h2>対戦形式</h2>
+                </header>
+
+                <div class="mode-panel">
+                  <BattleModeSelector :model-value="battleMode" @update:model-value="setBattleMode" />
+                  <p class="mode-panel__copy">
+                    ゲストのままでも開始できます。プロフィールを選ぶと戦績を保存できます。
+                  </p>
+                  <p v-if="statusMessage" class="mode-panel__status">{{ statusMessage }}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="hero-stage__profile-row">
+            <section class="hero-profile-card" aria-label="プレイヤー1プロフィール">
+              <div class="hero-profile-card__inner hero-profile-card__inner--blue">
+                <ProfileSlotCard
+                  slot="p1"
+                  :identity="displayP1Identity"
+                  :profile="p1Profile"
+                  :disabled="p1Disabled"
+                  @select="openPicker('p1')"
+                  @create="openCreate('p1')"
+                  @reset-guest="resetSlotToGuest('p1')"
+                  @open-stats="openStats('p1')"
+                />
+              </div>
+            </section>
+
+            <section class="hero-profile-hub" aria-label="対戦開始">
+              <div class="hero-profile-hub__inner">
+                <div class="hero-stage__actions" aria-label="start actions">
+                  <button type="button" class="hero-action hero-action--blue" @click="startLocalBattle">
+                    ローカル対戦を開始
+                  </button>
+                  <button type="button" class="hero-action hero-action--green" @click="showPlaceholder('オンライン対戦')">
+                    オンライン対戦
+                  </button>
+                  <button type="button" class="hero-action hero-action--violet" @click="showPlaceholder('成績')">
+                    成績
+                  </button>
+                </div>
+                <p v-if="statusMessage" class="hero-profile-hub__status">{{ statusMessage }}</p>
+              </div>
+            </section>
+
+            <section class="hero-profile-card" aria-label="プレイヤー2プロフィール">
+              <div class="hero-profile-card__inner hero-profile-card__inner--red">
+                <ProfileSlotCard
+                  slot="p2"
+                  :identity="displayP2Identity"
+                  :profile="battleMode === 'pvp' ? p2Profile : null"
+                  :disabled="p2Disabled"
+                  @select="openPicker('p2')"
+                  @create="openCreate('p2')"
+                  @reset-guest="resetSlotToGuest('p2')"
+                  @open-stats="openStats('p2')"
+                />
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
     </section>
+
+    <ProfilePickerModal
+      v-model="isPickerOpen"
+      :slot="pickerSlot"
+      :profiles="profileStore.sortedProfiles"
+      @select="handleSelectProfile"
+      @create="openCreate(pickerSlot || 'p1')"
+    />
+
+    <ProfileCreateModal v-model="isCreateModalOpen" @create="handleCreateProfile" />
   </main>
 </template>
 
 <style scoped>
 .trade-start-page {
   width: calc(100% + 24px);
-  margin: 0 -12px -16px;
-  overflow-x: clip;
-  overflow-y: visible;
-  background: #05070d;
+  margin: -16px -12px 0;
+  padding: 16px 12px 36px;
+  overflow-x: hidden;
+  color: #f4f7ff;
 }
 
-.start-visual-shell {
-  width: 100%;
-  overflow-x: clip;
-  overflow-y: visible;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  background: #05070d;
+.hero-layout {
+  display: grid;
 }
 
-.start-visual {
-  display: block;
+.hero-stage {
+  position: relative;
+  width: min(100%, 1320px);
+  margin: 0 auto 40px;
+  aspect-ratio: 3 / 2;
+  overflow: visible;
+}
+
+.hero-stage__visual-shell {
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.38);
+  background: #04060b;
+}
+
+.hero-stage__background,
+.hero-stage__shade {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-stage__background {
   width: 100%;
-  min-width: 100%;
-  max-width: none;
-  height: auto;
-  object-fit: contain;
-  object-position: top center;
+  height: 100%;
+  object-fit: cover;
   user-select: none;
-  -webkit-user-drag: none;
   pointer-events: none;
 }
 
-@media (max-width: 768px) {
+.hero-stage__shade {
+  background:
+    linear-gradient(180deg, rgba(3, 6, 10, 0.01) 0%, rgba(3, 6, 10, 0.03) 48%, rgba(2, 4, 8, 0.14) 62%, rgba(2, 4, 8, 0.3) 100%),
+    radial-gradient(circle at bottom center, rgba(4, 8, 18, 0.08), rgba(2, 4, 8, 0.04) 40%, rgba(1, 2, 4, 0) 72%);
+  pointer-events: none;
+}
+
+.hero-stage__ui {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-rows: 61% auto auto;
+  gap: 12px;
+  padding: 0 6.6% 2%;
+}
+
+.hero-stage__spacer {
+  min-height: 0;
+}
+
+.hero-stage__settings-row,
+.hero-stage__profile-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.55%;
+}
+
+.hero-panel,
+.hero-profile-card,
+.hero-profile-hub {
+  min-width: 0;
+}
+
+.hero-panel__inner,
+.hero-profile-card__inner,
+.hero-profile-hub__inner {
+  height: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(10, 14, 25, 0.84), rgba(6, 9, 17, 0.92));
+  backdrop-filter: blur(12px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.hero-panel__inner {
+  min-height: 174px;
+  padding: 12px 14px 14px;
+}
+
+.hero-profile-card__inner,
+.hero-profile-hub__inner {
+  min-height: 172px;
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-panel__inner--blue,
+.hero-profile-card__inner--blue {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(87, 174, 255, 0.18),
+    0 0 28px rgba(59, 121, 255, 0.14);
+}
+
+.hero-panel__inner--neutral,
+.hero-profile-hub__inner {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(231, 116, 73, 0.14),
+    0 0 24px rgba(84, 137, 255, 0.1);
+}
+
+.hero-profile-hub__inner {
+  justify-content: center;
+  gap: 10px;
+}
+
+.hero-panel__inner--red,
+.hero-profile-card__inner--red {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 40px rgba(0, 0, 0, 0.24),
+    0 0 0 1px rgba(255, 104, 104, 0.18),
+    0 0 26px rgba(228, 64, 64, 0.12);
+}
+
+.hero-panel__head {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
+.hero-panel__eyebrow,
+.hero-profile-hub__eyebrow {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: rgba(221, 232, 255, 0.9);
+}
+
+.hero-panel__head h2,
+.hero-profile-hub__head h2 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.hero-profile-hub__head {
+  display: none;
+}
+
+.hero-profile-hub__status,
+.cpu-summary,
+.mode-panel__copy,
+.mode-panel__status {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: rgba(216, 225, 244, 0.82);
+}
+
+.hero-profile-hub__status {
+  min-height: 18px;
+  text-align: center;
+}
+
+.flow-panel,
+.mode-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.cpu-settings {
+  display: grid;
+  gap: 6px;
+}
+
+.cpu-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.cpu-row span {
+  font-size: 11px;
+  color: #a8b8de;
+  font-weight: 700;
+}
+
+.cpu-row__controls {
+  display: grid;
+  grid-template-columns: 28px 58px 28px;
+  gap: 8px;
+  align-items: center;
+}
+
+.cpu-row__controls button,
+.cpu-row__controls input {
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 16, 30, 0.92);
+  color: #f5f7fb;
+  box-sizing: border-box;
+}
+
+.cpu-row__controls button {
+  cursor: pointer;
+}
+
+.cpu-row__controls input {
+  width: 100%;
+  text-align: center;
+}
+
+.mode-panel__status {
+  color: #ffe0b0;
+}
+
+.hero-profile-card :deep(.slot-card) {
+  min-height: 142px;
+  padding: 10px;
+  gap: 8px;
+  border-radius: 14px;
+}
+
+.hero-profile-card :deep(.slot-card__header) {
+  gap: 8px;
+}
+
+.hero-profile-card :deep(.slot-card__slot),
+.hero-profile-card :deep(.slot-card__badge) {
+  min-height: 22px;
+  padding: 0 9px;
+  font-size: 9px;
+}
+
+.hero-profile-card :deep(.slot-card__body) {
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.hero-profile-card :deep(.slot-card__avatar) {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.hero-profile-card :deep(.slot-card__avatar span) {
+  font-size: 14px;
+}
+
+.hero-profile-card :deep(.slot-card__name-row) {
+  gap: 6px;
+}
+
+.hero-profile-card :deep(.slot-card__name) {
+  font-size: 14px;
+}
+
+.hero-profile-card :deep(.slot-card__battle-count) {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.hero-profile-card :deep(.slot-card__subtitle) {
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.hero-profile-card :deep(.slot-card__stats) {
+  gap: 6px;
+}
+
+.hero-profile-card :deep(.slot-card__stat) {
+  padding: 7px 8px;
+  border-radius: 10px;
+}
+
+.hero-profile-card :deep(.slot-card__stat-label) {
+  font-size: 8px;
+}
+
+.hero-profile-card :deep(.slot-card__stat-value) {
+  font-size: 11px;
+}
+
+.hero-profile-card :deep(.slot-card__actions) {
+  gap: 6px;
+}
+
+.hero-profile-card :deep(.slot-card__action-primary),
+.hero-profile-card :deep(.slot-card__action-secondary) {
+  gap: 6px;
+}
+
+.hero-profile-card :deep(.slot-card__button) {
+  min-width: 64px;
+  padding: 7px 9px;
+  font-size: 10px;
+  border-radius: 10px;
+}
+
+.hero-profile-card :deep(.slot-card__text-link) {
+  font-size: 10px;
+}
+
+.hero-stage__actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-content: center;
+}
+
+.hero-action {
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fbff;
+  font-size: clamp(0.82rem, 0.9vw, 1rem);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+.hero-action:hover {
+  transform: translateY(-2px) scale(1.01);
+  filter: brightness(1.05);
+}
+
+.hero-action--blue {
+  background: linear-gradient(180deg, rgba(77, 140, 255, 0.62), rgba(28, 72, 170, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(56, 121, 255, 0.34);
+}
+
+.hero-action--green {
+  background: linear-gradient(180deg, rgba(52, 190, 140, 0.62), rgba(23, 114, 90, 0.72));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(44, 181, 128, 0.3);
+}
+
+.hero-action--violet {
+  background: linear-gradient(180deg, rgba(157, 96, 255, 0.62), rgba(91, 46, 172, 0.74));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(139, 86, 255, 0.28);
+}
+
+.hero-panel :deep(.cash-section),
+.hero-panel :deep(.segment-grid) {
+  gap: 6px;
+}
+
+.hero-panel :deep(.mode-button),
+.hero-panel :deep(.segment-button) {
+  height: 34px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+.hero-panel :deep(.cash-grid) {
+  gap: 8px;
+}
+
+.hero-panel :deep(.field) {
+  gap: 4px;
+}
+
+.hero-panel :deep(.field-label) {
+  font-size: 10px;
+}
+
+.hero-panel :deep(.money-input) {
+  gap: 6px;
+}
+
+.hero-panel :deep(.currency) {
+  font-size: 12px;
+}
+
+.hero-panel :deep(.field-input) {
+  height: 32px;
+  font-size: 12px;
+  border-radius: 10px;
+}
+
+@media (max-width: 1240px) {
+  .hero-stage {
+    aspect-ratio: auto;
+    min-height: 1180px;
+    margin-bottom: 0;
+  }
+
+  .hero-stage__visual-shell {
+    border-radius: 24px;
+  }
+
+  .hero-stage__ui {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-rows: auto;
+    gap: 14px;
+    padding: 52% 20px 20px;
+  }
+
+  .hero-stage__spacer {
+    display: none;
+  }
+
+  .hero-stage__settings-row,
+  .hero-stage__profile-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .hero-stage__actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
   .trade-start-page {
     width: calc(100% + 20px);
-    margin: 0 -10px -12px;
+    margin: -12px -10px 0;
+    padding: 12px 10px 24px;
+  }
+
+  .hero-stage {
+    min-height: 1260px;
+  }
+
+  .hero-stage__visual-shell {
+    border-radius: 20px;
+  }
+
+  .hero-stage__actions {
+    grid-template-columns: 1fr;
   }
 }
 </style>

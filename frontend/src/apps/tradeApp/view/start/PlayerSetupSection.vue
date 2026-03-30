@@ -1,105 +1,106 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { BattleMode } from '../../store/useTradeGameStore'
+import type { TradeProfile } from '../../store/useTradeProfileStore'
+import type { PlayerIdentity } from '../../types/playerIdentity'
+import { createCpuIdentity } from '../../types/playerIdentity'
+import ProfileSlotCard from './ProfileSlotCard.vue'
 
 const props = defineProps<{
   battleMode: BattleMode
-  player1Name: string
-  player2Name: string
+  p1Identity: PlayerIdentity
+  p2Identity: PlayerIdentity
+  p1Profile?: TradeProfile | null
+  p2Profile?: TradeProfile | null
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:player1Name', value: string): void
-  (e: 'update:player2Name', value: string): void
+  (e: 'select-profile', slot: 'p1' | 'p2'): void
+  (e: 'create-profile', slot: 'p1' | 'p2'): void
+  (e: 'reset-to-guest', slot: 'p1' | 'p2'): void
+  (e: 'open-stats', slot: 'p1' | 'p2'): void
 }>()
+
+const cpuIdentity = createCpuIdentity()
+
+const leftIdentity = computed(() => {
+  return props.battleMode === 'cvc' ? cpuIdentity : props.p1Identity
+})
+
+const rightIdentity = computed(() => {
+  if (props.battleMode === 'pvc' || props.battleMode === 'cvc') {
+    return cpuIdentity
+  }
+
+  return props.p2Identity
+})
+
+const leftDisabled = computed(() => props.battleMode === 'cvc')
+const rightDisabled = computed(() => props.battleMode === 'pvc' || props.battleMode === 'cvc')
+
+const helperCopy = computed(() => {
+  if (props.battleMode === 'pvp') {
+    return 'ゲストのままでも開始できます。プロフィールを選ぶと戦績を保存できます。'
+  }
+
+  if (props.battleMode === 'pvc') {
+    return 'PLAYER 1 はゲストまたはプロフィールを選択できます。CPU 側の戦績は保存されません。'
+  }
+
+  return 'CPU vs CPU ではプロフィール選択は不要です。'
+})
 </script>
 
 <template>
-  <div class="player-grid">
-    <label v-if="props.battleMode !== 'cvc'" class="field">
-      <span class="field-label">Player1 名</span>
-      <input
-        class="field-input"
-        type="text"
-        maxlength="20"
-        placeholder="PLAYER 1"
-        :value="props.player1Name"
-        @input="emit('update:player1Name', ($event.target as HTMLInputElement).value)"
+  <div class="player-setup-section">
+    <div class="player-grid">
+      <ProfileSlotCard
+        slot="p1"
+        :identity="leftIdentity"
+        :profile="p1Profile"
+        :disabled="leftDisabled"
+        @select="emit('select-profile', 'p1')"
+        @create="emit('create-profile', 'p1')"
+        @reset-guest="emit('reset-to-guest', 'p1')"
+        @open-stats="emit('open-stats', 'p1')"
       />
-    </label>
 
-    <div v-else class="field field--fixed">
-      <span class="field-label">Player1 名</span>
-      <div class="fixed-value">プレイヤー1</div>
-    </div>
-
-    <label v-if="props.battleMode === 'pvp'" class="field">
-      <span class="field-label">Player2 名</span>
-      <input
-        class="field-input"
-        type="text"
-        maxlength="20"
-        placeholder="PLAYER 2"
-        :value="props.player2Name"
-        @input="emit('update:player2Name', ($event.target as HTMLInputElement).value)"
+      <ProfileSlotCard
+        slot="p2"
+        :identity="rightIdentity"
+        :profile="battleMode === 'pvp' ? p2Profile : null"
+        :disabled="rightDisabled"
+        @select="emit('select-profile', 'p2')"
+        @create="emit('create-profile', 'p2')"
+        @reset-guest="emit('reset-to-guest', 'p2')"
+        @open-stats="emit('open-stats', 'p2')"
       />
-    </label>
-
-    <div v-else-if="props.battleMode === 'pvc'" class="field field--fixed">
-      <span class="field-label">Player2 名</span>
-      <div class="fixed-value">CPU</div>
     </div>
 
-    <div v-else class="field field--fixed">
-      <span class="field-label">Player2 名</span>
-      <div class="fixed-value">プレイヤー2</div>
-    </div>
+    <p class="player-helper">{{ helperCopy }}</p>
   </div>
 </template>
 
 <style scoped>
-.player-grid {
+.player-setup-section {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.field {
+.player-grid {
   display: grid;
-  gap: 5px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
-.field-label {
-  font-size: 11px;
-  color: #a7b8df;
+.player-helper {
+  margin: 0;
+  color: #98a8cb;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
-.field-input,
-.fixed-value {
-  height: 40px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: linear-gradient(180deg, rgba(11, 20, 40, 0.94), rgba(7, 14, 29, 0.96));
-  color: #f5f7fb;
-  padding: 0 12px;
-  font-size: 13px;
-  box-sizing: border-box;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
-}
-
-.field-input:focus {
-  outline: none;
-  border-color: rgba(116, 167, 255, 0.48);
-  box-shadow: 0 0 0 3px rgba(73, 120, 255, 0.14);
-}
-
-.fixed-value {
-  display: flex;
-  align-items: center;
-  color: #d9e4ff;
-  background: linear-gradient(180deg, rgba(21, 35, 63, 0.9), rgba(10, 18, 34, 0.96));
-}
-
-@media (max-width: 900px) {
+@media (max-width: 980px) {
   .player-grid {
     grid-template-columns: 1fr;
   }
