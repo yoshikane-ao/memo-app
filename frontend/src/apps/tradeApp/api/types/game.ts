@@ -1,13 +1,9 @@
 export type StockKey = 'p1' | 'p2' | 'market'
 export type PlayerId = 'player1' | 'player2'
 
-export type MarketCondition =
-  | '上昇相場'
-  | '下落相場'
-  | '過熱相場'
-  | '混乱相場'
+export type MarketCondition = 'bull' | 'bear' | 'sideways'
 
-export type CompanyAction = 'なし' | '増資' | '配当' | '自社株買い' | '事業投資'
+export type CompanyAction = 'なし' | '増資' | '配当' | '自社株買い' | '設備投資'
 export type CooldownAction = Exclude<CompanyAction, 'なし'>
 
 export type TradeAction = 'buy' | 'sell' | 'short' | 'cover'
@@ -52,6 +48,9 @@ export interface PlayerState {
   cooldowns: Record<CooldownAction, number>
   recentCashChange: number
   recentNetChange: number
+  marketBias: number
+  lastSnapshotAssets: number
+  lastSnapshotCash: number
 }
 
 export interface LogEntry {
@@ -111,12 +110,12 @@ export const COMPANY_ACTIONS: CompanyAction[] = [
   '増資',
   '配当',
   '自社株買い',
-  '事業投資',
+  '設備投資',
 ]
 
 export const COOLDOWN_ACTIONS: CooldownAction[] = [
   '増資',
   '配当',
   '自社株買い',
-  '事業投資',
+  '設備投資',
 ]

@@ -131,16 +131,16 @@ const visibleTradeActions = computed<TradeAction[]>(() => {
     return TRADE_ACTIONS
 })
 
-const orderHeadline = computed(() => {
-    if (actionKind.value === 'company') {
-        return '会社行動を実行'
-    }
+// const orderHeadline = computed(() => {
+//     if (actionKind.value === 'company') {
+//         return '会社行動を実行'
+//     }
 
-    return `${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-})
+//     return `${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
+// })
 
 const selectedTargetLabel = computed(() => selectedStockChoice.value?.title ?? '市場株')
-const selectedTargetSubLabel = computed(() => selectedStockChoice.value?.subtitle ?? '')
+// const selectedTargetSubLabel = computed(() => selectedStockChoice.value?.subtitle ?? '')
 
 const executionEstimateText = computed(() => {
     if (actionKind.value !== 'trade') return '未計算'
@@ -150,14 +150,14 @@ const executionEstimateText = computed(() => {
     return `${formatCurrency(executedAmount.value)} / 約${estimatedShares.value}株`
 })
 
-const tradeMetaSummary = computed(() => {
-    if (actionKind.value !== 'trade') return ''
-    if (estimatedShares.value <= 0) {
-        return `${selectedTargetLabel.value} / ${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-    }
+// const tradeMetaSummary = computed(() => {
+//     if (actionKind.value !== 'trade') return ''
+//     if (estimatedShares.value <= 0) {
+//         return `${selectedTargetLabel.value} / ${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
+//     }
 
-    return `${selectedTargetLabel.value}を約${estimatedShares.value}株ぶん ${TRADE_LABELS[form.tradeAction]}`
-})
+//     return `${selectedTargetLabel.value}を約${estimatedShares.value}株ぶん ${TRADE_LABELS[form.tradeAction]}`
+// })
 
 const companySummaryItems = computed(() => [
     { label: '実行者', value: props.currentPlayer.name },
@@ -266,15 +266,15 @@ const waitImpactPreview = computed<StockImpactItem[]>(() =>
     })),
 )
 
-const tradeActionChips = computed(() => {
-    if (actionKind.value !== 'trade') return []
-    return [
-        selectedTargetLabel.value,
-        MODE_LABELS[form.tradeMode],
-        TRADE_LABELS[form.tradeAction],
-        orderAmount.value > 0 ? `${orderAmount.value.toLocaleString()}円` : '金額未入力',
-    ]
-})
+// const tradeActionChips = computed(() => {
+//     if (actionKind.value !== 'trade') return []
+//     return [
+//         selectedTargetLabel.value,
+//         MODE_LABELS[form.tradeMode],
+//         TRADE_LABELS[form.tradeAction],
+//         orderAmount.value > 0 ? `${orderAmount.value.toLocaleString()}円` : '金額未入力',
+//     ]
+// })
 
 const stockImpactPreview = computed<StockImpactItem[]>(() => {
     const items = stockChoices.value.map((choice) => ({

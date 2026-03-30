@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import TradeStartPage from '@/apps/tradeApp/view/TradeStartPage.vue'
 import TradeBattlePage from '@/apps/tradeApp/view/TradeBattlePage.vue'
-import { useTradeGameStore } from '@/apps/tradeApp/store/useTradeGameStore'
+import { useTradeGameStore } from '../store/useTradeGameStore'
 
 const routes: RouteRecordRaw[] = [
   {
