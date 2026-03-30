@@ -28,22 +28,6 @@ type StockImpactItem = {
     detail: string
 }
 
-type PreviewSummaryItem = {
-    label: string
-    value: string
-}
-
-type ActionPreviewPayload = {
-    actionKind: 'trade' | 'company' | 'wait'
-    bannerTitle: string
-    overviewTitle: string
-    overviewSub: string
-    stockImpactPreview: StockImpactItem[]
-    companySummaryItems: PreviewSummaryItem[]
-    actionChips: string[]
-    decisionLabel: string
-}
-
 type ActionPanelPayload = TurnActionPayload & {
     metaAction?: 'wait'
 }
@@ -55,7 +39,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     confirm: [payload: ActionPanelPayload]
-    'preview-change': [payload: ActionPreviewPayload]
 }>()
 
 const actionKind = ref<'trade' | 'company' | 'wait'>('trade')
@@ -131,16 +114,16 @@ const visibleTradeActions = computed<TradeAction[]>(() => {
     return TRADE_ACTIONS
 })
 
-// const orderHeadline = computed(() => {
-//     if (actionKind.value === 'company') {
-//         return '会社行動を実行'
-//     }
+const orderHeadline = computed(() => {
+    if (actionKind.value === 'company') {
+        return '会社行動を実行'
+    }
 
-//     return `${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-// })
+    return `${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
+})
 
 const selectedTargetLabel = computed(() => selectedStockChoice.value?.title ?? '市場株')
-// const selectedTargetSubLabel = computed(() => selectedStockChoice.value?.subtitle ?? '')
+const selectedTargetSubLabel = computed(() => selectedStockChoice.value?.subtitle ?? '')
 
 const executionEstimateText = computed(() => {
     if (actionKind.value !== 'trade') return '未計算'
@@ -150,42 +133,33 @@ const executionEstimateText = computed(() => {
     return `${formatCurrency(executedAmount.value)} / 約${estimatedShares.value}株`
 })
 
-// const tradeMetaSummary = computed(() => {
-//     if (actionKind.value !== 'trade') return ''
-//     if (estimatedShares.value <= 0) {
-//         return `${selectedTargetLabel.value} / ${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-//     }
+const tradeActionChips = computed<string[]>(() => {
+    if (actionKind.value !== 'trade') {
+        return []
+    }
 
-//     return `${selectedTargetLabel.value}を約${estimatedShares.value}株ぶん ${TRADE_LABELS[form.tradeAction]}`
-// })
+    return [
+        selectedTargetLabel.value,
+        MODE_LABELS[form.tradeMode],
+        TRADE_LABELS[form.tradeAction],
+        orderAmount.value > 0 ? `${orderAmount.value.toLocaleString()}円` : '金額未入力',
+    ]
+})
+
+const tradeMetaSummary = computed(() => {
+    if (actionKind.value !== 'trade') return ''
+    if (estimatedShares.value <= 0) {
+        return `${selectedTargetLabel.value} / ${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
+    }
+
+    return `${selectedTargetLabel.value}を約${estimatedShares.value}株ぶん ${TRADE_LABELS[form.tradeAction]}`
+})
 
 const companySummaryItems = computed(() => [
     { label: '実行者', value: props.currentPlayer.name },
     { label: '対象', value: '自社へ実行' },
     { label: '内容', value: form.companyAction },
 ])
-
-const decisionLabel = computed(() => {
-    if (actionKind.value === 'wait') return 'このターンは待つ'
-    if (actionKind.value === 'company') return 'この内容で決定'
-    return '行動を決定'
-})
-
-const decisionChips = computed(() => {
-    if (actionKind.value === 'trade') {
-        return tradeActionChips.value
-    }
-
-    if (actionKind.value === 'company') {
-        return [
-            '会社行動',
-            props.currentPlayer.name,
-            form.companyAction,
-        ]
-    }
-
-    return ['待機', '様子見', '外部変動のみ確認']
-})
 
 const canSubmitTrade = computed(() => {
     if (actionKind.value !== 'trade') return false
@@ -266,15 +240,6 @@ const waitImpactPreview = computed<StockImpactItem[]>(() =>
     })),
 )
 
-// const tradeActionChips = computed(() => {
-//     if (actionKind.value !== 'trade') return []
-//     return [
-//         selectedTargetLabel.value,
-//         MODE_LABELS[form.tradeMode],
-//         TRADE_LABELS[form.tradeAction],
-//         orderAmount.value > 0 ? `${orderAmount.value.toLocaleString()}円` : '金額未入力',
-//     ]
-// })
 
 const stockImpactPreview = computed<StockImpactItem[]>(() => {
     const items = stockChoices.value.map((choice) => ({
@@ -392,32 +357,6 @@ const stockImpactPreview = computed<StockImpactItem[]>(() => {
     return items
 })
 
-const actionPreviewState = computed<ActionPreviewPayload>(() => {
-    if (actionKind.value === 'company') {
-        return {
-            actionKind: 'company',
-            bannerTitle: '今回の見立て',
-            overviewTitle: impactOverviewTitle.value,
-            overviewSub: '会社行動の細かい反映はルール確定後に調整',
-            stockImpactPreview: [],
-            companySummaryItems: companySummaryItems.value,
-            actionChips: decisionChips.value,
-            decisionLabel: decisionLabel.value,
-        }
-    }
-
-    return {
-        actionKind: actionKind.value,
-        bannerTitle: '今回の影響まとめ',
-        overviewTitle: impactOverviewTitle.value,
-        overviewSub: impactOverviewSub.value,
-        stockImpactPreview: actionKind.value === 'wait' ? waitImpactPreview.value : stockImpactPreview.value,
-        companySummaryItems: [],
-        actionChips: decisionChips.value,
-        decisionLabel: decisionLabel.value,
-    }
-})
-
 function formatCurrency(value: number): string {
     return `${Math.round(value).toLocaleString()}円`
 }
@@ -513,14 +452,6 @@ watch(
             form.stockKey = ownStockKey.value
         }
     },
-)
-
-watch(
-    actionPreviewState,
-    (value) => {
-        emit('preview-change', value)
-    },
-    { deep: true, immediate: true },
 )
 </script>
 
@@ -625,20 +556,40 @@ watch(
                 <div class="helper-line">概算 {{ executionEstimateText }}</div>
             </article>
 
-            <article class="card decision-card span-3">
-                <div class="card-title-row"><span class="step">5</span><span>決定</span></div>
+            <article class="card summary-card span-3 impact-summary-card">
+                <div class="card-title-row"><span class="step">5</span><span>確認</span></div>
 
-                <div class="decision-body">
-                    <div class="decision-summary-row">
-                        <strong class="decision-main">{{ orderHeadline }}</strong>
-                        <span class="decision-sub">{{ executionEstimateText }}</span>
+                <div class="summary-card-body impact-summary-body compact-impact-body">
+                    <div class="summary-banner compact-summary-banner">
+                        <div class="summary-banner-title">今回の影響まとめ</div>
+                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
+                        <span class="summary-banner-sub compact-banner-sub">{{ impactOverviewSub }}</span>
                     </div>
 
-                    <div class="decision-chip-list">
-                        <span v-for="chip in decisionChips" :key="chip" class="decision-chip">{{ chip }}</span>
+                    <div class="impact-glance-board compact-impact-grid">
+                        <article
+                            v-for="item in stockImpactPreview"
+                            :key="item.key"
+                            class="impact-glance-card"
+                            :class="item.level"
+                        >
+                            <div class="impact-glance-top compact-glance-top">
+                                <div>
+                                    <div class="impact-glance-title">{{ item.title }}</div>
+                                    <div class="impact-glance-subtitle">{{ item.subtitle }}</div>
+                                </div>
+                                <div class="impact-direction-badge small-badge" :class="item.level">
+                                    <span v-if="item.level === 'strong-up'">↑↑</span>
+                                    <span v-else-if="item.level === 'up'">↑</span>
+                                    <span v-else-if="item.level === 'down'">↓</span>
+                                    <span v-else-if="item.level === 'strong-down'">↓↓</span>
+                                    <span v-else>→</span>
+                                </div>
+                            </div>
+                            <div class="impact-glance-headline">{{ item.headline }}</div>
+                            <div class="impact-glance-detail one-line-detail">{{ item.detail }}</div>
+                        </article>
                     </div>
-
-                    <div class="decision-helper">相場への影響は右の指標カードに表示</div>
                 </div>
 
                 <button type="button" class="confirm-button" :disabled="!canSubmitTrade" @click="submitTurn">行動を決定</button>
@@ -673,17 +624,20 @@ watch(
                 <div class="helper-line">増資は下押し、配当と設備投資は自社株へ追い風</div>
             </article>
 
-            <article class="card decision-card span-6">
-                <div class="card-title-row"><span class="step">3</span><span>決定</span></div>
-                <div class="decision-body">
-                    <div class="decision-summary-row">
-                        <strong class="decision-main">{{ impactOverviewTitle }}</strong>
-                        <span class="decision-sub">詳細な見立ては右の指標カードへ表示</span>
+            <article class="card summary-card span-6 company-summary-card">
+                <div class="card-title-row"><span class="step">3</span><span>確認</span></div>
+                <div class="summary-card-body company-summary-body compact-impact-body">
+                    <div class="summary-banner compact-summary-banner">
+                        <div class="summary-banner-title">今回の見立て</div>
+                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
+                        <span class="summary-banner-sub compact-banner-sub">会社行動の細かい反映はルール確定後に調整</span>
                     </div>
-                    <div class="decision-chip-list">
-                        <span v-for="chip in decisionChips" :key="chip" class="decision-chip">{{ chip }}</span>
+                    <div class="summary-badges company-summary-grid compact-company-grid">
+                        <div v-for="item in companySummaryItems" :key="item.label" class="summary-badge">
+                            <span class="summary-badge-label">{{ item.label }}</span>
+                            <strong class="summary-badge-value">{{ item.value }}</strong>
+                        </div>
                     </div>
-                    <div class="decision-helper">会社行動の内容と影響をまとめて確認できます</div>
                 </div>
                 <button type="button" class="confirm-button" :disabled="!canSubmitCompany" @click="submitTurn">この内容で決定</button>
             </article>
@@ -699,17 +653,32 @@ watch(
                 </div>
             </article>
 
-            <article class="card decision-card span-10">
-                <div class="card-title-row"><span class="step">2</span><span>決定</span></div>
-                <div class="decision-body">
-                    <div class="decision-summary-row">
-                        <strong class="decision-main">{{ impactOverviewTitle }}</strong>
-                        <span class="decision-sub">値動きの見立ては右の指標カードに表示</span>
+            <article class="card summary-card span-10 wait-summary-card">
+                <div class="card-title-row"><span class="step">2</span><span>確認</span></div>
+                <div class="summary-card-body impact-summary-body compact-impact-body">
+                    <div class="summary-banner compact-summary-banner">
+                        <div class="summary-banner-title">今回の影響まとめ</div>
+                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
+                        <span class="summary-banner-sub compact-banner-sub">{{ impactOverviewSub }}</span>
                     </div>
-                    <div class="decision-chip-list">
-                        <span v-for="chip in decisionChips" :key="chip" class="decision-chip">{{ chip }}</span>
+                    <div class="impact-glance-board compact-impact-grid">
+                        <article
+                            v-for="item in waitImpactPreview"
+                            :key="item.key"
+                            class="impact-glance-card"
+                            :class="item.level"
+                        >
+                            <div class="impact-glance-top compact-glance-top">
+                                <div>
+                                    <div class="impact-glance-title">{{ item.title }}</div>
+                                    <div class="impact-glance-subtitle">{{ item.subtitle }}</div>
+                                </div>
+                                <div class="impact-direction-badge small-badge neutral">→</div>
+                            </div>
+                            <div class="impact-glance-headline">{{ item.headline }}</div>
+                            <div class="impact-glance-detail one-line-detail">{{ item.detail }}</div>
+                        </article>
                     </div>
-                    <div class="decision-helper">このターンはポジションを増やさず外部変動だけを見ます</div>
                 </div>
                 <button type="button" class="confirm-button" :disabled="!canSubmitWait" @click="submitTurn">このターンは待つ</button>
             </article>
@@ -807,13 +776,6 @@ watch(
     background:
         linear-gradient(180deg, rgba(11, 24, 48, 0.98), rgba(6, 15, 31, 0.95)),
         radial-gradient(circle at top, rgba(78, 131, 255, 0.1), transparent 50%);
-    grid-template-rows: auto minmax(0, 1fr) auto;
-}
-.decision-card {
-    border-color: rgba(122, 172, 255, 0.32);
-    background:
-        linear-gradient(180deg, rgba(11, 24, 48, 0.98), rgba(6, 15, 31, 0.95)),
-        radial-gradient(circle at top, rgba(78, 131, 255, 0.08), transparent 52%);
     grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
@@ -972,61 +934,6 @@ watch(
     font-weight: 800;
     text-align: center;
     outline: none;
-}
-
-.decision-body {
-    min-height: 0;
-    display: grid;
-    align-content: start;
-    gap: 8px;
-}
-
-.decision-summary-row {
-    display: grid;
-    gap: 3px;
-    padding: 8px;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-.decision-main {
-    color: #f7fbff;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1.15;
-}
-
-.decision-sub {
-    color: rgba(220, 234, 255, 0.78);
-    font-size: 8px;
-    line-height: 1.2;
-}
-
-.decision-chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-}
-
-.decision-chip {
-    min-height: 22px;
-    padding: 0 8px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #edf4ff;
-    font-size: 8px;
-    font-weight: 800;
-}
-
-.decision-helper {
-    color: rgba(193, 214, 255, 0.72);
-    font-size: 8px;
-    line-height: 1.2;
 }
 
 .summary-card-body {
