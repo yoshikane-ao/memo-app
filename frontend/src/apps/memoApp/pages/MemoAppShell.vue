@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { RouterView, useRoute, useRouter } from "vue-router";
+import { RouterView, useRoute } from "vue-router";
 import { onBeforeUnmount, watch } from "vue";
 import { useCopyShortcuts } from "../../../shared/copy/useCopyShortcuts";
 import { useHistoryManager } from "../../../shared/history/useHistoryManager";
@@ -9,7 +9,7 @@ import { useMemoViewStore } from "../features/view/model/useMemoViewStore";
 
 const history = useHistoryManager();
 const route = useRoute();
-const router = useRouter();
+// const router = useRouter();
 const viewStore = useMemoViewStore();
 
 useHistoryShortcuts();
