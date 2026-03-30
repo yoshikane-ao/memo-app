@@ -4,7 +4,7 @@ export function createInitialGameState(): GameState {
   return {
     title: 'Trading Battle',
     turn: 8,
-    marketCondition: '過熱相場',
+    marketCondition: 'bull',
     victoryCondition: '相手より総資産を多くして勝利',
     currentPlayer: 'player1',
     stocks: [
@@ -71,10 +71,13 @@ export function createInitialGameState(): GameState {
           増資: 0,
           配当: 1,
           自社株買い: 0,
-          事業投資: 2,
+          設備投資: 2,
         },
         recentCashChange: 350,
         recentNetChange: 620,
+        marketBias: 0,
+        lastSnapshotAssets: 0,
+        lastSnapshotCash: 12800,
       },
       {
         id: 'player2',
@@ -104,10 +107,13 @@ export function createInitialGameState(): GameState {
           増資: 2,
           配当: 0,
           自社株買い: 1,
-          事業投資: 0,
+          設備投資: 0,
         },
         recentCashChange: -220,
         recentNetChange: -410,
+        marketBias: 0,
+        lastSnapshotAssets: 0,
+        lastSnapshotCash: 11900,
       },
     ],
     logs: [
