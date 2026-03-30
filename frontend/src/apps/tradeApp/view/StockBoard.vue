@@ -20,9 +20,9 @@ const chartWidth = viewWidth - padLeft - padRight
 const chartHeight = viewHeight - padTop - padBottom
 
 const colorMap: Record<StockKey, string> = {
-    market: '#4ea4ff',
-    p1: '#b56bff',
-    p2: '#f1cb72',
+    market: '#49c6ff',
+    p1: '#5b86ff',
+    p2: '#ff667a',
 }
 
 const labelMap: Record<StockKey, string> = {
@@ -306,43 +306,215 @@ const endBadges = computed<EndBadge[]>(() => {
 
 <style scoped>
 .board-wrap {
+    position: relative;
+    isolation: isolate;
     height: 100%;
     min-height: 0;
     min-width: 0;
-    border-radius: 18px;
-    border: 1px solid rgba(120, 156, 228, 0.14);
+    border-radius: 20px;
+    border: 1px solid rgba(107, 143, 255, 0.22);
     background:
-        linear-gradient(180deg, rgba(0, 9, 28, 0.98) 0%, rgba(0, 6, 18, 0.96) 100%),
-        radial-gradient(circle at top, rgba(40, 107, 255, 0.07), transparent 42%);
-    padding: 5px 7px 7px;
+        linear-gradient(180deg, rgba(3, 9, 24, 0.98) 0%, rgba(3, 7, 19, 0.95) 100%),
+        radial-gradient(circle at 20% 0%, rgba(76, 132, 255, 0.16), transparent 32%),
+        radial-gradient(circle at 80% 0%, rgba(255, 88, 108, 0.12), transparent 28%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 20px 48px rgba(0, 0, 0, 0.3);
+    padding: 6px 8px 8px;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
-    gap: 4px;
+    gap: 6px;
     overflow: hidden;
 }
-.board-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 0; }
-.title-block { display: flex; align-items: center; gap: 5px; }
-.board-title { color: #edf5ff; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; }
-.turn-chip { padding: 2px 6px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.08); background: rgba(255, 255, 255, 0.04); color: #b8c8e4; font-size: 8px; font-weight: 700; }
-.quote-pills { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-.quote-pill { min-width: 82px; display: flex; justify-content: space-between; align-items: center; gap: 5px; padding: 2px 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.08); color: #dfe8ff; font-size: 8px; line-height: 1; }
-.cpu-pill { min-width: 102px; background: rgba(78, 131, 255, 0.08); border-color: rgba(120, 176, 255, 0.18); }
-.quote-dot { width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 10px color-mix(in srgb, var(--line-color) 70%, transparent); flex: 0 0 auto; }
-.quote-name { color: #c4d7fb; white-space: nowrap; }
-.quote-pill strong { color: #f8fbff; font-size: 9px; font-weight: 800; }
-.chart-shell { min-height: 0; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.05); background: linear-gradient(180deg, rgba(0, 6, 18, 0.96) 0%, rgba(0, 6, 18, 0.92) 100%), radial-gradient(circle at center, rgba(53, 94, 175, 0.05), transparent 56%); padding: 3px; }
+
+.board-wrap::before,
+.board-wrap::after {
+    content: '';
+    position: absolute;
+    inset: auto;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.board-wrap::before {
+    top: -20%;
+    left: -6%;
+    width: 34%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(84, 132, 255, 0.26), transparent 70%);
+    filter: blur(18px);
+    animation: auraFloat 7s ease-in-out infinite;
+}
+
+.board-wrap::after {
+    right: -8%;
+    bottom: -18%;
+    width: 28%;
+    height: 54%;
+    background: radial-gradient(circle, rgba(255, 102, 122, 0.18), transparent 72%);
+    filter: blur(24px);
+    animation: auraFloat 8s ease-in-out infinite reverse;
+}
+
+.board-head,
+.chart-shell {
+    position: relative;
+    z-index: 1;
+}
+
+.board-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+}
+
+.title-block {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.board-title {
+    color: #f4f8ff;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.turn-chip {
+    padding: 3px 7px;
+    border-radius: 999px;
+    border: 1px solid rgba(108, 155, 255, 0.3);
+    background: linear-gradient(180deg, rgba(27, 49, 91, 0.9), rgba(11, 20, 43, 0.95));
+    color: #c9d8ff;
+    font-size: 8px;
+    font-weight: 800;
+    box-shadow: inset 0 0 10px rgba(88, 130, 255, 0.14);
+}
+
+.quote-pills {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.quote-pill {
+    min-width: 86px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(18, 30, 58, 0.82), rgba(10, 18, 35, 0.92));
+    border: 1px solid rgba(124, 150, 206, 0.2);
+    color: #dfe8ff;
+    font-size: 8px;
+    line-height: 1;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.quote-pill:hover {
+    transform: translateY(-1px);
+}
+
+.cpu-pill {
+    min-width: 104px;
+    background: linear-gradient(180deg, rgba(16, 37, 68, 0.92), rgba(8, 18, 37, 0.95));
+    border-color: rgba(107, 179, 255, 0.28);
+}
+
+.quote-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--line-color) 72%, transparent);
+    flex: 0 0 auto;
+    animation: dotPulse 2.8s ease-in-out infinite;
+}
+
+.quote-name {
+    color: #c4d7fb;
+    white-space: nowrap;
+}
+
+.quote-pill strong {
+    color: #f8fbff;
+    font-size: 9px;
+    font-weight: 900;
+}
+
+.chart-shell {
+    position: relative;
+    min-height: 0;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+        linear-gradient(180deg, rgba(2, 7, 18, 0.96) 0%, rgba(2, 8, 21, 0.92) 100%),
+        linear-gradient(90deg, rgba(78, 120, 255, 0.06), transparent 32%, rgba(255, 102, 122, 0.05) 100%);
+    padding: 4px;
+    overflow: hidden;
+}
+
+.chart-shell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.04) 48%, transparent 100%);
+    transform: translateX(-100%);
+    animation: chartSweep 6s linear infinite;
+    pointer-events: none;
+}
+
 .chart-svg { width: 100%; height: 100%; display: block; }
-.plot-frame { fill: none; stroke: rgba(255, 255, 255, 0.04); stroke-width: 1; }
-.grid-line { stroke: rgba(255, 255, 255, 0.055); stroke-width: 1; }
-.grid-line.vertical { stroke-opacity: 0.42; }
+.plot-frame { fill: rgba(255, 255, 255, 0.01); stroke: rgba(255, 255, 255, 0.05); stroke-width: 1; }
+.grid-line { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
+.grid-line.vertical { stroke-opacity: 0.36; }
 .price-label, .turn-label, .badge-value { font-family: Inter, 'Segoe UI', sans-serif; }
-.price-label { font-size: 9px; font-weight: 700; fill: #d4e0f6; }
-.turn-label { font-size: 8px; font-weight: 700; fill: #afc0df; }
-.line-under { fill: none; stroke-width: 4.2; stroke-linecap: round; stroke-linejoin: round; opacity: 0.22; }
-.line-main { fill: none; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.line-highlight { fill: none; stroke: rgba(255, 255, 255, 0.2); stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; opacity: 0.78; }
-.line-dot { stroke: rgba(0, 10, 26, 0.96); stroke-width: 1.2; }
-.badge-connector { stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.72; }
-.badge-box { fill: rgba(5, 11, 26, 0.96); stroke-width: 1; }
-.badge-value { font-size: 8.5px; font-weight: 800; letter-spacing: 0.01em; }
+.price-label { font-size: 9px; font-weight: 700; fill: #d9e5ff; }
+.turn-label { font-size: 8px; font-weight: 700; fill: #b4c5e6; }
+.line-under {
+    fill: none;
+    stroke-width: 5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.24;
+    animation: linePulse 3.2s ease-in-out infinite;
+}
+.line-main {
+    fill: none;
+    stroke-width: 2.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 0 10px rgba(90, 144, 255, 0.18));
+}
+.line-highlight { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; opacity: 0.82; }
+.line-dot { stroke: rgba(0, 10, 26, 0.98); stroke-width: 1.4; filter: drop-shadow(0 0 8px rgba(255,255,255,0.12)); }
+.badge-connector { stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.8; }
+.badge-box { fill: rgba(5, 11, 26, 0.98); stroke-width: 1; }
+.badge-value { font-size: 8.5px; font-weight: 900; letter-spacing: 0.01em; }
+
+@keyframes dotPulse {
+    0%, 100% { transform: scale(0.92); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes linePulse {
+    0%, 100% { opacity: 0.2; }
+    50% { opacity: 0.3; }
+}
+
+@keyframes chartSweep {
+    0% { transform: translateX(-115%); }
+    100% { transform: translateX(115%); }
+}
+
+@keyframes auraFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(10px) scale(1.04); }
+}
 </style>
