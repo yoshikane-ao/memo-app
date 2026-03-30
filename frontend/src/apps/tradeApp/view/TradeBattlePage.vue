@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useTradeGameStore } from 'frontend/src/apps/tradeApp/store/useTradeGameStore.ts'
+import { useTradeGameStore } from '../store/useTradeGameStore'
 
 const router = useRouter()
 const gameStore = useTradeGameStore()

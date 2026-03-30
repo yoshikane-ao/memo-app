@@ -5,7 +5,7 @@ import {
   useTradeGameStore,
   type TradeDifficulty,
   type FirstPlayer,
-} from '@/apps/tradeApp/store/useTradeGameStore'
+} from '../store/useTradeGameStore'
 
 const router = useRouter()
 const gameStore = useTradeGameStore()
