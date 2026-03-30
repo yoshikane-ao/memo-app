@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TradeProfile } from '../store/useTradeProfileStore'
+import { computed, reactive, ref } from 'vue'
+import {
+  useTradeProfileStore,
+  type TradeProfile,
+  type TradeProfileIcon,
+} from '../store/useTradeProfileStore'
 import type { PlayerSlot, PlayerIdentity } from '../types/playerIdentity'
 import { createGuestIdentity } from '../types/playerIdentity'
 
@@ -14,7 +18,30 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'select', payload: PlayerIdentity): void
   (e: 'create'): void
+  (e: 'delete', profileId: string): void
 }>()
+
+const profileStore = useTradeProfileStore()
+
+const iconOptions: Array<{ value: TradeProfileIcon; label: string; glyph: string }> = [
+  { value: 'bull', label: '牛', glyph: '🐂' },
+  { value: 'bear', label: '熊', glyph: '🐻' },
+  { value: 'wolf', label: '狼', glyph: '🐺' },
+  { value: 'eagle', label: '鷲', glyph: '🦅' },
+  { value: 'lightning', label: '稲妻', glyph: '⚡' },
+  { value: 'crown', label: '王冠', glyph: '👑' },
+  { value: 'flame', label: '炎', glyph: '🔥' },
+  { value: 'shield', label: '盾', glyph: '🛡️' },
+]
+
+const editingProfileId = ref<string | null>(null)
+const editForm = reactive<{
+  icon: TradeProfileIcon
+  tagline: string
+}>({
+  icon: 'bull',
+  tagline: '',
+})
 
 const guestIdentity = computed(() => {
   if (!props.slot) {
@@ -31,10 +58,14 @@ const guestLabel = computed(() => {
 })
 
 function close(): void {
+  editingProfileId.value = null
   emit('update:modelValue', false)
 }
 
 function handleSelectProfile(profileId: string): void {
+  if (editingProfileId.value === profileId) {
+    return
+  }
   emit('select', { kind: 'profile', profileId })
   close()
 }
@@ -48,7 +79,45 @@ function handleSelectGuest(): void {
 }
 
 function handleCreate(): void {
+  editingProfileId.value = null
+  close()
   emit('create')
+}
+
+function handleDelete(profileId: string): void {
+  const confirmed = window.confirm('このキャラクターを削除しますか？')
+  if (!confirmed) {
+    return
+  }
+
+  if (editingProfileId.value === profileId) {
+    editingProfileId.value = null
+  }
+
+  profileStore.removeProfile(profileId)
+  emit('delete', profileId)
+}
+
+function openEdit(profile: TradeProfile): void {
+  editingProfileId.value = profile.id
+  editForm.icon = profile.icon
+  editForm.tagline = profile.tagline
+}
+
+function cancelEdit(): void {
+  editingProfileId.value = null
+}
+
+function saveEdit(profileId: string): void {
+  profileStore.updateProfile(profileId, {
+    icon: editForm.icon,
+    tagline: editForm.tagline,
+  })
+  editingProfileId.value = null
+}
+
+function iconGlyph(icon: TradeProfileIcon): string {
+  return iconOptions.find((option) => option.value === icon)?.glyph ?? '👤'
 }
 
 function formatCurrency(value: number): string {
@@ -94,37 +163,102 @@ function formatCurrency(value: number): string {
             <span class="picker-card__cta">作って選ぶ</span>
           </button>
 
-          <button
+          <article
             v-for="profile in profiles"
             :key="profile.id"
-            type="button"
             class="picker-card picker-card--profile"
             :class="`theme-${profile.theme}`"
-            @click="handleSelectProfile(profile.id)"
           >
-            <div class="picker-card__head">
-              <span class="picker-card__badge">PROFILE</span>
-              <span class="picker-card__battles">{{ profile.stats.totalBattles }}戦</span>
-            </div>
-            <div class="picker-card__avatar">{{ profile.name.slice(0, 1).toUpperCase() }}</div>
-            <strong>{{ profile.name }}</strong>
-            <p>{{ profile.title }}</p>
+            <div class="picker-card__actions">
+              <button
+                type="button"
+                class="picker-card__edit"
+                @click.stop="openEdit(profile)"
+              >
+                編集
+              </button>
 
-            <div class="picker-card__stats">
-              <div>
-                <span>勝率</span>
-                <strong>{{ profile.stats.winRate }}%</strong>
+              <button
+                type="button"
+                class="picker-card__delete"
+                @click.stop="handleDelete(profile.id)"
+              >
+                削除
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="picker-card__main-button"
+              @click="handleSelectProfile(profile.id)"
+            >
+              <div class="picker-card__head">
+                <span class="picker-card__badge">PROFILE</span>
+                <span class="picker-card__battles">{{ profile.stats.totalBattles }}戦</span>
               </div>
-              <div>
-                <span>累計獲得額</span>
-                <strong>{{ formatCurrency(profile.stats.totalEarnedAmount) }}</strong>
+              <div class="picker-card__avatar">{{ iconGlyph(profile.icon) }}</div>
+              <strong>{{ profile.name }}</strong>
+              <p>{{ profile.title }}</p>
+              <p class="picker-card__tagline">{{ profile.tagline || '一言コメント未設定' }}</p>
+
+              <div class="picker-card__stats">
+                <div>
+                  <span>勝率</span>
+                  <strong>{{ profile.stats.winRate }}%</strong>
+                </div>
+                <div>
+                  <span>累計獲得額</span>
+                  <strong>{{ formatCurrency(profile.stats.totalEarnedAmount) }}</strong>
+                </div>
+                <div>
+                  <span>現在資産</span>
+                  <strong :class="{ 'is-negative': profile.stats.currentAssets < 0 }">{{ formatCurrency(profile.stats.currentAssets) }}</strong>
+                </div>
               </div>
-              <div>
-                <span>現在資産</span>
-                <strong :class="{ 'is-negative': profile.stats.currentAssets < 0 }">{{ formatCurrency(profile.stats.currentAssets) }}</strong>
+            </button>
+
+            <div
+              v-if="editingProfileId === profile.id"
+              class="picker-card__editor"
+              @click.stop
+            >
+              <div class="picker-card__editor-section">
+                <span class="picker-card__editor-label">アイコン</span>
+                <div class="picker-card__icon-grid">
+                  <button
+                    v-for="option in iconOptions"
+                    :key="option.value"
+                    type="button"
+                    class="picker-card__icon-option"
+                    :class="{ 'is-selected': editForm.icon === option.value }"
+                    @click="editForm.icon = option.value"
+                  >
+                    <span>{{ option.glyph }}</span>
+                    <small>{{ option.label }}</small>
+                  </button>
+                </div>
+              </div>
+
+              <label class="picker-card__editor-section picker-card__editor-field">
+                <span class="picker-card__editor-label">一言メッセージ</span>
+                <input
+                  v-model="editForm.tagline"
+                  type="text"
+                  maxlength="40"
+                  placeholder="例: 買いで押し切る"
+                />
+              </label>
+
+              <div class="picker-card__editor-actions">
+                <button type="button" class="picker-card__editor-cancel" @click="cancelEdit">
+                  キャンセル
+                </button>
+                <button type="button" class="picker-card__editor-save" @click="saveEdit(profile.id)">
+                  保存
+                </button>
               </div>
             </div>
-          </button>
+          </article>
         </div>
       </section>
     </div>
@@ -224,6 +358,26 @@ function formatCurrency(value: number): string {
   box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }
 
+.picker-card__main-button {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.picker-card__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .picker-card__head {
   display: flex;
   align-items: center;
@@ -276,6 +430,10 @@ function formatCurrency(value: number): string {
   line-height: 1.5;
 }
 
+.picker-card__tagline {
+  min-height: 2.4em;
+}
+
 .picker-card__cta {
   margin-top: auto;
   color: #cfe0ff;
@@ -309,6 +467,128 @@ function formatCurrency(value: number): string {
   color: #ffb5b5;
 }
 
+.picker-card__edit,
+.picker-card__delete,
+.picker-card__editor-cancel,
+.picker-card__editor-save,
+.picker-card__icon-option {
+  cursor: pointer;
+}
+
+.picker-card__edit,
+.picker-card__delete {
+  min-width: 74px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.picker-card__edit {
+  border: 1px solid rgba(118, 174, 255, 0.24);
+  background: rgba(24, 49, 96, 0.72);
+  color: #d8e7ff;
+}
+
+.picker-card__delete {
+  border: 1px solid rgba(255, 123, 123, 0.24);
+  background: rgba(104, 23, 23, 0.68);
+  color: #ffd0d0;
+}
+
+.picker-card__editor {
+  display: grid;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.picker-card__editor-section {
+  display: grid;
+  gap: 8px;
+}
+
+.picker-card__editor-label {
+  color: rgba(221, 230, 247, 0.78);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.picker-card__icon-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.picker-card__icon-option {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  min-height: 58px;
+  padding: 8px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #eef4ff;
+}
+
+.picker-card__icon-option span {
+  font-size: 1.15rem;
+}
+
+.picker-card__icon-option small {
+  color: rgba(216, 226, 245, 0.76);
+  font-size: 0.68rem;
+}
+
+.picker-card__icon-option.is-selected {
+  border-color: rgba(116, 185, 255, 0.58);
+  background: rgba(34, 76, 145, 0.42);
+}
+
+.picker-card__editor-field input {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #eef4ff;
+}
+
+.picker-card__editor-field input::placeholder {
+  color: rgba(209, 220, 244, 0.46);
+}
+
+.picker-card__editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.picker-card__editor-cancel,
+.picker-card__editor-save {
+  min-width: 88px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.picker-card__editor-cancel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #eef4ff;
+}
+
+.picker-card__editor-save {
+  border: 1px solid rgba(110, 180, 255, 0.18);
+  background: linear-gradient(135deg, rgba(48, 122, 255, 0.96), rgba(19, 93, 200, 0.96));
+  color: #fff;
+}
+
 .picker-card--guest {
   background: linear-gradient(180deg, rgba(16, 24, 40, 0.95), rgba(9, 13, 22, 0.98));
 }
@@ -337,6 +617,10 @@ function formatCurrency(value: number): string {
 @media (max-width: 960px) {
   .picker-modal__grid {
     grid-template-columns: 1fr;
+  }
+
+  .picker-card__icon-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>
