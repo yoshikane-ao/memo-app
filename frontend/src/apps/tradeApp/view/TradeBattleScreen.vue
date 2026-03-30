@@ -6,6 +6,7 @@ import ActionPanel from './ActionPanel.vue'
 import ActionHistoryPanel from './ActionHistoryPanel.vue'
 
 import { createInitialGameState } from '../api/data/mockGame'
+import { useTradeGameStore } from '../store/useTradeGameStore'
 import type {
     HoldingPosition,
     LogEntry,
@@ -25,9 +26,13 @@ import {
 
 import '../css/style.css'
 
+const gameStore = useTradeGameStore()
+const startSettings = computed(() => gameStore.state.settings)
+
 const state = reactive(createInitialGameState())
 
-const STARTING_CASH = 12000
+const DEFAULT_STARTING_CASH = 12000
+const DEFAULT_MARKET_CPU_COUNT = 63
 const STARTING_COMPANY_FUNDS = 3000
 
 type ActionTimelineEntry = {
@@ -43,6 +48,33 @@ type TurnActionWithWait = TurnActionPayload & {
     metaAction?: 'wait'
 }
 
+type PreviewImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down'
+
+type PreviewImpactItem = {
+    key: StockKey
+    title: string
+    subtitle: string
+    level: PreviewImpactLevel
+    headline: string
+    detail: string
+}
+
+type PreviewSummaryItem = {
+    label: string
+    value: string
+}
+
+type ActionPreviewState = {
+    actionKind: 'trade' | 'company' | 'wait'
+    bannerTitle: string
+    overviewTitle: string
+    overviewSub: string
+    stockImpactPreview: PreviewImpactItem[]
+    companySummaryItems: PreviewSummaryItem[]
+    actionChips: string[]
+    decisionLabel: string
+}
+
 const actionTimeline = ref<ActionTimelineEntry[]>([])
 
 let logSequence = 1000
@@ -55,8 +87,29 @@ function resetBook(book: Record<string, HoldingPosition>): void {
 }
 
 function normalizePlayersForBattleStart(): void {
+    const settings = startSettings.value
+    const player1 = getPlayer('player1')
+    const player2 = getPlayer('player2')
+
+    player1.name = settings?.player1Name ?? 'PLAYER 1'
+    player2.name = settings?.player2Name ?? 'PLAYER 2'
+
+    state.turn = 1
+    state.currentPlayer = gameStore.state.resolvedFirstPlayer === 'p2'
+        ? 'player2'
+        : 'player1'
+
+    state.logs = []
+    actionTimeline.value = []
+    logSequence = 1000
+
     state.players.forEach((player) => {
-        player.cash = STARTING_CASH
+        const startingCash =
+            player.id === 'player1'
+                ? settings?.player1StartingCash ?? DEFAULT_STARTING_CASH
+                : settings?.player2StartingCash ?? DEFAULT_STARTING_CASH
+
+        player.cash = startingCash
         player.companyFunds = STARTING_COMPANY_FUNDS
         player.speculation = []
         player.marketBias = 0
@@ -77,11 +130,24 @@ function normalizePlayersForBattleStart(): void {
 
 normalizePlayersForBattleStart()
 
-const TOTAL_CPU = 100
+const configuredMarketCpuCount = computed(() => {
+    return startSettings.value?.marketCpuCount ?? DEFAULT_MARKET_CPU_COUNT
+})
 
 const leftPlayer = computed(() => getPlayer('player1'))
 const rightPlayer = computed(() => getPlayer('player2'))
 const activePlayer = computed(() => getPlayer(state.currentPlayer))
+
+const actionPreview = ref<ActionPreviewState>({
+    actionKind: 'trade',
+    bannerTitle: '今回の影響まとめ',
+    overviewTitle: '入力待ち',
+    overviewSub: '行動を選ぶと今回の値動き予測を表示',
+    stockImpactPreview: [],
+    companySummaryItems: [],
+    actionChips: [],
+    decisionLabel: '行動を決定',
+})
 
 const leftPlayerAssets = computed(() => calculatePlayerSnapshot(leftPlayer.value, state.stocks).totalAssets)
 const rightPlayerAssets = computed(() => calculatePlayerSnapshot(rightPlayer.value, state.stocks).totalAssets)
@@ -96,6 +162,22 @@ function recentMomentum(stockKey: StockKey): number {
 }
 
 const cpuMarketStats = computed(() => {
+    const totalCpu = configuredMarketCpuCount.value
+
+    if (totalCpu <= 0) {
+        return {
+            participantCount: 0,
+            withdrawalCount: 0,
+            investmentTotal: 0,
+            weakParticipantCount: 0,
+            strongParticipantCount: 0,
+            p1ParticipantCount: 0,
+            p2ParticipantCount: 0,
+            p1InvestmentTotal: 0,
+            p2InvestmentTotal: 0,
+        }
+    }
+
     const conditionBase = state.marketCondition === 'bull'
         ? 78
         : state.marketCondition === 'bear'
@@ -106,16 +188,69 @@ const cpuMarketStats = computed(() => {
     const p1Momentum = recentMomentum('p1')
     const p2Momentum = recentMomentum('p2')
     const volatility = Math.abs(marketMomentum) + Math.abs(p1Momentum) + Math.abs(p2Momentum)
-    const averagePrice = Math.round(state.stocks.reduce((sum, stock) => sum + stock.currentPrice, 0) / Math.max(state.stocks.length, 1))
+    const averagePrice = Math.round(
+        state.stocks.reduce((sum, stock) => sum + stock.currentPrice, 0) / Math.max(state.stocks.length, 1)
+    )
 
-    const participantCount = Math.max(18, Math.min(100, conditionBase + Math.round((marketMomentum + p1Momentum + p2Momentum) / 3) + Math.round(volatility / 5)))
-    const withdrawalCount = Math.max(0, TOTAL_CPU - participantCount)
-    const investmentTotal = Math.max(0, Math.round(participantCount * (averagePrice * 15 + 120 + volatility * 8)))
+    const rawParticipantCount =
+        conditionBase +
+        Math.round((marketMomentum + p1Momentum + p2Momentum) / 3) +
+        Math.round(volatility / 5)
+
+    const participantCount = Math.max(0, Math.min(totalCpu, rawParticipantCount))
+    const withdrawalCount = Math.max(0, totalCpu - participantCount)
+    const investmentTotal = Math.max(
+        0,
+        Math.round(participantCount * (averagePrice * 15 + 120 + volatility * 8))
+    )
+
+    const sentimentBias = state.marketCondition === 'bull'
+        ? 0.08
+        : state.marketCondition === 'bear'
+            ? -0.06
+            : 0.02
+    const strongRatio = clamp(
+        0.34 + sentimentBias + marketMomentum / 42 + Math.max(p1Momentum, p2Momentum) / 80,
+        0.18,
+        0.62,
+    )
+    const strongParticipantCount = Math.round(participantCount * strongRatio)
+    const weakParticipantCount = Math.max(0, participantCount - strongParticipantCount)
+
+    const p1Price = getStock('p1').currentPrice
+    const p2Price = getStock('p2').currentPrice
+
+    const p1Appeal = clamp(1 + p1Momentum / 14 + (p1Price - p2Price) / 80, 0.55, 1.95)
+    const p2Appeal = clamp(1 + p2Momentum / 14 + (p2Price - p1Price) / 80, 0.55, 1.95)
+
+    const companyParticipantPool = Math.max(0, Math.round(participantCount * 0.72))
+    const appealTotal = p1Appeal + p2Appeal
+
+    const p1ParticipantCount = Math.max(
+        0,
+        Math.min(companyParticipantPool, Math.round(companyParticipantPool * (p1Appeal / appealTotal))),
+    )
+    const p2ParticipantCount = Math.max(0, companyParticipantPool - p1ParticipantCount)
+
+    const p1InvestmentTotal = Math.max(
+        0,
+        Math.round(p1ParticipantCount * (p1Price * 11 + 140 + Math.max(p1Momentum, 0) * 18)),
+    )
+    const p2InvestmentTotal = Math.max(
+        0,
+        Math.round(p2ParticipantCount * (p2Price * 11 + 140 + Math.max(p2Momentum, 0) * 18)),
+    )
 
     return {
         participantCount,
         withdrawalCount,
         investmentTotal,
+        weakParticipantCount,
+        strongParticipantCount,
+        p1ParticipantCount,
+        p2ParticipantCount,
+        p1InvestmentTotal,
+        p2InvestmentTotal,
     }
 })
 
@@ -193,6 +328,10 @@ function pushLog(
 
 function randomBetween(min: number, max: number): number {
     return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(max, Math.max(min, value))
 }
 
 function addToPosition(position: HoldingPosition, quantity: number, price: number): void {
@@ -514,6 +653,18 @@ function advanceTurn(): void {
     }
 }
 
+function handlePreviewChange(payload: ActionPreviewState): void {
+    actionPreview.value = payload
+}
+
+async function goBackToMenu(): Promise<void> {
+    try {
+        await router.push('/menu/workspace/trade')
+    } catch {
+        window.location.href = '/menu/workspace/trade'
+    }
+}
+
 function handleTurn(payload: TurnActionWithWait): void {
     const logs: LogEntry[] = []
     const player = getPlayer(state.currentPlayer)
@@ -542,6 +693,12 @@ function handleTurn(payload: TurnActionWithWait): void {
 
 <template>
     <div class="battle-screen">
+        <div class="battle-topbar">
+            <button type="button" class="menu-return-button" @click="goBackToMenu">
+                メニューへ戻る
+            </button>
+        </div>
+
         <PlayerPanel
             class="left-panel"
             :player="leftPlayer"
@@ -567,12 +724,19 @@ function handleTurn(payload: TurnActionWithWait): void {
             :asset-diff="rightAssetDiff"
         />
 
-        <ActionHistoryPanel class="history-panel" :entries="actionTimeline" />
+        <ActionHistoryPanel
+            class="history-panel"
+            :preview="actionPreview"
+            :player1-name="leftPlayer.name"
+            :player2-name="rightPlayer.name"
+            :cpu-stats="cpuMarketStats"
+        />
 
         <ActionPanel
             class="action-panel-slot"
             :current-player="activePlayer"
             :stocks="state.stocks"
+            @preview-change="handlePreviewChange"
             @confirm="handleTurn"
         />
     </div>
@@ -581,14 +745,18 @@ function handleTurn(payload: TurnActionWithWait): void {
 
 <style scoped>
 .battle-screen {
-    height: 100%;
+    box-sizing: border-box;
     width: 100%;
+    height: 100%;
     min-height: 0;
     min-width: 0;
+    max-height: 100%;
+    padding: 10px 12px 12px;
     display: grid;
-    grid-template-columns: minmax(170px, 0.95fr) minmax(0, 4.4fr) minmax(170px, 0.95fr) minmax(210px, 1.18fr);
-    grid-template-rows: minmax(0, 54fr) minmax(0, 46fr);
+    grid-template-columns: minmax(168px, 0.92fr) minmax(0, 3.9fr) minmax(168px, 0.92fr) minmax(250px, 1.18fr);
+    grid-template-rows: 38px minmax(0, 1fr) minmax(170px, 0.62fr);
     grid-template-areas:
+        'topbar topbar topbar topbar'
         'left chart right history'
         'action action action action';
     gap: 8px;
@@ -596,6 +764,7 @@ function handleTurn(payload: TurnActionWithWait): void {
     overflow: hidden;
 }
 
+.battle-topbar,
 .left-panel,
 .chart-panel,
 .right-panel,
@@ -606,6 +775,34 @@ function handleTurn(payload: TurnActionWithWait): void {
     height: 100%;
 }
 
+.battle-topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-height: 0;
+}
+
+.menu-return-button {
+    position: relative;
+    z-index: 3;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(135deg, rgba(10, 17, 32, 0.92), rgba(14, 23, 44, 0.96));
+    color: #edf3ff;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.menu-return-button:hover {
+    transform: translateY(-1px);
+    border-color: rgba(122, 171, 255, 0.34);
+}
+
 .left-panel { grid-area: left; }
 .chart-panel { grid-area: chart; }
 .right-panel { grid-area: right; }
@@ -614,7 +811,17 @@ function handleTurn(payload: TurnActionWithWait): void {
 
 @media (min-width: 1700px) {
     .battle-screen {
-        grid-template-columns: minmax(180px, 1fr) minmax(0, 4.8fr) minmax(180px, 1fr) minmax(220px, 1.2fr);
+        grid-template-columns: minmax(176px, 0.95fr) minmax(0, 4.2fr) minmax(176px, 0.95fr) minmax(262px, 1.24fr);
+        grid-template-rows: 40px minmax(0, 1fr) minmax(178px, 0.66fr);
+    }
+}
+
+@media (max-width: 1480px) {
+    .battle-screen {
+        grid-template-columns: minmax(156px, 0.86fr) minmax(0, 3.4fr) minmax(156px, 0.86fr) minmax(228px, 1.04fr);
+        grid-template-rows: 38px minmax(0, 1fr) minmax(162px, 0.58fr);
+        gap: 7px;
+        padding: 8px 10px 10px;
     }
 }
 </style>

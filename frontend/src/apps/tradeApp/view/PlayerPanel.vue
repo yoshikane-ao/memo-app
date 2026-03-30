@@ -44,7 +44,7 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 </script>
 
 <template>
-    <aside class="player-panel" :class="{ active: isActive }">
+    <aside class="player-panel" :class="[player.id, { active: isActive }]">
         <div class="panel-head">
             <div class="player-name">{{ player.name }}</div>
             <div class="turn-dot" :class="{ active: isActive }"></div>
@@ -119,48 +119,183 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 
 <style scoped>
 .player-panel {
+    position: relative;
+    isolation: isolate;
     height: 100%;
     min-height: 0;
     min-width: 0;
-    border-radius: 16px;
-    border: 1px solid rgba(120, 156, 228, 0.14);
+    border-radius: 18px;
+    border: 1px solid rgba(120, 156, 228, 0.18);
     background:
-        linear-gradient(180deg, rgba(2, 10, 28, 0.96) 0%, rgba(2, 8, 22, 0.92) 100%),
-        radial-gradient(circle at top, rgba(78, 131, 255, 0.06), transparent 42%);
-    padding: 6px;
+        linear-gradient(180deg, rgba(4, 11, 28, 0.98) 0%, rgba(3, 8, 21, 0.94) 100%),
+        radial-gradient(circle at top, rgba(78, 131, 255, 0.08), transparent 46%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 16px 36px rgba(0, 0, 0, 0.28);
+    padding: 7px;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 5px;
+    gap: 6px;
     overflow: hidden;
+    transition:
+        transform 0.22s ease,
+        border-color 0.22s ease,
+        box-shadow 0.22s ease;
+}
+
+.player-panel::before {
+    content: '';
+    position: absolute;
+    inset: -30% -10% auto;
+    height: 48%;
+    background: radial-gradient(circle, rgba(91, 138, 255, 0.18), transparent 68%);
+    filter: blur(18px);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.player-panel.player2::before {
+    background: radial-gradient(circle, rgba(255, 102, 122, 0.16), transparent 68%);
+}
+
+.player-panel > * {
+    position: relative;
+    z-index: 1;
+}
+
+.player-panel.player1 {
+    border-color: rgba(101, 148, 255, 0.22);
+}
+
+.player-panel.player2 {
+    border-color: rgba(255, 108, 128, 0.2);
 }
 
 .player-panel.active {
-    border-color: rgba(99, 163, 255, 0.4);
-    box-shadow: inset 0 0 18px rgba(83, 128, 255, 0.06);
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 0 24px rgba(83, 128, 255, 0.08),
+        0 18px 42px rgba(0, 0, 0, 0.34);
 }
-.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 5px; }
-.player-name { color: #f4f8ff; font-size: 11px; font-weight: 800; line-height: 1.05; }
-.turn-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); flex: 0 0 auto; }
-.turn-dot.active { background: #63a3ff; box-shadow: 0 0 10px rgba(99, 163, 255, 0.5); }
-.summary-grid { display: grid; grid-template-columns: 1fr; gap: 4px; }
-.metric-card, .positions-details { border-radius: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.05); }
-.metric-card { padding: 5px 6px 4px; display: grid; gap: 1px; }
-.metric-label, .sub-label { color: rgba(193, 214, 255, 0.7); font-size: 8px; line-height: 1; }
-.metric-value { color: #f7fbff; font-size: 11px; font-weight: 800; line-height: 1.08; }
-.metric-value.positive, .sub-value.positive { color: #79d3a6; }
-.metric-value.negative, .sub-value.negative { color: #ff8a8a; }
-.metric-value.flat, .sub-value.flat { color: #c8d7f2; }
+
+.player-panel.player1.active {
+    border-color: rgba(99, 163, 255, 0.54);
+}
+
+.player-panel.player2.active {
+    border-color: rgba(255, 110, 138, 0.5);
+}
+
+.panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+}
+
+.player-name {
+    color: #f7fbff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 0.04em;
+}
+
+.turn-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    flex: 0 0 auto;
+}
+
+.turn-dot.active {
+    background: #63a3ff;
+    box-shadow: 0 0 12px rgba(99, 163, 255, 0.56);
+    animation: activePulse 2.4s ease-in-out infinite;
+}
+
+.player-panel.player2 .turn-dot.active {
+    background: #ff6e8a;
+    box-shadow: 0 0 12px rgba(255, 110, 138, 0.52);
+}
+
+.summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+}
+
+.metric-card,
+.positions-details {
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.025));
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(6px);
+}
+
+.metric-card {
+    padding: 6px 7px 5px;
+    display: grid;
+    gap: 2px;
+}
+
+.diff-card {
+    background: linear-gradient(180deg, rgba(92, 132, 255, 0.12), rgba(32, 45, 88, 0.18));
+}
+
+.pnl-card {
+    background: linear-gradient(180deg, rgba(31, 106, 83, 0.16), rgba(11, 28, 28, 0.18));
+}
+
+.metric-label,
+.sub-label {
+    color: rgba(202, 220, 255, 0.72);
+    font-size: 8px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+
+.metric-value {
+    color: #f7fbff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1.08;
+}
+
+.metric-value.positive,
+.sub-value.positive { color: #6fd6b3; }
+
+.metric-value.negative,
+.sub-value.negative { color: #ff7b8e; }
+
+.metric-value.flat,
+.sub-value.flat { color: #c8d7f2; }
+
 .positions-details {
     min-height: 0;
-    padding: 0 6px 6px;
+    padding: 0 7px 7px;
     overflow: hidden;
 }
+
 .positions-details[open] {
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
 }
-.positions-details summary { cursor: pointer; list-style: none; color: #edf4ff; font-size: 9px; font-weight: 800; padding: 6px 0; }
+
+.positions-details summary {
+    cursor: pointer;
+    list-style: none;
+    color: #edf4ff;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 7px 0;
+}
+
 .positions-details summary::-webkit-details-marker { display: none; }
+
 .positions-list {
     min-height: 0;
     display: grid;
@@ -168,9 +303,41 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
     overflow: auto;
     padding-right: 2px;
 }
-.position-card { border-radius: 8px; padding: 5px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255,255,255,0.04); display: grid; gap: 4px; }
-.position-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
-.position-label, .position-qty { color: #eef5ff; font-size: 8px; font-weight: 800; }
+
+.position-card {
+    border-radius: 10px;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255,255,255,0.05);
+    display: grid;
+    gap: 4px;
+}
+
+.position-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 4px;
+}
+
+.position-label,
+.position-qty {
+    color: #eef5ff;
+    font-size: 8px;
+    font-weight: 900;
+}
+
 .position-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-.sub-value { color: #f7fbff; font-size: 9px; font-weight: 800; line-height: 1.15; }
+
+.sub-value {
+    color: #f7fbff;
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+@keyframes activePulse {
+    0%, 100% { transform: scale(0.92); opacity: 0.9; }
+    50% { transform: scale(1.18); opacity: 1; }
+}
 </style>
