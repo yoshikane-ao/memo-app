@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import axios from "axios";
 import { ref, onMounted } from 'vue';
-import accordion from "./accordion.vue";
+// import accordion from "./accordion.vue";
 
 const active = ref(false);
 
