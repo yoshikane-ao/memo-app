@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import StockBoard from './StockBoard.vue'
 import PlayerPanel from './PlayerPanel.vue'
 import ActionPanel from './ActionPanel.vue'
@@ -27,6 +28,7 @@ import {
 import '../css/style.css'
 
 const gameStore = useTradeGameStore()
+const router = useRouter()
 const startSettings = computed(() => gameStore.state.settings)
 
 const state = reactive(createInitialGameState())
