@@ -2,6 +2,7 @@ import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
+  DEFAULT_MANAGEMENT_STAKE_SHARES,
   FACILITY_INVESTMENT_ACTION,
   type GameState,
 } from '../types/game'
@@ -54,6 +55,8 @@ export function createInitialGameState(): GameState {
         name: 'プレイヤー1',
         cash: 12800,
         companyFunds: 8400,
+        managementStakeShares: DEFAULT_MANAGEMENT_STAKE_SHARES,
+        startingOwnStockPrice: 118,
         holdings: {
           p1: { quantity: 40, avgPrice: 108 },
           p2: { quantity: 10, avgPrice: 94 },
@@ -90,6 +93,8 @@ export function createInitialGameState(): GameState {
         name: 'プレイヤー2',
         cash: 11900,
         companyFunds: 9100,
+        managementStakeShares: DEFAULT_MANAGEMENT_STAKE_SHARES,
+        startingOwnStockPrice: 96,
         holdings: {
           p1: { quantity: 14, avgPrice: 110 },
           p2: { quantity: 36, avgPrice: 97 },

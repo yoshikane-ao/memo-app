@@ -8,6 +8,7 @@ export const CAPITAL_INCREASE_ACTION = '増資' as const
 export const AD_CAMPAIGN_ACTION = '広告' as const
 export const BUYBACK_ACTION = '自社株買い' as const
 export const FACILITY_INVESTMENT_ACTION = '設備投資' as const
+export const DEFAULT_MANAGEMENT_STAKE_SHARES = 30 as const
 
 export type CompanyAction =
   | typeof NO_COMPANY_ACTION
@@ -54,6 +55,8 @@ export interface PlayerState {
   name: string
   cash: number
   companyFunds: number
+  managementStakeShares: number
+  startingOwnStockPrice: number
   holdings: Record<StockKey, HoldingPosition>
   shorts: Record<StockKey, HoldingPosition>
   speculation: SpeculationPosition[]

@@ -23,6 +23,7 @@ import {
     BUYBACK_ACTION,
     CAPITAL_INCREASE_ACTION,
     COOLDOWN_ACTIONS,
+    DEFAULT_MANAGEMENT_STAKE_SHARES,
     FACILITY_INVESTMENT_ACTION,
     MODE_LABELS,
     NO_COMPANY_ACTION,
@@ -104,6 +105,8 @@ function normalizePlayersForBattleStart(): void {
 
         player.cash = startingCash
         player.companyFunds = STARTING_COMPANY_FUNDS
+        player.managementStakeShares = DEFAULT_MANAGEMENT_STAKE_SHARES
+        player.startingOwnStockPrice = getStock(ownStockKey(player.id)).currentPrice
         player.speculation = []
         player.marketBias = 0
         player.recentNetChange = 0
