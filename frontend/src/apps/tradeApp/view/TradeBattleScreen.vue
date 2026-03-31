@@ -417,13 +417,13 @@ function settleSpeculation(player: PlayerState, logs: LogEntry[]): void {
                 ? (currentPrice - position.entryPrice) * position.quantity
                 : (position.entryPrice - currentPrice) * position.quantity
 
-        player.cash += pnl
+        player.cash += position.committedCash + pnl
 
         pushLog(
             logs,
             'system',
             '投機清算',
-            `${player.name}の${STOCK_LABELS[position.stockKey]} ${position.side === 'buy' ? '買い投機' : '空売り投機'} ${position.quantity}株を清算しました。損益 ${formatSignedCurrency(pnl)}`,
+            `${player.name}の${STOCK_LABELS[position.stockKey]} ${position.side === 'buy' ? '買い投機' : '空売り投機'} ${position.quantity}株を清算しました。返却 ${formatCurrency(position.committedCash)} / 損益 ${formatSignedCurrency(pnl)}`,
             pnl >= 0 ? 'up' : 'warn',
         )
     }
@@ -440,6 +440,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
     const openPrice = stock.currentPrice
     const orderAmount = Math.max(0, Math.floor(payload.quantity))
     const quantity = resolveOrderQuantity(openPrice, orderAmount)
+    const requiredCash = openPrice * quantity
 
     if (quantity <= 0) {
         pushLog(
@@ -447,6 +448,17 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             'system',
             '注文額不足',
             `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を約定できません。`,
+            'warn',
+        )
+        return
+    }
+
+    if ((payload.tradeAction === 'buy' || payload.tradeAction === 'short') && player.cash < requiredCash) {
+        pushLog(
+            logs,
+            'system',
+            '資金不足',
+            `${player.name}は${stock.name}の注文に必要な現金が不足しています。`,
             'warn',
         )
         return
@@ -460,11 +472,13 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             return
         }
 
+        player.cash -= requiredCash
         player.speculation.push({
             stockKey: payload.stockKey,
             side: payload.tradeAction === 'buy' ? 'buy' : 'short',
             quantity,
             entryPrice: openPrice,
+            committedCash: requiredCash,
             settlementTurn: state.turn + 2,
         })
 
@@ -484,12 +498,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
 
     switch (payload.tradeAction) {
         case 'buy': {
-            const cost = openPrice * quantity
-            if (player.cash < cost) {
-                pushLog(logs, 'system', '資金不足', `${player.name}は${stock.name}を買うための現金が不足しています。`, 'warn')
-                return
-            }
-
+            const cost = requiredCash
             player.cash -= cost
             addToPosition(player.holdings[payload.stockKey], quantity, openPrice)
 
@@ -516,6 +525,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
         }
 
         case 'short': {
+            player.cash -= requiredCash
             addToPosition(player.shorts[payload.stockKey], quantity, openPrice)
             stock.shortInterest += quantity
 
@@ -534,7 +544,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
 
             const { executed, avgPrice } = reducePosition(shortPosition, quantity)
             const realized = (avgPrice - openPrice) * executed
-            player.cash += realized
+            player.cash += avgPrice * executed + realized
             stock.shortInterest = Math.max(0, stock.shortInterest - executed)
 
             const impact = Math.max(1, Math.round(executed / 8))
