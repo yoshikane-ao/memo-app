@@ -1,11 +1,17 @@
-import type { GameState } from '../types/game'
+import {
+  AD_CAMPAIGN_ACTION,
+  BUYBACK_ACTION,
+  CAPITAL_INCREASE_ACTION,
+  FACILITY_INVESTMENT_ACTION,
+  type GameState,
+} from '../types/game'
 
 export function createInitialGameState(): GameState {
   return {
     title: 'Trading Battle',
     turn: 8,
     marketCondition: 'bull',
-    victoryCondition: '相手より総資産を多くして勝利',
+    victoryCondition: '相手より総資産を大きくして勝利',
     currentPlayer: 'player1',
     stocks: [
       {
@@ -17,7 +23,7 @@ export function createInitialGameState(): GameState {
         bubbleLower: 72,
         history: [91, 96, 100, 104, 107, 111, 113, 118],
         shortInterest: 138,
-        correlationNote: 'P1株が上がると市場株に下押し圧力',
+        correlationNote: 'P1株が上がると市場株に売り圧力が出やすい',
       },
       {
         key: 'p2',
@@ -28,7 +34,7 @@ export function createInitialGameState(): GameState {
         bubbleLower: 66,
         history: [108, 106, 104, 102, 100, 99, 101, 96],
         shortInterest: 176,
-        correlationNote: 'P2株が上がると市場株に下押し圧力',
+        correlationNote: 'P2株が上がると市場株に売り圧力が出やすい',
       },
       {
         key: 'market',
@@ -39,7 +45,7 @@ export function createInitialGameState(): GameState {
         bubbleLower: 78,
         history: [95, 98, 101, 104, 110, 109, 108, 106],
         shortInterest: 228,
-        correlationNote: '個別株の急騰時に逆方向へ振れやすい',
+        correlationNote: '関連銘柄の勢いに連動して動きやすい',
       },
     ],
     players: [
@@ -68,10 +74,10 @@ export function createInitialGameState(): GameState {
           },
         ],
         cooldowns: {
-          増資: 0,
-          配当: 1,
-          自社株買い: 0,
-          設備投資: 2,
+          [CAPITAL_INCREASE_ACTION]: 0,
+          [AD_CAMPAIGN_ACTION]: 1,
+          [BUYBACK_ACTION]: 0,
+          [FACILITY_INVESTMENT_ACTION]: 2,
         },
         recentCashChange: 350,
         recentNetChange: 620,
@@ -104,10 +110,10 @@ export function createInitialGameState(): GameState {
           },
         ],
         cooldowns: {
-          増資: 2,
-          配当: 0,
-          自社株買い: 1,
-          設備投資: 0,
+          [CAPITAL_INCREASE_ACTION]: 2,
+          [AD_CAMPAIGN_ACTION]: 0,
+          [BUYBACK_ACTION]: 1,
+          [FACILITY_INVESTMENT_ACTION]: 0,
         },
         recentCashChange: -220,
         recentNetChange: -410,
@@ -121,16 +127,16 @@ export function createInitialGameState(): GameState {
         id: 801,
         turn: 8,
         type: 'player',
-        label: '注文',
-        message: 'プレイヤー1がプレイヤー1会社株を買い 12株。買い圧力で上昇。',
+        label: '投資',
+        message: 'プレイヤー1がプレイヤー1会社株を12株買い、買い圧力で上昇。',
         tone: 'up',
       },
       {
         id: 802,
         turn: 8,
         type: 'market',
-        label: '相関',
-        message: 'プレイヤー1会社株の上昇に連動し、市場株へ下押し圧力。',
+        label: '連動',
+        message: 'プレイヤー1会社株の上昇に連動して、市場株へ売り圧力。',
         tone: 'down',
       },
       {
@@ -138,23 +144,23 @@ export function createInitialGameState(): GameState {
         turn: 8,
         type: 'cpu',
         label: 'CPU',
-        message: 'CPU群が市場株を一部利益確定。売りが優勢。',
+        message: 'CPU勢が市場株を一部利益確定し、やや下押し。',
         tone: 'down',
       },
       {
         id: 804,
         turn: 7,
         type: 'player',
-        label: '会社',
-        message: 'プレイヤー2が配当を実施。自社株に買い安心感。',
+        label: '会社行動',
+        message: 'プレイヤー2が広告を実行し、自社株に買いの追い風。',
         tone: 'up',
       },
       {
         id: 805,
         turn: 7,
         type: 'system',
-        label: '強制決済',
-        message: 'プレイヤー1の市場株投機ポジションが決済された。',
+        label: '投機清算',
+        message: 'プレイヤー1の市場株投機ポジションが清算された。',
         tone: 'warn',
       },
       {
@@ -162,7 +168,7 @@ export function createInitialGameState(): GameState {
         turn: 6,
         type: 'cpu',
         label: 'CPU',
-        message: 'CPU群がプレイヤー2会社株へ空売りを増加。',
+        message: 'CPU勢がプレイヤー2会社株へ空売りを追加。',
         tone: 'down',
       },
     ],

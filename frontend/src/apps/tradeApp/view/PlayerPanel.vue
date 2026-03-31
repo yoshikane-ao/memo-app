@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { PlayerState, StockKey, StockState } from '../api/types/game'
-import { calculatePlayerSnapshot, formatCurrency, formatSignedCurrency } from '../api/utils/gameCalculations'
+import {
+    calculatePlayerSnapshot,
+    formatCurrency,
+    formatSignedCurrency,
+} from '../api/utils/gameCalculations'
 
 const props = defineProps<{
     player: PlayerState
@@ -13,14 +17,18 @@ const props = defineProps<{
 const snapshot = computed(() => calculatePlayerSnapshot(props.player, props.stocks))
 
 function resolvePerspectiveLabel(stockKey: StockKey): string {
-    if (stockKey === 'market') return '市場'
+    if (stockKey === 'market') return '市場株'
 
     const ownKey: StockKey = props.player.id === 'player1' ? 'p1' : 'p2'
-    return stockKey === ownKey ? '自社' : '相手'
+    return stockKey === ownKey ? '自社株' : '相手株'
 }
 
 const positionRows = computed(() => {
-    const orderedKeys: StockKey[] = ['market', props.player.id === 'player1' ? 'p1' : 'p2', props.player.id === 'player1' ? 'p2' : 'p1']
+    const orderedKeys: StockKey[] = [
+        'market',
+        props.player.id === 'player1' ? 'p1' : 'p2',
+        props.player.id === 'player1' ? 'p2' : 'p1',
+    ]
 
     return orderedKeys.map((key) => {
         const holding = props.player.holdings[key]
@@ -73,7 +81,7 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
             </div>
 
             <div class="metric-card pnl-card">
-                <div class="metric-label">合計損益</div>
+                <div class="metric-label">含み損益</div>
                 <div class="metric-value" :class="{
                     positive: totalUnrealized > 0,
                     negative: totalUnrealized < 0,
@@ -96,11 +104,11 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 
                     <div class="position-grid">
                         <div>
-                            <div class="sub-label">取得額</div>
+                            <div class="sub-label">取得原価</div>
                             <div class="sub-value">{{ formatCurrency(row.costBasis) }}</div>
                         </div>
                         <div>
-                            <div class="sub-label">含み</div>
+                            <div class="sub-label">損益</div>
                             <div class="sub-value" :class="{
                                 positive: row.pnl > 0,
                                 negative: row.pnl < 0,
@@ -115,7 +123,6 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
         </details>
     </aside>
 </template>
-
 
 <style scoped>
 .player-panel {
@@ -132,10 +139,10 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.04),
         0 16px 36px rgba(0, 0, 0, 0.28);
-    padding: 7px;
+    padding: 8px;
     display: grid;
     grid-template-rows: auto auto minmax(0, 1fr);
-    gap: 6px;
+    gap: 7px;
     overflow: hidden;
     transition:
         transform 0.22s ease,
@@ -224,8 +231,8 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 
 .summary-grid {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 5px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
 }
 
 .metric-card,
@@ -237,7 +244,7 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 }
 
 .metric-card {
-    padding: 6px 7px 5px;
+    padding: 7px 8px 6px;
     display: grid;
     gap: 2px;
 }
@@ -266,17 +273,23 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
 }
 
 .metric-value.positive,
-.sub-value.positive { color: #6fd6b3; }
+.sub-value.positive {
+    color: #6fd6b3;
+}
 
 .metric-value.negative,
-.sub-value.negative { color: #ff7b8e; }
+.sub-value.negative {
+    color: #ff7b8e;
+}
 
 .metric-value.flat,
-.sub-value.flat { color: #c8d7f2; }
+.sub-value.flat {
+    color: #c8d7f2;
+}
 
 .positions-details {
     min-height: 0;
-    padding: 0 7px 7px;
+    padding: 0 8px 8px;
     overflow: hidden;
 }
 
@@ -291,10 +304,12 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
     color: #edf4ff;
     font-size: 9px;
     font-weight: 800;
-    padding: 7px 0;
+    padding: 8px 0;
 }
 
-.positions-details summary::-webkit-details-marker { display: none; }
+.positions-details summary::-webkit-details-marker {
+    display: none;
+}
 
 .positions-list {
     min-height: 0;
@@ -308,7 +323,7 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
     border-radius: 10px;
     padding: 6px;
     background: rgba(255, 255, 255, 0.035);
-    border: 1px solid rgba(255,255,255,0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     display: grid;
     gap: 4px;
 }
@@ -327,7 +342,11 @@ const totalUnrealized = computed(() => positionRows.value.reduce((sum, row) => s
     font-weight: 900;
 }
 
-.position-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.position-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+}
 
 .sub-value {
     color: #f7fbff;

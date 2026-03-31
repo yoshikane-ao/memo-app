@@ -1,32 +1,5 @@
 <script setup lang="ts">
-import type { StockKey } from '../api/types/game'
-
-type StockImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down'
-
-type StockImpactItem = {
-    key: StockKey
-    title: string
-    subtitle: string
-    level: StockImpactLevel
-    headline: string
-    detail: string
-}
-
-type PreviewSummaryItem = {
-    label: string
-    value: string
-}
-
-type ActionPreviewPayload = {
-    actionKind: 'trade' | 'company' | 'wait'
-    bannerTitle: string
-    overviewTitle: string
-    overviewSub: string
-    stockImpactPreview: StockImpactItem[]
-    companySummaryItems: PreviewSummaryItem[]
-    actionChips: string[]
-    decisionLabel: string
-}
+import type { BattleActionPreview } from '../lib/tradeBattle'
 
 type CpuIndicatorStats = {
     participantCount: number
@@ -41,7 +14,7 @@ type CpuIndicatorStats = {
 }
 
 const props = defineProps<{
-    preview: ActionPreviewPayload
+    preview: BattleActionPreview
     player1Name: string
     player2Name: string
     cpuStats: CpuIndicatorStats
@@ -51,18 +24,20 @@ function formatCurrency(value: number): string {
     return `${Math.round(value).toLocaleString()}円`
 }
 
-function resolveStockLabel(stockKey: StockKey): string {
-    if (stockKey === 'market') return '市場株'
-    if (stockKey === 'p1') return `${props.player1Name}株`
-    return `${props.player2Name}株`
+function impactBadge(level: BattleActionPreview['stockImpactPreview'][number]['level']): string {
+    if (level === 'strong-up') return '強↑'
+    if (level === 'up') return '↑'
+    if (level === 'down') return '↓'
+    if (level === 'strong-down') return '強↓'
+    return '→'
 }
 </script>
 
 <template>
     <aside class="history-panel">
         <div class="panel-head">
-            <div class="panel-title">指標</div>
-            <div class="panel-subtitle">今回の行動予測とCPUの流れ</div>
+            <div class="panel-title">行動予測</div>
+            <div class="panel-subtitle">今回の行動でどう動くかと CPU 指標を分けて確認できます</div>
         </div>
 
         <section class="section-card preview-section">
@@ -98,15 +73,12 @@ function resolveStockLabel(stockKey: StockKey): string {
                 >
                     <div class="impact-top">
                         <div>
-                            <div class="impact-title">{{ resolveStockLabel(item.key) }}</div>
+                            <div class="impact-title">{{ item.title }}</div>
+                            <div class="impact-subtitle">{{ item.subtitle }}</div>
                             <div class="impact-headline">{{ item.headline }}</div>
                         </div>
                         <div class="impact-badge" :class="item.level">
-                            <span v-if="item.level === 'strong-up'">↑↑</span>
-                            <span v-else-if="item.level === 'up'">↑</span>
-                            <span v-else-if="item.level === 'down'">↓</span>
-                            <span v-else-if="item.level === 'strong-down'">↓↓</span>
-                            <span v-else>→</span>
+                            {{ impactBadge(item.level) }}
                         </div>
                     </div>
                     <div class="impact-detail">{{ item.detail }}</div>
@@ -149,12 +121,12 @@ function resolveStockLabel(stockKey: StockKey): string {
                 </div>
 
                 <div class="metric-row">
-                    <div class="metric-label">市場参加CPU 弱</div>
+                    <div class="metric-label">弱気CPU</div>
                     <div class="metric-value">{{ cpuStats.weakParticipantCount }}人</div>
                 </div>
 
                 <div class="metric-row">
-                    <div class="metric-label">市場参加CPU 強</div>
+                    <div class="metric-label">強気CPU</div>
                     <div class="metric-value">{{ cpuStats.strongParticipantCount }}人</div>
                 </div>
             </div>
@@ -174,7 +146,7 @@ function resolveStockLabel(stockKey: StockKey): string {
         radial-gradient(circle at top, rgba(78, 131, 255, 0.06), transparent 48%);
     padding: 8px;
     display: grid;
-    grid-template-rows: auto minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1.2fr) minmax(0, 0.98fr);
     gap: 8px;
     overflow: hidden;
 }
@@ -186,15 +158,15 @@ function resolveStockLabel(stockKey: StockKey): string {
 
 .panel-title {
     color: #f4f8ff;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     line-height: 1.05;
 }
 
 .panel-subtitle {
     color: rgba(193, 214, 255, 0.68);
-    font-size: 8px;
-    line-height: 1.2;
+    font-size: 9px;
+    line-height: 1.25;
 }
 
 .section-card {
@@ -206,12 +178,20 @@ function resolveStockLabel(stockKey: StockKey): string {
     display: grid;
     align-content: start;
     gap: 8px;
-    overflow: auto;
+    overflow: hidden;
+}
+
+.preview-section {
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+}
+
+.metrics-section {
+    grid-template-rows: auto minmax(0, 1fr);
 }
 
 .section-title {
     color: #eef5ff;
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 800;
     line-height: 1.1;
 }
@@ -265,8 +245,10 @@ function resolveStockLabel(stockKey: StockKey): string {
 }
 
 .impact-grid {
+    min-height: 0;
     display: grid;
     gap: 6px;
+    overflow: auto;
 }
 
 .impact-card {
@@ -312,6 +294,13 @@ function resolveStockLabel(stockKey: StockKey): string {
     line-height: 1.05;
 }
 
+.impact-subtitle {
+    color: rgba(193, 214, 255, 0.68);
+    font-size: 7px;
+    line-height: 1.1;
+    margin-top: 2px;
+}
+
 .impact-headline {
     color: rgba(235, 243, 255, 0.9);
     font-size: 8px;
@@ -327,13 +316,13 @@ function resolveStockLabel(stockKey: StockKey): string {
 }
 
 .impact-badge {
-    min-width: 28px;
+    min-width: 34px;
     height: 18px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 900;
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -357,8 +346,10 @@ function resolveStockLabel(stockKey: StockKey): string {
 
 .company-summary-grid,
 .metrics-grid {
+    min-height: 0;
     display: grid;
     gap: 6px;
+    overflow: auto;
 }
 
 .company-summary-card,
