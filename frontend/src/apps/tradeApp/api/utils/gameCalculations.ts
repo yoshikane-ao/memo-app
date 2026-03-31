@@ -1,4 +1,4 @@
-import type { PlayerState, StockKey, StockState } from '../types/game'
+import type { PlayerId, PlayerState, StockKey, StockState } from '../types/game'
 
 export interface PlayerSnapshot {
   totalAssets: number
@@ -7,6 +7,7 @@ export interface PlayerSnapshot {
   longPnL: number
   shortPnL: number
   speculationPnL: number
+  managementEvaluation: number
 }
 
 export function getPriceMap(stocks: StockState[]): Record<StockKey, number> {
@@ -17,6 +18,19 @@ export function getPriceMap(stocks: StockState[]): Record<StockKey, number> {
     },
     { p1: 0, p2: 0, market: 0 } as Record<StockKey, number>,
   )
+}
+
+function getOwnStockKey(playerId: PlayerId): StockKey {
+  return playerId === 'player1' ? 'p1' : 'p2'
+}
+
+export function calculateManagementEvaluation(
+  player: PlayerState,
+  stocks: StockState[],
+): number {
+  const ownStockKey = getOwnStockKey(player.id)
+  const currentOwnStockPrice = stocks.find((stock) => stock.key === ownStockKey)?.currentPrice ?? 0
+  return (currentOwnStockPrice - player.startingOwnStockPrice) * player.managementStakeShares
 }
 
 export function calculatePlayerSnapshot(
@@ -55,8 +69,9 @@ export function calculatePlayerSnapshot(
         : (position.entryPrice - currentPrice) * position.quantity
   }
 
+  const managementEvaluation = calculateManagementEvaluation(player, stocks)
   const unrealizedPnL = longPnL + shortPnL + speculationPnL
-  const totalAssets = player.cash + player.companyFunds + longValue + shortPnL + speculationPnL
+  const totalAssets = player.cash + longValue + shortPnL + speculationPnL + managementEvaluation
 
   return {
     totalAssets,
@@ -65,6 +80,7 @@ export function calculatePlayerSnapshot(
     longPnL,
     shortPnL,
     speculationPnL,
+    managementEvaluation,
   }
 }
 
