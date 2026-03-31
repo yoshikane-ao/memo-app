@@ -15,6 +15,14 @@ const activeApp = computed(() => {
 const isMenuHome = computed(() => {
   return route.path === menuHomePath || route.name === "menu-home";
 });
+
+const isTradeBattleRoute = computed(() => {
+  return route.name === "menu-workspace-trade-battle";
+});
+
+const showCompactNav = computed(() => {
+  return !isMenuHome.value && !isTradeBattleRoute.value;
+});
 </script>
 
 <template>
@@ -25,7 +33,9 @@ const isMenuHome = computed(() => {
           <RouterLink :to="menuHomePath" class="menu-shell-home-link">
             アプリ一覧
           </RouterLink>
-          <p class="menu-shell-home-copy">ひとつの入口から、必要な機能へ移動できます。</p>
+          <p class="menu-shell-home-copy">
+            ひとつの入口から、必要な機能へ移動できます。
+          </p>
         </div>
 
         <div v-if="activeApp" class="menu-shell-breadcrumb">
@@ -45,7 +55,7 @@ const isMenuHome = computed(() => {
       </div>
     </header>
 
-    <div v-else class="menu-shell-compact-nav">
+    <div v-else-if="showCompactNav" class="menu-shell-compact-nav">
       <RouterLink :to="menuHomePath" class="menu-shell-compact-link">
         アプリ一覧へ戻る
       </RouterLink>

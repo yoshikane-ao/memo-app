@@ -27,7 +27,10 @@ onMounted(() => {
 <style scoped>
 .trade-battle-page-shell {
   width: 100%;
-  height: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   overflow: hidden;

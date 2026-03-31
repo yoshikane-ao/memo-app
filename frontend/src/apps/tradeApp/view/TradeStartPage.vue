@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BattleModeSelector from './start/BattleModeSelector.vue'
 import StartingCashSection from './start/StartingCashSection.vue'
@@ -13,6 +13,7 @@ import {
   type CreateTradeProfileInput,
   type TradeProfile,
 } from '../store/useTradeProfileStore'
+import { buildTradeSessionSnapshot, type TradeSetupDraft } from '../lib/tradeSetup'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
 import { createCpuIdentity, createGuestIdentity } from '../types/playerIdentity'
 import startBackgroundUrl from '../assets/start-screen-background.png'
@@ -118,9 +119,29 @@ const resolvedPlayer2Cash = computed(() => {
 
 const canStart = computed(() => totalCpuCount.value <= 100)
 
+void profileSummaryCopy
+void resolvedPlayer1Cash
+void resolvedPlayer2Cash
+
 onMounted(() => {
   profileStore.seedIfEmpty()
+  const draft = gameStore.state.draft
+  battleMode.value = draft.battleMode
+  firstPlayer.value = draft.firstPlayer
+  startingCashMode.value = draft.startingCashMode
+  sharedStartingCash.value = draft.sharedStartingCash
+  player1StartingCash.value = draft.player1StartingCash
+  player2StartingCash.value = draft.player2StartingCash
+  weakCpuCount.value = draft.weakCpuCount
+  strongCpuCount.value = draft.strongCpuCount
+  p1Identity.value = draft.p1Identity
+  p2Identity.value = draft.p2Identity
   syncModeIdentities(battleMode.value)
+  syncDraftToStore()
+})
+
+watch(firstPlayer, () => {
+  syncDraftToStore()
 })
 
 function resolveProfile(identity: PlayerIdentity): TradeProfile | null {
@@ -141,9 +162,29 @@ function normalizeCash(value: number): number {
   return normalizeNonNegativeInt(value)
 }
 
+function buildCurrentDraft(): TradeSetupDraft {
+  return {
+    battleMode: battleMode.value,
+    firstPlayer: firstPlayer.value,
+    startingCashMode: startingCashMode.value,
+    sharedStartingCash: sharedStartingCash.value,
+    player1StartingCash: player1StartingCash.value,
+    player2StartingCash: player2StartingCash.value,
+    weakCpuCount: weakCpuCount.value,
+    strongCpuCount: strongCpuCount.value,
+    p1Identity: p1Identity.value,
+    p2Identity: p2Identity.value,
+  }
+}
+
+function syncDraftToStore(): void {
+  gameStore.setDraft(buildCurrentDraft())
+}
+
 function setBattleMode(mode: BattleMode): void {
   battleMode.value = mode
   syncModeIdentities(mode)
+  syncDraftToStore()
   statusMessage.value = ''
 }
 
@@ -176,6 +217,7 @@ function setStartingCashMode(value: StartingCashMode): void {
     player1StartingCash.value = base
     player2StartingCash.value = base
   }
+  syncDraftToStore()
 }
 
 function setSharedCash(value: number): void {
@@ -185,15 +227,17 @@ function setSharedCash(value: number): void {
     player1StartingCash.value = normalized
     player2StartingCash.value = normalized
   }
+  syncDraftToStore()
 }
 
 function setPlayerCash(slot: PlayerSlot, value: number): void {
   const normalized = normalizeCash(value)
   if (slot === 'p1') {
     player1StartingCash.value = normalized
-    return
+  } else {
+    player2StartingCash.value = normalized
   }
-  player2StartingCash.value = normalized
+  syncDraftToStore()
 }
 
 function adjustCpu(target: 'weak' | 'strong', delta: number): void {
@@ -202,6 +246,7 @@ function adjustCpu(target: 'weak' | 'strong', delta: number): void {
   } else {
     strongCpuCount.value = Math.max(0, normalizeNonNegativeInt(strongCpuCount.value) + delta)
   }
+  syncDraftToStore()
 }
 
 function setCpuCount(target: 'weak' | 'strong', value: number): void {
@@ -211,6 +256,7 @@ function setCpuCount(target: 'weak' | 'strong', value: number): void {
   } else {
     strongCpuCount.value = normalized
   }
+  syncDraftToStore()
 }
 
 function openPicker(slot: PlayerSlot): void {
@@ -238,9 +284,10 @@ function openCreate(slot: PlayerSlot): void {
 function assignIdentity(slot: PlayerSlot, identity: PlayerIdentity): void {
   if (slot === 'p1') {
     p1Identity.value = identity
-    return
+  } else {
+    p2Identity.value = identity
   }
-  p2Identity.value = identity
+  syncDraftToStore()
 }
 
 function handleSelectProfile(identity: PlayerIdentity): void {
@@ -252,6 +299,12 @@ function handleSelectProfile(identity: PlayerIdentity): void {
     profileStore.selectProfile(identity.profileId)
   }
   statusMessage.value = ''
+}
+
+function handleCreateProfileSubmit(payload: CreateTradeProfileInput): void {
+  const created = profileStore.createProfile(payload)
+  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
+  statusMessage.value = `${created.name} を割り当てました。`
 }
 
 function handleCreateProfile(payload: CreateTradeProfileInput): void {
@@ -298,30 +351,40 @@ function serializeIdentity(identity: PlayerIdentity): SelectedPlayerPayload {
   return { kind: identity.kind, label: identity.label }
 }
 
+function startLocalBattleSubmit(): void {
+  if (!canStart.value) {
+    statusMessage.value = 'CPU 合計は 100 人以下にしてください。'
+    return
+  }
+
+  const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles)
+  gameStore.initializeGame(session)
+
+  router.push({ name: 'menu-workspace-trade-battle' }).catch(() => {
+    statusMessage.value = 'バトル画面へ移動できませんでした。'
+  })
+}
+
 function startLocalBattle(): void {
   if (!canStart.value) {
     statusMessage.value = 'CPU人数の合計を100人以下にしてください。'
     return
   }
 
-  persistSelectedIdentities()
+  const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles)
+  gameStore.initializeGame(session)
 
-  gameStore.initializeGame({
-    battleMode: battleMode.value,
-    player1Name: resolvedPlayer1Name.value,
-    player2Name: resolvedPlayer2Name.value,
-    firstPlayer: firstPlayer.value,
-    marketCpuCount: totalCpuCount.value,
-    player1StartingCash: resolvedPlayer1Cash.value,
-    player2StartingCash: resolvedPlayer2Cash.value,
+  router.push({ name: 'menu-workspace-trade-battle' }).catch(() => {
+    statusMessage.value = 'バトル画面へ移動できませんでした。'
   })
-
-  router.push({ name: 'menu-workspace-trade-battle' })
 }
 
 function showPlaceholder(feature: string): void {
   statusMessage.value = `${feature} はまだ未接続です。まずはローカル対戦を動かします。`
 }
+void handleCreateProfile
+void persistSelectedIdentities
+void startLocalBattle
 </script>
 
 <template>
@@ -435,7 +498,7 @@ function showPlaceholder(feature: string): void {
             <section class="hero-profile-hub" aria-label="対戦開始">
               <div class="hero-profile-hub__inner">
                 <div class="hero-stage__actions" aria-label="start actions">
-                  <button type="button" class="hero-action hero-action--blue" @click="startLocalBattle">
+                  <button type="button" class="hero-action hero-action--blue" @click="startLocalBattleSubmit">
                     ローカル対戦を開始
                   </button>
                   <button type="button" class="hero-action hero-action--green" @click="showPlaceholder('オンライン対戦')">
@@ -476,7 +539,7 @@ function showPlaceholder(feature: string): void {
       @create="openCreate(pickerSlot || 'p1')"
     />
 
-    <ProfileCreateModal v-model="isCreateModalOpen" @create="handleCreateProfile" />
+    <ProfileCreateModal v-model="isCreateModalOpen" @create="handleCreateProfileSubmit" />
   </main>
 </template>
 

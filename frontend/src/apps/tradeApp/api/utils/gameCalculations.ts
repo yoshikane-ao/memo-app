@@ -74,14 +74,16 @@ export function formatCurrency(value: number): string {
 
 export function formatSignedNumber(value: number): string {
   const rounded = Math.round(value)
-  const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '±'
-  return `${sign}${Math.abs(rounded).toLocaleString('ja-JP')}`
+  if (rounded > 0) return `+${rounded.toLocaleString('ja-JP')}`
+  if (rounded < 0) return `-${Math.abs(rounded).toLocaleString('ja-JP')}`
+  return '±0'
 }
 
 export function formatSignedCurrency(value: number): string {
   const rounded = Math.round(value)
-  const sign = rounded > 0 ? '+' : rounded < 0 ? '-' : '±'
-  return `${sign}¥${Math.abs(rounded).toLocaleString('ja-JP')}`
+  if (rounded > 0) return `+¥${rounded.toLocaleString('ja-JP')}`
+  if (rounded < 0) return `-¥${Math.abs(rounded).toLocaleString('ja-JP')}`
+  return '±¥0'
 }
 
 export function describeDelta(value: number): {
@@ -91,7 +93,7 @@ export function describeDelta(value: number): {
 } {
   if (value > 0) {
     return {
-      arrow: '▲',
+      arrow: '↑',
       label: '上昇',
       className: 'is-up',
     }
@@ -99,7 +101,7 @@ export function describeDelta(value: number): {
 
   if (value < 0) {
     return {
-      arrow: '▼',
+      arrow: '↓',
       label: '下落',
       className: 'is-down',
     }

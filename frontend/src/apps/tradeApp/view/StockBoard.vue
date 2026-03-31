@@ -303,7 +303,6 @@ const endBadges = computed<EndBadge[]>(() => {
     </section>
 </template>
 
-
 <style scoped>
 .board-wrap {
     position: relative;
@@ -418,10 +417,6 @@ const endBadges = computed<EndBadge[]>(() => {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-.quote-pill:hover {
-    transform: translateY(-1px);
-}
-
 .cpu-pill {
     min-width: 104px;
     background: linear-gradient(180deg, rgba(16, 37, 68, 0.92), rgba(8, 18, 37, 0.95));
@@ -470,13 +465,45 @@ const endBadges = computed<EndBadge[]>(() => {
     pointer-events: none;
 }
 
-.chart-svg { width: 100%; height: 100%; display: block; }
-.plot-frame { fill: rgba(255, 255, 255, 0.01); stroke: rgba(255, 255, 255, 0.05); stroke-width: 1; }
-.grid-line { stroke: rgba(255, 255, 255, 0.06); stroke-width: 1; }
-.grid-line.vertical { stroke-opacity: 0.36; }
-.price-label, .turn-label, .badge-value { font-family: Inter, 'Segoe UI', sans-serif; }
-.price-label { font-size: 9px; font-weight: 700; fill: #d9e5ff; }
-.turn-label { font-size: 8px; font-weight: 700; fill: #b4c5e6; }
+.chart-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.plot-frame {
+    fill: rgba(255, 255, 255, 0.01);
+    stroke: rgba(255, 255, 255, 0.05);
+    stroke-width: 1;
+}
+
+.grid-line {
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 1;
+}
+
+.grid-line.vertical {
+    stroke-opacity: 0.36;
+}
+
+.price-label,
+.turn-label,
+.badge-value {
+    font-family: Inter, 'Segoe UI', sans-serif;
+}
+
+.price-label {
+    font-size: 9px;
+    font-weight: 700;
+    fill: #d9e5ff;
+}
+
+.turn-label {
+    font-size: 8px;
+    font-weight: 700;
+    fill: #b4c5e6;
+}
+
 .line-under {
     fill: none;
     stroke-width: 5;
@@ -485,6 +512,7 @@ const endBadges = computed<EndBadge[]>(() => {
     opacity: 0.24;
     animation: linePulse 3.2s ease-in-out infinite;
 }
+
 .line-main {
     fill: none;
     stroke-width: 2.8;
@@ -492,11 +520,38 @@ const endBadges = computed<EndBadge[]>(() => {
     stroke-linejoin: round;
     filter: drop-shadow(0 0 10px rgba(90, 144, 255, 0.18));
 }
-.line-highlight { fill: none; stroke: rgba(255, 255, 255, 0.22); stroke-width: 0.9; stroke-linecap: round; stroke-linejoin: round; opacity: 0.82; }
-.line-dot { stroke: rgba(0, 10, 26, 0.98); stroke-width: 1.4; filter: drop-shadow(0 0 8px rgba(255,255,255,0.12)); }
-.badge-connector { stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.8; }
-.badge-box { fill: rgba(5, 11, 26, 0.98); stroke-width: 1; }
-.badge-value { font-size: 8.5px; font-weight: 900; letter-spacing: 0.01em; }
+
+.line-highlight {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.22);
+    stroke-width: 0.9;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.82;
+}
+
+.line-dot {
+    stroke: rgba(0, 10, 26, 0.98);
+    stroke-width: 1.4;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.12));
+}
+
+.badge-connector {
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+    opacity: 0.8;
+}
+
+.badge-box {
+    fill: rgba(5, 11, 26, 0.98);
+    stroke-width: 1;
+}
+
+.badge-value {
+    font-size: 8.5px;
+    font-weight: 900;
+    letter-spacing: 0.01em;
+}
 
 @keyframes dotPulse {
     0%, 100% { transform: scale(0.92); opacity: 0.8; }

@@ -3,8 +3,20 @@ export type PlayerId = 'player1' | 'player2'
 
 export type MarketCondition = 'bull' | 'bear' | 'sideways'
 
-export type CompanyAction = 'なし' | '増資' | '配当' | '自社株買い' | '設備投資'
-export type CooldownAction = Exclude<CompanyAction, 'なし'>
+export const NO_COMPANY_ACTION = 'なし' as const
+export const CAPITAL_INCREASE_ACTION = '増資' as const
+export const AD_CAMPAIGN_ACTION = '広告' as const
+export const BUYBACK_ACTION = '自社株買い' as const
+export const FACILITY_INVESTMENT_ACTION = '設備投資' as const
+
+export type CompanyAction =
+  | typeof NO_COMPANY_ACTION
+  | typeof CAPITAL_INCREASE_ACTION
+  | typeof AD_CAMPAIGN_ACTION
+  | typeof BUYBACK_ACTION
+  | typeof FACILITY_INVESTMENT_ACTION
+
+export type CooldownAction = Exclude<CompanyAction, typeof NO_COMPANY_ACTION>
 
 export type TradeAction = 'buy' | 'sell' | 'short' | 'cover'
 export type TradeMode = 'investment' | 'speculation'
@@ -106,16 +118,16 @@ export const MODE_LABELS: Record<TradeMode, string> = {
 }
 
 export const COMPANY_ACTIONS: CompanyAction[] = [
-  'なし',
-  '増資',
-  '配当',
-  '自社株買い',
-  '設備投資',
+  NO_COMPANY_ACTION,
+  CAPITAL_INCREASE_ACTION,
+  AD_CAMPAIGN_ACTION,
+  BUYBACK_ACTION,
+  FACILITY_INVESTMENT_ACTION,
 ]
 
 export const COOLDOWN_ACTIONS: CooldownAction[] = [
-  '増資',
-  '配当',
-  '自社株買い',
-  '設備投資',
+  CAPITAL_INCREASE_ACTION,
+  AD_CAMPAIGN_ACTION,
+  BUYBACK_ACTION,
+  FACILITY_INVESTMENT_ACTION,
 ]

@@ -1,386 +1,133 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import type {
     CompanyAction,
     PlayerState,
-    StockKey,
-    StockState,
     TradeAction,
     TradeMode,
-    TurnActionPayload,
 } from '../api/types/game'
 import {
     COMPANY_ACTIONS,
     MODE_LABELS,
-    STOCK_LABELS,
-    TRADE_ACTIONS,
     TRADE_LABELS,
 } from '../api/types/game'
-
-type StockImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down'
-
-type StockImpactItem = {
-    key: StockKey
-    title: string
-    subtitle: string
-    level: StockImpactLevel
-    headline: string
-    detail: string
-}
-
-type ActionPanelPayload = TurnActionPayload & {
-    metaAction?: 'wait'
-}
+import type {
+    BattleActionDraft,
+    BattleActionProjection,
+} from '../lib/tradeBattle'
 
 const props = defineProps<{
     currentPlayer: PlayerState
-    stocks: StockState[]
+    draft: BattleActionDraft
+    projection: BattleActionProjection
 }>()
 
 const emit = defineEmits<{
-    confirm: [payload: ActionPanelPayload]
+    'update:draft': [draft: BattleActionDraft]
+    confirm: []
 }>()
 
-const actionKind = ref<'trade' | 'company' | 'wait'>('trade')
-
-const form = reactive<TurnActionPayload>({
-    stockKey: 'market',
-    tradeAction: 'buy',
-    tradeMode: 'investment',
-    quantity: 0,
-    companyAction: 'なし',
+const form = reactive<BattleActionDraft>({
+    ...props.draft,
 })
 
 const quickAmounts = [1000, 5000, 10000] as const
 
-const ownStockKey = computed<StockKey>(() => (props.currentPlayer.id === 'player1' ? 'p1' : 'p2'))
-const rivalStockKey = computed<StockKey>(() => (props.currentPlayer.id === 'player1' ? 'p2' : 'p1'))
+let syncingFromProps = false
 
-const companyActions = computed(() =>
-    COMPANY_ACTIONS.filter(
-        (action): action is Exclude<CompanyAction, 'なし' | '自社株買い'> =>
-            action !== 'なし' && action !== '自社株買い',
-    ),
+watch(
+    () => props.draft,
+    (draft) => {
+        syncingFromProps = true
+        Object.assign(form, draft)
+        syncingFromProps = false
+    },
+    { deep: true, immediate: true },
 )
 
-const stockChoices = computed(() => [
-    {
-        key: ownStockKey.value,
-        title: '自社株',
-        subtitle: STOCK_LABELS[ownStockKey.value],
+watch(
+    form,
+    () => {
+        if (syncingFromProps) {
+            return
+        }
+        emit('update:draft', { ...form })
     },
-    {
-        key: rivalStockKey.value,
-        title: '相手株',
-        subtitle: STOCK_LABELS[rivalStockKey.value],
-    },
-    {
-        key: 'market' as StockKey,
-        title: '市場株',
-        subtitle: '共通マーケット',
-    },
-])
-
-const selectedStock = computed(() => props.stocks.find((stock) => stock.key === form.stockKey))
-const selectedPrice = computed(() => selectedStock.value?.currentPrice ?? 0)
-const selectedHolding = computed(() => props.currentPlayer.holdings[form.stockKey])
-const selectedShort = computed(() => props.currentPlayer.shorts[form.stockKey])
-const selectedStockChoice = computed(
-    () => stockChoices.value.find((choice) => choice.key === form.stockKey) ?? stockChoices.value[0],
+    { deep: true },
 )
 
-const orderAmount = computed(() => Math.max(0, Math.floor(Number(form.quantity) || 0)))
-
-const estimatedShares = computed(() => {
-    const price = selectedPrice.value
-    const amount = orderAmount.value
-    if (price <= 0 || amount < price) return 0
-    return Math.floor(amount / price)
+const actionKind = computed({
+    get: () => form.actionKind,
+    set: (value: BattleActionDraft['actionKind']) => {
+        form.actionKind = value
+    },
 })
 
-const executedAmount = computed(() => estimatedShares.value * selectedPrice.value)
-const effectScale = computed(() => {
-    const shares = estimatedShares.value
-    if (shares >= 100) return 'large'
-    if (shares >= 40) return 'medium'
-    if (shares >= 1) return 'small'
-    return 'none'
-})
+const companyActions = computed(() => props.projection.companyActions)
+const stockChoices = computed(() => props.projection.stockChoices)
+const selectedPrice = computed(() => props.projection.selectedPrice)
+const selectedHolding = computed(() => ({ quantity: props.projection.selectedHoldingQuantity }))
+const selectedShort = computed(() => ({ quantity: props.projection.selectedShortQuantity }))
+const visibleTradeActions = computed(() => props.projection.visibleTradeActions)
+const executionEstimateText = computed(() => props.projection.executionEstimateText)
+const companySummaryItems = computed(() => props.projection.preview.companySummaryItems)
+const canSubmitTrade = computed(() => props.projection.canSubmitTrade)
+const canSubmitCompany = computed(() => props.projection.canSubmitCompany)
+const canSubmitWait = computed(() => props.projection.canSubmitWait)
+const canSubmit = computed(() => props.projection.canSubmit)
+const impactOverviewTitle = computed(() => props.projection.preview.overviewTitle)
+const impactOverviewSub = computed(() => props.projection.preview.overviewSub)
+const waitImpactPreview = computed(() => props.projection.preview.stockImpactPreview)
 
-const visibleTradeActions = computed<TradeAction[]>(() => {
-    if (form.tradeMode === 'speculation') {
-        return ['buy', 'short']
-    }
-    return TRADE_ACTIONS
-})
+const selectedChoice = computed(() =>
+    stockChoices.value.find((choice) => choice.key === form.stockKey) ?? stockChoices.value[0],
+)
+const selectedTradeModeLabel = computed(() => MODE_LABELS[form.tradeMode])
+const selectedTradeActionLabel = computed(() => TRADE_LABELS[form.tradeAction])
+const orderAmountLabel = computed(() => `${props.projection.orderAmount.toLocaleString()}円`)
 
-const orderHeadline = computed(() => {
-    if (actionKind.value === 'company') {
-        return '会社行動を実行'
-    }
-
-    return `${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-})
-
-const selectedTargetLabel = computed(() => selectedStockChoice.value?.title ?? '市場株')
-const selectedTargetSubLabel = computed(() => selectedStockChoice.value?.subtitle ?? '')
-
-const executionEstimateText = computed(() => {
-    if (actionKind.value !== 'trade') return '未計算'
-    if (estimatedShares.value <= 0 || executedAmount.value <= 0) {
-        return '注文額不足'
-    }
-    return `${formatCurrency(executedAmount.value)} / 約${estimatedShares.value}株`
-})
-
-const tradeActionChips = computed<string[]>(() => {
-    if (actionKind.value !== 'trade') {
-        return []
-    }
-
-    return [
-        selectedTargetLabel.value,
-        MODE_LABELS[form.tradeMode],
-        TRADE_LABELS[form.tradeAction],
-        orderAmount.value > 0 ? `${orderAmount.value.toLocaleString()}円` : '金額未入力',
-    ]
-})
-
-const tradeMetaSummary = computed(() => {
-    if (actionKind.value !== 'trade') return ''
-    if (estimatedShares.value <= 0) {
-        return `${selectedTargetLabel.value} / ${MODE_LABELS[form.tradeMode]} / ${TRADE_LABELS[form.tradeAction]}`
-    }
-
-    return `${selectedTargetLabel.value}を約${estimatedShares.value}株ぶん ${TRADE_LABELS[form.tradeAction]}`
-})
-
-const companySummaryItems = computed(() => [
-    { label: '実行者', value: props.currentPlayer.name },
-    { label: '対象', value: '自社へ実行' },
-    { label: '内容', value: form.companyAction },
-])
-
-const canSubmitTrade = computed(() => {
-    if (actionKind.value !== 'trade') return false
-    if (estimatedShares.value <= 0) return false
-    if (form.tradeAction === 'sell') return selectedHolding.value.quantity > 0
-    if (form.tradeAction === 'cover') return selectedShort.value.quantity > 0
-    return true
-})
-
-const canSubmitCompany = computed(() => actionKind.value === 'company' && form.companyAction !== 'なし')
-const canSubmitWait = computed(() => actionKind.value === 'wait')
-const canSubmit = computed(() => canSubmitTrade.value || canSubmitCompany.value || canSubmitWait.value)
-
-const tradeImpactSummary = computed(() => {
-    if (estimatedShares.value <= 0) {
-        return 'まだ影響を計算できません'
-    }
-
-    const sizeText =
-        effectScale.value === 'large'
-            ? '強め'
-            : effectScale.value === 'medium'
-              ? '中くらい'
-              : '小さめ'
-
-    if (form.tradeAction === 'buy') {
-        return `${selectedTargetLabel.value}に${sizeText}の買い圧力`
-    }
-
-    if (form.tradeAction === 'sell') {
-        return `${selectedTargetLabel.value}に${sizeText}の売り圧力`
-    }
-
-    if (form.tradeAction === 'short') {
-        return `${selectedTargetLabel.value}に${sizeText}の下落圧力`
-    }
-
-    return `${selectedTargetLabel.value}の下落圧力を${sizeText}で解消`
-})
-
-
-const impactOverviewTitle = computed(() => {
-    if (actionKind.value === 'wait') {
-        return '取引せず様子見'
+const confirmHint = computed(() => {
+    if (actionKind.value === 'trade') {
+        if (props.projection.orderAmount <= 0) {
+            return '注文額を入力すると執行見込みが確定します'
+        }
+        if (!canSubmitTrade.value) {
+            return '現在の保有数または注文額では約定できません'
+        }
+        return 'この内容で 1 ターン分の注文を送ります'
     }
 
     if (actionKind.value === 'company') {
-        return '会社行動の影響を確認'
+        return '会社資金と自社株への影響を確認して実行します'
     }
 
-    return tradeImpactSummary.value
+    return 'このターンはポジションを増やさずに待機します'
 })
 
-const impactOverviewSub = computed(() => {
-    if (actionKind.value === 'wait') {
-        return 'このターンはポジションを増やさず、外部変動だけを見る'
-    }
-
-    if (actionKind.value === 'company') {
-        return '会社行動はルール確定後に価格影響を細かく反映'
-    }
-
-    if (estimatedShares.value <= 0) {
-        return '注文額が入ると概算約定と影響の強さを表示'
-    }
-
-    return `概算約定 ${executionEstimateText.value}`
-})
-
-const waitImpactPreview = computed<StockImpactItem[]>(() =>
-    stockChoices.value.map((choice) => ({
-        key: choice.key,
-        title: choice.title,
-        subtitle: choice.subtitle,
-        level: 'neutral' as StockImpactLevel,
-        headline: '大きな直接影響なし',
-        detail: '待機なのでこの行動そのものでは値動きを起こさない',
-    })),
-)
-
-
-const stockImpactPreview = computed<StockImpactItem[]>(() => {
-    const items = stockChoices.value.map((choice) => ({
-        key: choice.key,
-        title: choice.title,
-        subtitle: choice.subtitle,
-        level: 'neutral' as StockImpactLevel,
-        headline: 'ほぼ変化なし',
-        detail: 'この行動の直接影響は小さめ',
-    }))
-
-    if (actionKind.value === 'wait') {
-        return waitImpactPreview.value
-    }
-
-    if (actionKind.value !== 'trade' || estimatedShares.value <= 0) {
-        return items.map((item) => ({
-            ...item,
-            headline: '入力待ち',
-            detail: '注文額が入ると影響プレビューを表示',
-        }))
-    }
-
-    const targetKey = form.stockKey
-    const targetIndex = items.findIndex((item) => item.key === targetKey)
-    const marketIndex = items.findIndex((item) => item.key === 'market')
-    const targetIsCompany = targetKey === 'p1' || targetKey === 'p2'
-    const impactLabel = effectScale.value === 'large' ? '大' : effectScale.value === 'medium' ? '中' : '小'
-
-    const setImpact = (key: StockKey, level: StockImpactLevel, headline: string, detail: string) => {
-        const index = items.findIndex((item) => item.key === key)
-        if (index >= 0) {
-            items[index] = { ...items[index], level, headline, detail }
-        }
-    }
-
-    if (form.tradeAction === 'buy') {
-        setImpact(
-            targetKey,
-            targetKey === 'market' ? 'strong-up' : 'up',
-            targetKey === 'market' ? '上昇しやすい' : '買いで上がりやすい',
-            `${impactLabel}サイズの買い注文で需要が増える`,
-        )
-
-        if (targetIsCompany) {
-            setImpact('market', 'down', 'やや下がりやすい', '会社株が買われると市場株は逆方向へ触れやすい')
-        } else {
-            setImpact(ownStockKey.value, 'neutral', '様子見', '市場株の買いは会社株へ直撃しない')
-            setImpact(rivalStockKey.value, 'neutral', '様子見', '市場株の買いは相手株へ直撃しない')
-        }
-    }
-
-    if (form.tradeAction === 'sell') {
-        setImpact(
-            targetKey,
-            targetKey === 'market' ? 'strong-down' : 'down',
-            targetKey === 'market' ? '下がりやすい' : '売りで下がりやすい',
-            `${impactLabel}サイズの売り注文で需給が悪化する`,
-        )
-
-        if (targetIsCompany) {
-            setImpact('market', 'up', 'やや上がりやすい', '会社株の売りで市場株が相対的に買われやすい')
-        } else {
-            setImpact(ownStockKey.value, 'neutral', '様子見', '市場株の売りは会社株へ直撃しない')
-            setImpact(rivalStockKey.value, 'neutral', '様子見', '市場株の売りは相手株へ直撃しない')
-        }
-    }
-
-    if (form.tradeAction === 'short') {
-        setImpact(
-            targetKey,
-            'strong-down',
-            '下落しやすい',
-            `${impactLabel}サイズの空売りで売り圧力が強まる`,
-        )
-
-        if (targetIsCompany) {
-            setImpact('market', 'up', 'やや上がりやすい', '会社株の弱さで市場株が相対的に持ち直しやすい')
-        } else {
-            setImpact(ownStockKey.value, 'neutral', '様子見', '市場株への空売りは会社株へ直撃しない')
-            setImpact(rivalStockKey.value, 'neutral', '様子見', '市場株への空売りは相手株へ直撃しない')
-        }
-    }
-
-    if (form.tradeAction === 'cover') {
-        setImpact(
-            targetKey,
-            'up',
-            '下げ圧が弱まる',
-            `${impactLabel}サイズの買い戻しで価格が戻りやすい`,
-        )
-
-        if (targetIsCompany) {
-            setImpact('market', 'down', 'やや下がりやすい', '会社株の戻りで市場株は逆方向に振れやすい')
-        } else {
-            setImpact(ownStockKey.value, 'neutral', '様子見', '市場株の買い戻しは会社株へ直撃しない')
-            setImpact(rivalStockKey.value, 'neutral', '様子見', '市場株の買い戻しは相手株へ直撃しない')
-        }
-    }
-
-    if (targetIsCompany) {
-        const otherCompanyKey = targetKey === ownStockKey.value ? rivalStockKey.value : ownStockKey.value
-        setImpact(otherCompanyKey, 'neutral', 'ほぼ横ばい', '今回の注文は直接は刺さらない')
-    }
-
-    if (!targetIsCompany && marketIndex >= 0) {
-        const ownKey = ownStockKey.value
-        const rivalKey = rivalStockKey.value
-        if (targetIndex !== marketIndex) {
-            setImpact(ownKey, 'neutral', 'ほぼ横ばい', '市場注文の主戦場は会社株ではない')
-            setImpact(rivalKey, 'neutral', 'ほぼ横ばい', '市場注文の主戦場は会社株ではない')
-        }
-    }
-
-    return items
-})
-
-function formatCurrency(value: number): string {
-    return `${Math.round(value).toLocaleString()}円`
+function ownStockKey(): 'p1' | 'p2' {
+    return props.currentPlayer.id === 'player1' ? 'p1' : 'p2'
 }
 
 function nextCompanyAction(): CompanyAction {
-    return companyActions.value[0] ?? 'なし'
+    return companyActions.value[0] ?? COMPANY_ACTIONS[0]
 }
 
 function setActionKind(kind: 'trade' | 'company' | 'wait'): void {
     actionKind.value = kind
 
     if (kind === 'trade') {
-        form.companyAction = 'なし'
+        form.companyAction = COMPANY_ACTIONS[0]
         return
     }
 
     if (kind === 'wait') {
-        form.companyAction = 'なし'
+        form.companyAction = COMPANY_ACTIONS[0]
         form.quantity = 0
         return
     }
 
-    form.stockKey = ownStockKey.value
-    if (form.companyAction === 'なし' || form.companyAction === '自社株買い') {
+    form.stockKey = ownStockKey()
+    if (form.companyAction === COMPANY_ACTIONS[0] || form.companyAction === COMPANY_ACTIONS[3]) {
         form.companyAction = nextCompanyAction()
     }
 }
@@ -392,8 +139,8 @@ function isTradeDisabled(action: TradeAction): boolean {
         return action !== 'buy' && action !== 'short'
     }
 
-    if (action === 'sell') return selectedHolding.value.quantity <= 0
-    if (action === 'cover') return selectedShort.value.quantity <= 0
+    if (action === 'sell') return props.projection.selectedHoldingQuantity <= 0
+    if (action === 'cover') return props.projection.selectedShortQuantity <= 0
     return false
 }
 
@@ -403,11 +150,11 @@ function selectTradeAction(action: TradeAction): void {
 }
 
 function stepAmount(diff: number): void {
-    form.quantity = Math.max(0, orderAmount.value + diff)
+    form.quantity = Math.max(0, props.projection.orderAmount + diff)
 }
 
 function addPreset(amount: number): void {
-    form.quantity = orderAmount.value + amount
+    form.quantity = props.projection.orderAmount + amount
 }
 
 function resetAmount(): void {
@@ -416,24 +163,7 @@ function resetAmount(): void {
 
 function submitTurn(): void {
     if (!canSubmit.value) return
-
-    if (actionKind.value === 'wait') {
-        emit('confirm', {
-            ...form,
-            metaAction: 'wait',
-            stockKey: ownStockKey.value,
-            quantity: 0,
-            companyAction: 'なし',
-        })
-        return
-    }
-
-    emit('confirm', {
-        ...form,
-        stockKey: actionKind.value === 'company' ? ownStockKey.value : form.stockKey,
-        quantity: orderAmount.value,
-        companyAction: actionKind.value === 'company' ? form.companyAction : 'なし',
-    })
+    emit('confirm')
 }
 
 watch(
@@ -449,19 +179,18 @@ watch(
     () => props.currentPlayer.id,
     () => {
         if (actionKind.value === 'company') {
-            form.stockKey = ownStockKey.value
+            form.stockKey = ownStockKey()
         }
     },
 )
 </script>
-
 
 <template>
     <section class="action-panel" :class="`mode-${actionKind}`">
         <div class="panel-head">
             <div>
                 <div class="panel-title">行動入力</div>
-                <div class="panel-subtitle">画面内で完結するよう、確認を主役にした横並びレイアウトへ圧縮</div>
+                <div class="panel-subtitle">下段で 1 ターン分の入力を完了し、右側の予測と見比べながら確定します</div>
             </div>
             <div class="turn-note">1ターン1行動</div>
         </div>
@@ -553,41 +282,42 @@ watch(
                     <input v-model.number="form.quantity" type="number" min="0" step="500" class="amount-input" />
                     <button type="button" class="amount-step" @click="stepAmount(500)">＋</button>
                 </div>
-                <div class="helper-line">概算 {{ executionEstimateText }}</div>
+                <div class="helper-line">執行見込み {{ executionEstimateText }}</div>
             </article>
 
-            <article class="card summary-card span-3 impact-summary-card">
+            <article class="card summary-card span-3 confirm-card">
                 <div class="card-title-row"><span class="step">5</span><span>確認</span></div>
 
-                <div class="summary-card-body impact-summary-body compact-impact-body">
+                <div class="summary-card-body confirm-card-body">
                     <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">今回の影響まとめ</div>
+                        <div class="summary-banner-title">注文チケット</div>
                         <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
-                        <span class="summary-banner-sub compact-banner-sub">{{ impactOverviewSub }}</span>
+                        <span class="summary-banner-sub compact-banner-sub">{{ confirmHint }}</span>
                     </div>
 
-                    <div class="impact-glance-board compact-impact-grid">
-                        <article
-                            v-for="item in stockImpactPreview"
-                            :key="item.key"
-                            class="impact-glance-card"
-                            :class="item.level"
-                        >
-                            <div class="impact-glance-top compact-glance-top">
-                                <div>
-                                    <div class="impact-glance-title">{{ item.title }}</div>
-                                    <div class="impact-glance-subtitle">{{ item.subtitle }}</div>
-                                </div>
-                                <div class="impact-direction-badge small-badge" :class="item.level">
-                                    <span v-if="item.level === 'strong-up'">↑↑</span>
-                                    <span v-else-if="item.level === 'up'">↑</span>
-                                    <span v-else-if="item.level === 'down'">↓</span>
-                                    <span v-else-if="item.level === 'strong-down'">↓↓</span>
-                                    <span v-else>→</span>
-                                </div>
-                            </div>
-                            <div class="impact-glance-headline">{{ item.headline }}</div>
-                            <div class="impact-glance-detail one-line-detail">{{ item.detail }}</div>
+                    <div class="ticket-grid">
+                        <article class="ticket-item">
+                            <div class="ticket-label">対象</div>
+                            <div class="ticket-value">{{ selectedChoice?.title }}</div>
+                            <div class="ticket-sub">{{ selectedChoice?.subtitle }}</div>
+                        </article>
+
+                        <article class="ticket-item">
+                            <div class="ticket-label">方式 / 売買</div>
+                            <div class="ticket-value">{{ selectedTradeModeLabel }}</div>
+                            <div class="ticket-sub">{{ selectedTradeActionLabel }}</div>
+                        </article>
+
+                        <article class="ticket-item">
+                            <div class="ticket-label">注文金額</div>
+                            <div class="ticket-value">{{ orderAmountLabel }}</div>
+                            <div class="ticket-sub">入力した金額ベースで計算</div>
+                        </article>
+
+                        <article class="ticket-item emphasize">
+                            <div class="ticket-label">執行見込み</div>
+                            <div class="ticket-value">{{ executionEstimateText }}</div>
+                            <div class="ticket-sub">現在価格での概算です</div>
                         </article>
                     </div>
                 </div>
@@ -621,25 +351,25 @@ watch(
                         {{ action }}
                     </button>
                 </div>
-                <div class="helper-line">増資は下押し、配当と設備投資は自社株へ追い風</div>
+                <div class="helper-line">増資は会社資金を増やし、広告と設備投資は自社株の追い風になります</div>
             </article>
 
             <article class="card summary-card span-6 company-summary-card">
                 <div class="card-title-row"><span class="step">3</span><span>確認</span></div>
-                <div class="summary-card-body company-summary-body compact-impact-body">
+                <div class="summary-card-body company-summary-body">
                     <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">今回の見立て</div>
+                        <div class="summary-banner-title">今回の実行内容</div>
                         <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
-                        <span class="summary-banner-sub compact-banner-sub">会社行動の細かい反映はルール確定後に調整</span>
+                        <span class="summary-banner-sub compact-banner-sub">{{ confirmHint }}</span>
                     </div>
-                    <div class="summary-badges company-summary-grid compact-company-grid">
+                    <div class="summary-badges company-summary-grid">
                         <div v-for="item in companySummaryItems" :key="item.label" class="summary-badge">
                             <span class="summary-badge-label">{{ item.label }}</span>
                             <strong class="summary-badge-value">{{ item.value }}</strong>
                         </div>
                     </div>
                 </div>
-                <button type="button" class="confirm-button" :disabled="!canSubmitCompany" @click="submitTurn">この内容で決定</button>
+                <button type="button" class="confirm-button" :disabled="!canSubmitCompany" @click="submitTurn">この内容で実行</button>
             </article>
         </div>
 
@@ -655,29 +385,16 @@ watch(
 
             <article class="card summary-card span-10 wait-summary-card">
                 <div class="card-title-row"><span class="step">2</span><span>確認</span></div>
-                <div class="summary-card-body impact-summary-body compact-impact-body">
+                <div class="summary-card-body wait-summary-body">
                     <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">今回の影響まとめ</div>
+                        <div class="summary-banner-title">待機内容</div>
                         <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
                         <span class="summary-banner-sub compact-banner-sub">{{ impactOverviewSub }}</span>
                     </div>
-                    <div class="impact-glance-board compact-impact-grid">
-                        <article
-                            v-for="item in waitImpactPreview"
-                            :key="item.key"
-                            class="impact-glance-card"
-                            :class="item.level"
-                        >
-                            <div class="impact-glance-top compact-glance-top">
-                                <div>
-                                    <div class="impact-glance-title">{{ item.title }}</div>
-                                    <div class="impact-glance-subtitle">{{ item.subtitle }}</div>
-                                </div>
-                                <div class="impact-direction-badge small-badge neutral">→</div>
-                            </div>
-                            <div class="impact-glance-headline">{{ item.headline }}</div>
-                            <div class="impact-glance-detail one-line-detail">{{ item.detail }}</div>
-                        </article>
+                    <div class="wait-chip-row">
+                        <span v-for="item in waitImpactPreview" :key="item.key" class="wait-chip">
+                            {{ item.title }}: {{ item.headline }}
+                        </span>
                     </div>
                 </div>
                 <button type="button" class="confirm-button" :disabled="!canSubmitWait" @click="submitTurn">このターンは待つ</button>
@@ -850,7 +567,10 @@ watch(
     background: linear-gradient(180deg, rgba(94, 147, 255, 0.76), rgba(74, 124, 233, 0.82));
 }
 .segment-button:disabled,
-.confirm-button:disabled { opacity: 0.42; cursor: not-allowed; }
+.confirm-button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
 
 .stock-choice-list {
     display: grid;
@@ -912,9 +632,20 @@ watch(
     border-radius: 999px;
 }
 
-.preset-block { min-height: 28px; border-radius: 9px; }
-.mini-clear-button { padding: 2px 7px; border-radius: 999px; line-height: 1; }
-.helper-line { line-height: 1.2; }
+.preset-block {
+    min-height: 28px;
+    border-radius: 9px;
+}
+
+.mini-clear-button {
+    padding: 2px 7px;
+    border-radius: 999px;
+    line-height: 1;
+}
+
+.helper-line {
+    line-height: 1.2;
+}
 
 .amount-box {
     display: grid;
@@ -922,7 +653,10 @@ watch(
     gap: 5px;
 }
 
-.amount-step { min-height: 32px; }
+.amount-step {
+    min-height: 32px;
+}
+
 .amount-input {
     width: 100%;
     min-height: 32px;
@@ -943,11 +677,12 @@ watch(
     overflow: hidden;
 }
 
-.impact-summary-body { grid-template-rows: auto minmax(0, 1fr); }
-.compact-impact-body { align-content: start; }
-.compact-summary-banner { padding: 6px 7px; gap: 3px; }
-.compact-banner-main { font-size: 10px; }
-.compact-banner-sub { font-size: 8px; }
+.confirm-card-body,
+.company-summary-body,
+.wait-summary-body {
+    grid-template-rows: auto minmax(0, 1fr);
+}
+
 .summary-banner {
     border-radius: 10px;
     padding: 6px 7px;
@@ -956,67 +691,72 @@ watch(
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.07);
 }
-.summary-banner-title { color: rgba(193, 214, 255, 0.7); font-size: 8px; font-weight: 700; }
-.summary-banner-main { color: #f7fbff; font-size: 11px; font-weight: 800; line-height: 1.15; }
-.summary-banner-sub { color: rgba(220, 234, 255, 0.78); font-size: 8px; line-height: 1.15; }
 
-.impact-glance-board {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
-    min-height: 0;
+.summary-banner-title {
+    color: rgba(193, 214, 255, 0.7);
+    font-size: 8px;
+    font-weight: 700;
 }
 
-.impact-glance-card {
-    min-width: 0;
-    border-radius: 10px;
-    padding: 6px 7px;
+.summary-banner-main {
+    color: #f7fbff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.summary-banner-sub {
+    color: rgba(220, 234, 255, 0.78);
+    font-size: 8px;
+    line-height: 1.15;
+}
+
+.ticket-grid {
+    min-height: 0;
     display: grid;
-    gap: 3px;
-    background: rgba(255, 255, 255, 0.04);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+}
+
+.ticket-item,
+.summary-badge,
+.wait-chip {
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.045);
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.impact-glance-card.strong-up { border-color: rgba(79, 210, 149, 0.5); background: rgba(39, 116, 78, 0.18); }
-.impact-glance-card.up { border-color: rgba(96, 182, 133, 0.42); background: rgba(30, 85, 58, 0.16); }
-.impact-glance-card.down { border-color: rgba(255, 154, 154, 0.34); background: rgba(98, 41, 41, 0.16); }
-.impact-glance-card.strong-down { border-color: rgba(255, 123, 123, 0.52); background: rgba(122, 36, 36, 0.18); }
-
-.impact-glance-top {
-    display: flex;
-    align-items: start;
-    justify-content: space-between;
-    gap: 4px;
+.ticket-item {
+    padding: 6px;
+    display: grid;
+    gap: 2px;
 }
 
-.impact-glance-title { color: #f4f8ff; font-size: 10px; font-weight: 800; line-height: 1.05; }
-.impact-glance-subtitle { color: rgba(211, 226, 255, 0.66); font-size: 7px; line-height: 1.05; }
-.impact-glance-headline { color: #f7fbff; font-size: 9px; font-weight: 800; line-height: 1.1; }
-.impact-glance-detail { color: rgba(220, 234, 255, 0.76); font-size: 7px; line-height: 1.1; }
-.one-line-detail {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.ticket-item.emphasize {
+    border-color: rgba(118, 195, 255, 0.32);
+    background: rgba(52, 88, 154, 0.16);
 }
 
-.small-badge {
-    min-width: 26px;
-    height: 16px;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.ticket-label,
+.summary-badge-label {
+    color: rgba(193, 214, 255, 0.7);
     font-size: 8px;
-    font-weight: 800;
-    border: 1px solid rgba(255,255,255,0.08);
-    background: rgba(3, 10, 24, 0.48);
+    font-weight: 700;
+    line-height: 1;
 }
 
-.confirm-button {
-    min-height: 30px;
-    background: linear-gradient(180deg, rgba(110, 161, 255, 0.9), rgba(77, 126, 233, 0.92));
-    border-color: rgba(147, 186, 255, 0.55);
+.ticket-value,
+.summary-badge-value {
+    color: #f4f8ff;
     font-size: 10px;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.ticket-sub {
+    color: rgba(220, 234, 255, 0.74);
+    font-size: 7px;
+    line-height: 1.15;
 }
 
 .summary-badges {
@@ -1024,26 +764,45 @@ watch(
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 5px;
 }
+
 .summary-badge {
-    border-radius: 9px;
-    padding: 5px 6px;
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 6px;
     display: grid;
-    gap: 1px;
+    gap: 2px;
 }
-.summary-badge-label { color: rgba(193, 214, 255, 0.7); font-size: 8px; font-weight: 700; line-height: 1; }
-.summary-badge-value { color: #f4f8ff; font-size: 9px; font-weight: 800; line-height: 1.15; }
-.company-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.company-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wait-chip-row {
+    min-height: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    align-content: flex-start;
+}
+
+.wait-chip {
+    padding: 5px 7px;
+    color: #edf4ff;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.confirm-button {
+    min-height: 32px;
+    background: linear-gradient(180deg, rgba(110, 161, 255, 0.9), rgba(77, 126, 233, 0.92));
+    border-color: rgba(147, 186, 255, 0.55);
+    font-size: 10px;
+}
 
 @media (max-width: 1500px) {
     .panel-grid { gap: 5px; }
     .card { padding: 5px; }
     .stock-choice { min-height: 38px; }
     .segment-button { min-height: 28px; font-size: 9px; }
-    .impact-glance-card { padding: 5px 6px; }
-    .impact-glance-title { font-size: 9px; }
-    .impact-glance-headline { font-size: 8px; }
-    .impact-glance-detail { font-size: 6.5px; }
+    .ticket-grid { gap: 4px; }
+    .ticket-item { padding: 5px; }
 }
 </style>

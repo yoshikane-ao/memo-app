@@ -1,5 +1,5 @@
-<script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+﻿<script setup lang="ts">
+import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import StockBoard from './StockBoard.vue'
 import PlayerPanel from './PlayerPanel.vue'
@@ -18,18 +18,35 @@ import type {
     StockState,
     TurnActionPayload,
 } from '../api/types/game'
-import { COOLDOWN_ACTIONS, MODE_LABELS, STOCK_LABELS, TRADE_LABELS } from '../api/types/game'
+import {
+    AD_CAMPAIGN_ACTION,
+    BUYBACK_ACTION,
+    CAPITAL_INCREASE_ACTION,
+    COOLDOWN_ACTIONS,
+    FACILITY_INVESTMENT_ACTION,
+    MODE_LABELS,
+    NO_COMPANY_ACTION,
+    STOCK_LABELS,
+    TRADE_LABELS,
+} from '../api/types/game'
 import {
     calculatePlayerSnapshot,
     formatCurrency,
     formatSignedCurrency,
 } from '../api/utils/gameCalculations'
+import {
+    buildBattleActionProjection,
+    buildBattleConfirmedAction,
+    createDefaultBattleActionDraft,
+    type BattleActionDraft,
+} from '../lib/tradeBattle'
 
 import '../css/style.css'
 
 const gameStore = useTradeGameStore()
 const router = useRouter()
-const startSettings = computed(() => gameStore.state.settings)
+const sessionSnapshot = computed(() => gameStore.state.session)
+const startSettings = computed(() => sessionSnapshot.value?.settings ?? null)
 
 const state = reactive(createInitialGameState())
 
@@ -50,34 +67,8 @@ type TurnActionWithWait = TurnActionPayload & {
     metaAction?: 'wait'
 }
 
-type PreviewImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down'
-
-type PreviewImpactItem = {
-    key: StockKey
-    title: string
-    subtitle: string
-    level: PreviewImpactLevel
-    headline: string
-    detail: string
-}
-
-type PreviewSummaryItem = {
-    label: string
-    value: string
-}
-
-type ActionPreviewState = {
-    actionKind: 'trade' | 'company' | 'wait'
-    bannerTitle: string
-    overviewTitle: string
-    overviewSub: string
-    stockImpactPreview: PreviewImpactItem[]
-    companySummaryItems: PreviewSummaryItem[]
-    actionChips: string[]
-    decisionLabel: string
-}
-
 const actionTimeline = ref<ActionTimelineEntry[]>([])
+const actionDraft = ref<BattleActionDraft>(createDefaultBattleActionDraft())
 
 let logSequence = 1000
 
@@ -97,7 +88,7 @@ function normalizePlayersForBattleStart(): void {
     player2.name = settings?.player2Name ?? 'PLAYER 2'
 
     state.turn = 1
-    state.currentPlayer = gameStore.state.resolvedFirstPlayer === 'p2'
+    state.currentPlayer = sessionSnapshot.value?.resolvedFirstPlayer === 'p2'
         ? 'player2'
         : 'player1'
 
@@ -139,17 +130,16 @@ const configuredMarketCpuCount = computed(() => {
 const leftPlayer = computed(() => getPlayer('player1'))
 const rightPlayer = computed(() => getPlayer('player2'))
 const activePlayer = computed(() => getPlayer(state.currentPlayer))
+const actionProjection = computed(() =>
+    buildBattleActionProjection(activePlayer.value, state.stocks, actionDraft.value),
+)
 
-const actionPreview = ref<ActionPreviewState>({
-    actionKind: 'trade',
-    bannerTitle: '今回の影響まとめ',
-    overviewTitle: '入力待ち',
-    overviewSub: '行動を選ぶと今回の値動き予測を表示',
-    stockImpactPreview: [],
-    companySummaryItems: [],
-    actionChips: [],
-    decisionLabel: '行動を決定',
-})
+watch(
+    () => state.currentPlayer,
+    () => {
+        actionDraft.value = createDefaultBattleActionDraft()
+    },
+)
 
 const leftPlayerAssets = computed(() => calculatePlayerSnapshot(leftPlayer.value, state.stocks).totalAssets)
 const rightPlayerAssets = computed(() => calculatePlayerSnapshot(rightPlayer.value, state.stocks).totalAssets)
@@ -284,7 +274,7 @@ function pushTimeline(player: PlayerState, payload: TurnActionWithWait): void {
             playerId: player.id,
             playerName: player.name,
             kind: '待機',
-            summary: '何も仕掛けず様子見',
+            summary: '次ターンまで様子見',
         }
 
         actionTimeline.value.unshift(waitEntry)
@@ -292,7 +282,7 @@ function pushTimeline(player: PlayerState, payload: TurnActionWithWait): void {
         return
     }
 
-    const isCompany = payload.companyAction !== 'なし'
+    const isCompany = payload.companyAction !== NO_COMPANY_ACTION
     const selectedStock = getStock(payload.stockKey)
     const estimatedShares = Math.max(0, Math.floor(payload.quantity / Math.max(selectedStock.currentPrice, 1)))
 
@@ -368,8 +358,8 @@ function moveStockPrice(stockKey: StockKey, rawDelta: number, logs: LogEntry[]):
         pushLog(
             logs,
             'system',
-            'バブル',
-            `${stock.name}がバブル上限に到達。価格が半減し ${formatCurrency(before)} → ${formatCurrency(next)}。`,
+            'バブル崩壊',
+            `${stock.name}がバブル上限を超えたため急落しました。 ${formatCurrency(before)} → ${formatCurrency(next)}`,
             'warn',
         )
     } else if (next <= stock.bubbleLower) {
@@ -377,8 +367,8 @@ function moveStockPrice(stockKey: StockKey, rawDelta: number, logs: LogEntry[]):
         pushLog(
             logs,
             'system',
-            '下限損失',
-            `${stock.name}がバブル下限に接触。大損失処理が発生し ${formatCurrency(before)} → ${formatCurrency(next)}。`,
+            '底値反発',
+            `${stock.name}が下限近くまで下がったため反発しました。 ${formatCurrency(before)} → ${formatCurrency(next)}`,
             'warn',
         )
     }
@@ -396,8 +386,8 @@ function applyCorrelation(sourceKey: StockKey, sourceDelta: number, logs: LogEnt
         pushLog(
             logs,
             'market',
-            '相関',
-            `${STOCK_LABELS[sourceKey]}の上昇に引っ張られ、市場株へ下押し圧力が発生。`,
+            '連動',
+            `${STOCK_LABELS[sourceKey]}の上昇に資金が集まり、市場株には売り圧力が出ました。`,
             'down',
         )
     }
@@ -429,8 +419,8 @@ function settleSpeculation(player: PlayerState, logs: LogEntry[]): void {
         pushLog(
             logs,
             'system',
-            '強制決済',
-            `${player.name}の${STOCK_LABELS[position.stockKey]} ${position.side === 'buy' ? '買い投機' : '空売り投機'} ${position.quantity}株が決済。損益 ${formatSignedCurrency(pnl)}。`,
+            '投機清算',
+            `${player.name}の${STOCK_LABELS[position.stockKey]} ${position.side === 'buy' ? '買い投機' : '空売り投機'} ${position.quantity}株を清算しました。損益 ${formatSignedCurrency(pnl)}`,
             pnl >= 0 ? 'up' : 'warn',
         )
     }
@@ -452,8 +442,8 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
         pushLog(
             logs,
             'system',
-            '注文金額不足',
-            `${player.name}の注文金額 ${formatCurrency(orderAmount)} では${stock.name}を1株も取引できません。`,
+            '注文額不足',
+            `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を約定できません。`,
             'warn',
         )
         return
@@ -463,7 +453,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
 
     if (payload.tradeMode === 'speculation') {
         if (payload.tradeAction !== 'buy' && payload.tradeAction !== 'short') {
-            pushLog(logs, 'system', '入力制限', '投機では「買う」または「空売り」のみ選択できます。', 'warn')
+            pushLog(logs, 'system', '投機ルール', '投機では買い投機か空売り投機のみ選べます。', 'warn')
             return
         }
 
@@ -477,14 +467,14 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
 
         if (payload.tradeAction === 'buy') {
             const delta = moveStockPrice(payload.stockKey, baseImpact, logs)
-            pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を投機買い。注文金額 ${formatCurrency(orderAmount)} / 約${quantity}株。`, 'up')
+            pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を買い投機。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'up')
             applyCorrelation(payload.stockKey, delta, logs)
             return
         }
 
         stock.shortInterest += quantity
         const delta = moveStockPrice(payload.stockKey, -baseImpact, logs)
-        pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を投機空売り。注文金額 ${formatCurrency(orderAmount)} / 約${quantity}株。`, 'down')
+        pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を空売り投機。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'down')
         applyCorrelation(payload.stockKey, delta, logs)
         return
     }
@@ -493,7 +483,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
         case 'buy': {
             const cost = openPrice * quantity
             if (player.cash < cost) {
-                pushLog(logs, 'system', '資金不足', `${player.name}は${stock.name}を${formatCurrency(orderAmount)}ぶん買うには現金が不足しています。`, 'warn')
+                pushLog(logs, 'system', '資金不足', `${player.name}は${stock.name}を買うための現金が不足しています。`, 'warn')
                 return
             }
 
@@ -501,7 +491,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             addToPosition(player.holdings[payload.stockKey], quantity, openPrice)
 
             const delta = moveStockPrice(payload.stockKey, baseImpact, logs)
-            pushLog(logs, 'player', '注文', `${player.name}が${stock.name}を買い。注文金額 ${formatCurrency(cost)} / ${quantity}株。価格 ${formatCurrency(openPrice)} → ${formatCurrency(getStock(payload.stockKey).currentPrice)}。`, 'up')
+            pushLog(logs, 'player', '売買', `${player.name}が${stock.name}を買いました。${formatCurrency(cost)} / ${quantity}株`, 'up')
             applyCorrelation(payload.stockKey, delta, logs)
             break
         }
@@ -509,7 +499,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
         case 'sell': {
             const { executed } = reducePosition(player.holdings[payload.stockKey], quantity)
             if (executed <= 0) {
-                pushLog(logs, 'system', '保有不足', `${player.name}は${stock.name}を売るだけの保有株がありません。`, 'warn')
+                pushLog(logs, 'system', '保有不足', `${player.name}は${stock.name}を売るための保有株が足りません。`, 'warn')
                 return
             }
 
@@ -517,7 +507,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             const impact = Math.max(1, Math.round(executed / 8))
             const delta = moveStockPrice(payload.stockKey, -impact, logs)
 
-            pushLog(logs, 'player', '注文', `${player.name}が${stock.name}を売り。約${formatCurrency(openPrice * executed)} / ${executed}株。価格 ${formatCurrency(openPrice)} → ${formatCurrency(getStock(payload.stockKey).currentPrice)}。`, 'down')
+            pushLog(logs, 'player', '売買', `${player.name}が${stock.name}を売りました。${formatCurrency(openPrice * executed)} / ${executed}株`, 'down')
             applyCorrelation(payload.stockKey, delta, logs)
             break
         }
@@ -527,7 +517,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             stock.shortInterest += quantity
 
             const delta = moveStockPrice(payload.stockKey, -baseImpact, logs)
-            pushLog(logs, 'player', '空売り', `${player.name}が${stock.name}を空売り。注文金額 ${formatCurrency(orderAmount)} / 約${quantity}株。`, 'down')
+            pushLog(logs, 'player', '空売り', `${player.name}が${stock.name}を空売りしました。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'down')
             applyCorrelation(payload.stockKey, delta, logs)
             break
         }
@@ -535,7 +525,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
         case 'cover': {
             const shortPosition = player.shorts[payload.stockKey]
             if (shortPosition.quantity <= 0) {
-                pushLog(logs, 'system', '建玉なし', `${player.name}は${stock.name}の空売り建玉を持っていません。`, 'warn')
+                pushLog(logs, 'system', '空売り不足', `${player.name}は${stock.name}の空売りポジションを持っていません。`, 'warn')
                 return
             }
 
@@ -547,7 +537,7 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             const impact = Math.max(1, Math.round(executed / 8))
             const delta = moveStockPrice(payload.stockKey, impact, logs)
 
-            pushLog(logs, 'player', '買い戻し', `${player.name}が${stock.name}を買い戻し。約${formatCurrency(openPrice * executed)} / ${executed}株。実現損益 ${formatSignedCurrency(realized)}。`, realized >= 0 ? 'up' : 'warn')
+            pushLog(logs, 'player', '買い戻し', `${player.name}が${stock.name}を買い戻しました。${formatCurrency(openPrice * executed)} / ${executed}株 / 実現損益 ${formatSignedCurrency(realized)}`, realized >= 0 ? 'up' : 'warn')
             applyCorrelation(payload.stockKey, delta, logs)
             break
         }
@@ -559,33 +549,33 @@ function applyCompanyAction(
     action: TurnActionPayload['companyAction'],
     logs: LogEntry[],
 ): void {
-    if (action === 'なし') return
+    if (action === NO_COMPANY_ACTION) return
 
     if (player.cooldowns[action] > 0) {
-        pushLog(logs, 'system', 'クールダウン', `${player.name}の${action}は、あと${player.cooldowns[action]}ターン使用できません。`, 'warn')
+        pushLog(logs, 'system', 'クールダウン', `${player.name}の${action}はあと${player.cooldowns[action]}ターン使えません。`, 'warn')
         return
     }
 
-    if (action === '自社株買い') {
-        pushLog(logs, 'system', '無効な会社行動', '自社株買いはこのルールでは使用しません。', 'warn')
+    if (action === BUYBACK_ACTION) {
+        pushLog(logs, 'system', '未解放の会社行動', '自社株買いはこのルールでは使用できません。', 'warn')
         return
     }
 
     const stockKey = ownStockKey(player.id)
 
     switch (action) {
-        case '増資': {
+        case CAPITAL_INCREASE_ACTION: {
             player.companyFunds += 1500
             moveStockPrice(stockKey, -12, logs)
             player.cooldowns[action] = 3
-            pushLog(logs, 'player', '会社', `${player.name}が増資を実施。会社資金 +${formatCurrency(1500)}、自社株には希薄化圧力。`, 'warn')
+            pushLog(logs, 'player', '会社行動', `${player.name}が増資を実行。会社資金 +${formatCurrency(1500)}、自社株にはやや売り圧力。`, 'warn')
             break
         }
 
-        case '配当': {
+        case AD_CAMPAIGN_ACTION: {
             const cost = 600
             if (player.companyFunds < cost) {
-                pushLog(logs, 'system', '会社資金不足', `${player.name}は配当に必要な会社資金が不足しています。`, 'warn')
+                pushLog(logs, 'system', '会社資金不足', `${player.name}は広告に必要な会社資金が不足しています。`, 'warn')
                 return
             }
 
@@ -593,12 +583,12 @@ function applyCompanyAction(
             player.cash += 220
             const delta = moveStockPrice(stockKey, 6, logs)
             player.cooldowns[action] = 2
-            pushLog(logs, 'player', '会社', `${player.name}が配当を実施。会社資金 -${formatCurrency(cost)}、個人現金 +${formatCurrency(220)}。`, 'up')
+            pushLog(logs, 'player', '会社行動', `${player.name}が広告を実行。会社資金 -${formatCurrency(cost)}、現金 +${formatCurrency(220)}。`, 'up')
             applyCorrelation(stockKey, delta, logs)
             break
         }
 
-        case '設備投資': {
+        case FACILITY_INVESTMENT_ACTION: {
             const cost = 700
             if (player.companyFunds < cost) {
                 pushLog(logs, 'system', '会社資金不足', `${player.name}は設備投資に必要な会社資金が不足しています。`, 'warn')
@@ -609,7 +599,7 @@ function applyCompanyAction(
             player.marketBias += 2
             moveStockPrice(stockKey, 4, logs)
             player.cooldowns[action] = 2
-            pushLog(logs, 'player', '会社', `${player.name}が設備投資を実施。中期成長期待で自社株に追い風。`, 'up')
+            pushLog(logs, 'player', '会社行動', `${player.name}が設備投資を実行。中長期の期待で自社株に追い風が出ています。`, 'up')
             break
         }
     }
@@ -655,8 +645,18 @@ function advanceTurn(): void {
     }
 }
 
-function handlePreviewChange(payload: ActionPreviewState): void {
-    actionPreview.value = payload
+function handleDraftChange(nextDraft: BattleActionDraft): void {
+    actionDraft.value = nextDraft
+}
+
+function handleConfirmTurn(): void {
+    const payload = buildBattleConfirmedAction(activePlayer.value, actionProjection.value)
+    if (!payload) {
+        return
+    }
+
+    handleTurn(payload)
+    actionDraft.value = createDefaultBattleActionDraft()
 }
 
 async function goBackToMenu(): Promise<void> {
@@ -675,8 +675,8 @@ function handleTurn(payload: TurnActionWithWait): void {
     settleSpeculation(player, logs)
 
     if (payload.metaAction === 'wait') {
-        pushLog(logs, 'player', '待機', `${player.name}はこのターン、様子見を選択。大きな行動は起こしていません。`, 'up')
-    } else if (payload.companyAction !== 'なし') {
+        pushLog(logs, 'player', '待機', `${player.name}はこのターンを待機し、大きな行動を見送りました。`, 'up')
+    } else if (payload.companyAction !== NO_COMPANY_ACTION) {
         applyCompanyAction(player, payload.companyAction, logs)
     } else {
         applyPlayerOrder(player, payload, logs)
@@ -712,11 +712,11 @@ function handleTurn(payload: TurnActionWithWait): void {
         <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
             :is-active="state.currentPlayer === 'player2'" :asset-diff="rightAssetDiff" />
 
-        <ActionHistoryPanel class="history-panel" :preview="actionPreview" :player1-name="leftPlayer.name"
+        <ActionHistoryPanel class="history-panel" :preview="actionProjection.preview" :player1-name="leftPlayer.name"
             :player2-name="rightPlayer.name" :cpu-stats="cpuMarketStats" />
 
-        <ActionPanel class="action-panel-slot" :current-player="activePlayer" :stocks="state.stocks"
-            @preview-change="handlePreviewChange" @confirm="handleTurn" />
+        <ActionPanel class="action-panel-slot" :current-player="activePlayer" :draft="actionDraft"
+            :projection="actionProjection" @update:draft="handleDraftChange" @confirm="handleConfirmTurn" />
     </div>
 </template>
 
@@ -729,10 +729,10 @@ function handleTurn(payload: TurnActionWithWait): void {
     min-height: 0;
     min-width: 0;
     max-height: 100%;
-    padding: 10px 12px 12px;
+    padding: 7px 8px 8px;
     display: grid;
-    grid-template-columns: minmax(168px, 0.92fr) minmax(0, 3.9fr) minmax(168px, 0.92fr) minmax(250px, 1.18fr);
-    grid-template-rows: 38px minmax(0, 1fr) minmax(170px, 0.62fr);
+    grid-template-columns: minmax(176px, 0.82fr) minmax(0, 4.8fr) minmax(176px, 0.82fr) minmax(260px, 1.08fr);
+    grid-template-rows: 34px minmax(0, 1fr) minmax(206px, 0.66fr);
     grid-template-areas:
         'topbar topbar topbar topbar'
         'left chart right history'
@@ -764,7 +764,7 @@ function handleTurn(payload: TurnActionWithWait): void {
 .menu-return-button {
     position: relative;
     z-index: 3;
-    height: 34px;
+    height: 30px;
     padding: 0 14px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.12);
@@ -803,17 +803,19 @@ function handleTurn(payload: TurnActionWithWait): void {
 
 @media (min-width: 1700px) {
     .battle-screen {
-        grid-template-columns: minmax(176px, 0.95fr) minmax(0, 4.2fr) minmax(176px, 0.95fr) minmax(262px, 1.24fr);
-        grid-template-rows: 40px minmax(0, 1fr) minmax(178px, 0.66fr);
+        grid-template-columns: minmax(188px, 0.86fr) minmax(0, 5.2fr) minmax(188px, 0.86fr) minmax(278px, 1.14fr);
+        grid-template-rows: 36px minmax(0, 1fr) minmax(214px, 0.68fr);
     }
 }
 
 @media (max-width: 1480px) {
     .battle-screen {
-        grid-template-columns: minmax(156px, 0.86fr) minmax(0, 3.4fr) minmax(156px, 0.86fr) minmax(228px, 1.04fr);
-        grid-template-rows: 38px minmax(0, 1fr) minmax(162px, 0.58fr);
+        grid-template-columns: minmax(154px, 0.78fr) minmax(0, 4.1fr) minmax(154px, 0.78fr) minmax(234px, 0.98fr);
+        grid-template-rows: 34px minmax(0, 1fr) minmax(194px, 0.62fr);
         gap: 7px;
-        padding: 8px 10px 10px;
+        padding: 7px 8px 8px;
     }
 }
 </style>
+
+
