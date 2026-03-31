@@ -15,9 +15,14 @@ import {
   MODE_LABELS,
   NO_COMPANY_ACTION,
   STOCK_LABELS,
-  TRADE_ACTIONS,
   TRADE_LABELS,
 } from '../api/types/game'
+import {
+  MIN_TRADE_ORDER_AMOUNT,
+  calculateTradePriceImpact,
+  resolvePriceAfterDelta,
+  resolveTradeImpactPattern,
+} from './tradeImpact'
 
 export type BattleActionKind = 'trade' | 'company' | 'wait'
 
@@ -69,6 +74,7 @@ export type BattleActionProjection = {
   companyActions: CooldownAction[]
   visibleTradeActions: TradeAction[]
   selectedPrice: number
+  projectedExecutionPrice: number
   selectedHoldingQuantity: number
   selectedShortQuantity: number
   availableCash: number
@@ -93,7 +99,15 @@ const NONE_COMPANY_ACTION = NO_COMPANY_ACTION
 const HIDDEN_COMPANY_ACTION = BUYBACK_ACTION
 
 function formatCurrency(value: number): string {
-  return `${Math.round(value).toLocaleString()}円`
+  return `${Math.round(value).toLocaleString('ja-JP')}円`
+}
+
+function formatUnits(value: number): string {
+  const normalized = Math.round(value * 10000) / 10000
+  return normalized.toLocaleString('ja-JP', {
+    minimumFractionDigits: normalized % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
 }
 
 function ownStockKey(playerId: PlayerId): StockKey {
@@ -119,18 +133,18 @@ function stockChoicesForPlayer(playerId: PlayerId): BattleStockChoice[] {
   return [
     {
       key: ownKey,
-      title: '自社株',
+      title: '自分レート',
       subtitle: STOCK_LABELS[ownKey],
     },
     {
       key: rivalKey,
-      title: '相手株',
+      title: '相手レート',
       subtitle: STOCK_LABELS[rivalKey],
     },
     {
       key: 'market',
-      title: '市場株',
-      subtitle: '共通マーケット',
+      title: 'マーケット',
+      subtitle: STOCK_LABELS.market,
     },
   ]
 }
@@ -142,15 +156,93 @@ function companyActionsForBattle(): CooldownAction[] {
 }
 
 function visibleTradeActionsForMode(tradeMode: TradeMode): TradeAction[] {
-  return tradeMode === 'speculation' ? ['buy', 'short'] : TRADE_ACTIONS
+  return tradeMode === 'speculation' ? ['buy', 'sell'] : ['buy', 'sell']
 }
 
-function resolveOrderQuantity(openPrice: number, orderAmount: number): number {
-  if (openPrice <= 0 || orderAmount < openPrice) {
+export function resolveEffectiveTradeAction(
+  _player: PlayerState,
+  _stockKey: StockKey,
+  tradeAction: TradeAction,
+): TradeAction {
+  return tradeAction
+}
+
+export function resolveNextBattlePlayer(
+  currentPlayerId: PlayerId,
+  completedActionTurn: number,
+): PlayerId {
+  if (completedActionTurn % 2 === 1) {
+    return currentPlayerId === 'player1' ? 'player2' : 'player1'
+  }
+
+  return currentPlayerId
+}
+
+function resolveOrderQuantity(executionPrice: number, orderAmount: number): number {
+  if (executionPrice <= 0 || orderAmount < MIN_TRADE_ORDER_AMOUNT) {
     return 0
   }
 
-  return Math.floor(orderAmount / openPrice)
+  return orderAmount / executionPrice
+}
+
+function hasOppositePositionConflict(
+  player: PlayerState,
+  stockKey: StockKey,
+  tradeAction: TradeAction,
+): boolean {
+  if (tradeAction === 'buy') {
+    return (player.shorts[stockKey]?.quantity ?? 0) > 0
+  }
+
+  if (tradeAction === 'sell') {
+    return (player.holdings[stockKey]?.quantity ?? 0) > 0
+  }
+
+  return false
+}
+
+function isPositiveAction(action: TradeAction): boolean {
+  return action === 'buy'
+}
+
+function resolveProjectedExecutionPrice(
+  stock: StockState | undefined,
+  tradeAction: TradeAction,
+  orderAmount: number,
+): { executionPrice: number; priceImpactAmount: number } {
+  if (!stock) {
+    return {
+      executionPrice: 0,
+      priceImpactAmount: 0,
+    }
+  }
+
+  const priceImpactAmount = calculateTradePriceImpact(
+    orderAmount,
+    stock.currentPrice,
+    stock.basePrice,
+  )
+  if (priceImpactAmount <= 0) {
+    return {
+      executionPrice: stock.currentPrice,
+      priceImpactAmount,
+    }
+  }
+
+  const direction = isPositiveAction(tradeAction) ? 1 : -1
+  const resolved = resolvePriceAfterDelta(
+    stock.currentPrice,
+    stock.basePrice,
+    stock.bubbleUpper,
+    stock.bubbleLower,
+    direction * priceImpactAmount,
+  )
+
+  return {
+    executionPrice: resolved.nextPrice,
+    priceImpactAmount,
+  }
 }
 
 function normalizeDraftForPlayer(
@@ -182,21 +274,7 @@ function normalizeDraftForPlayer(
 
   nextDraft.companyAction = NONE_COMPANY_ACTION
 
-  if (
-    nextDraft.tradeMode === 'speculation'
-    && (nextDraft.tradeAction === 'sell' || nextDraft.tradeAction === 'cover')
-  ) {
-    nextDraft.tradeAction = 'buy'
-  }
-
   return nextDraft
-}
-
-function effectScale(estimatedShares: number): 'none' | 'small' | 'medium' | 'large' {
-  if (estimatedShares >= 100) return 'large'
-  if (estimatedShares >= 40) return 'medium'
-  if (estimatedShares >= 1) return 'small'
-  return 'none'
 }
 
 function createNeutralImpact(choice: BattleStockChoice): StockImpactItem {
@@ -205,8 +283,8 @@ function createNeutralImpact(choice: BattleStockChoice): StockImpactItem {
     title: choice.title,
     subtitle: choice.subtitle,
     level: 'neutral',
-    headline: 'まだ大きな変化はありません',
-    detail: '行動を選ぶと、この銘柄への値動き予測を表示します。',
+    headline: '変動なし',
+    detail: 'この操作では価格は動きません。',
   }
 }
 
@@ -230,175 +308,79 @@ function setImpact(
   }
 }
 
-function impactSizeLabel(scale: ReturnType<typeof effectScale>): string {
-  if (scale === 'large') return '強め'
-  if (scale === 'medium') return '中くらい'
-  if (scale === 'small') return '小さめ'
-  return 'ほぼ'
+function impactLevel(direction: number, priceImpactAmount: number): StockImpactLevel {
+  if (direction === 0 || priceImpactAmount <= 0) {
+    return 'neutral'
+  }
+
+  if (direction > 0) {
+    return priceImpactAmount >= 1000 ? 'strong-up' : 'up'
+  }
+
+  return priceImpactAmount >= 1000 ? 'strong-down' : 'down'
+}
+
+function impactSizeText(priceImpactAmount: number): string {
+  if (priceImpactAmount >= 1000) return '大きく'
+  if (priceImpactAmount >= 300) return '中くらいに'
+  return '小さく'
 }
 
 function buildTradeImpactSummary(
   targetLabel: string,
   tradeAction: TradeAction,
-  estimatedShares: number,
+  priceImpactAmount: number,
+  isOrderAmountValid: boolean,
 ): string {
-  if (estimatedShares <= 0) {
-    return '注文額が小さく、このターンは約定しません'
+  if (!isOrderAmountValid) {
+    return `最低注文額は${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です`
   }
 
-  const sizeText = impactSizeLabel(effectScale(estimatedShares))
-
-  if (tradeAction === 'buy') {
-    return `${targetLabel}に${sizeText}の買い圧力`
+  if (priceImpactAmount <= 0) {
+    return `${targetLabel} 変動なし`
   }
 
-  if (tradeAction === 'sell') {
-    return `${targetLabel}に${sizeText}の売り圧力`
-  }
-
-  if (tradeAction === 'short') {
-    return `${targetLabel}に${sizeText}の下押し圧力`
-  }
-
-  return `${targetLabel}の買い戻しが${sizeText}`
+  const sign = isPositiveAction(tradeAction) ? '+' : '-'
+  return `${targetLabel} ${sign}${priceImpactAmount.toLocaleString('ja-JP')}円`
 }
 
 function buildTradeImpactPreview(
+  playerId: PlayerId,
   draft: BattleActionDraft,
   stockChoices: BattleStockChoice[],
-  estimatedShares: number,
+  priceImpactAmount: number,
+  effectiveTradeAction: TradeAction,
 ): StockImpactItem[] {
   const items = stockChoices.map((choice) => createNeutralImpact(choice))
 
-  if (estimatedShares <= 0) {
+  if (priceImpactAmount <= 0) {
     return items
   }
 
-  const targetKey = draft.stockKey
-  const targetIsCompany = targetKey === 'p1' || targetKey === 'p2'
-  const ownKey = stockChoices[0]?.key ?? 'p1'
-  const rivalKey = stockChoices[1]?.key ?? 'p2'
-  const sizeText = impactSizeLabel(effectScale(estimatedShares))
+  const pattern = resolveTradeImpactPattern(playerId, draft.stockKey, effectiveTradeAction)
 
-  if (draft.tradeAction === 'buy') {
+  stockChoices.forEach((choice) => {
+    const direction = pattern[choice.key]
+    const appliedImpact = Math.round(Math.abs(priceImpactAmount * direction))
+    if (direction === 0) {
+      setImpact(
+        items,
+        choice.key,
+        'neutral',
+        '変動なし',
+        `${choice.title}は今回の操作では動きません。`,
+      )
+      return
+    }
+
     setImpact(
       items,
-      targetKey,
-      targetKey === 'market' ? 'strong-up' : 'up',
-      targetKey === 'market' ? '市場全体が上がりやすい' : '買いで上がりやすい',
-      `${sizeText}の買い注文で価格が上向きやすくなります。`,
+      choice.key,
+      impactLevel(direction, appliedImpact),
+      direction > 0 ? `${impactSizeText(appliedImpact)}上がる見込み` : `${impactSizeText(appliedImpact)}下がる見込み`,
+      `${choice.title}は ${direction > 0 ? '+' : '-'}${appliedImpact.toLocaleString('ja-JP')}円 動く見込みです。`,
     )
-
-    if (targetIsCompany) {
-      setImpact(
-        items,
-        'market',
-        'down',
-        '市場へ資金が抜けやすい',
-        '会社株に資金が向かうため、市場株はやや重くなります。',
-      )
-      setImpact(
-        items,
-        targetKey === ownKey ? rivalKey : ownKey,
-        'neutral',
-        '直接の影響は小さい',
-        'この行動では別の会社株への波及は限定的です。',
-      )
-    } else {
-      setImpact(items, ownKey, 'neutral', '会社株への影響は小さい', '市場株の買いでは個別株への波及は限定的です。')
-      setImpact(items, rivalKey, 'neutral', '会社株への影響は小さい', '市場株の買いでは個別株への波及は限定的です。')
-    }
-  }
-
-  if (draft.tradeAction === 'sell') {
-    setImpact(
-      items,
-      targetKey,
-      targetKey === 'market' ? 'strong-down' : 'down',
-      targetKey === 'market' ? '市場全体が下がりやすい' : '売りで下がりやすい',
-      `${sizeText}の売り注文で価格が下向きやすくなります。`,
-    )
-
-    if (targetIsCompany) {
-      setImpact(
-        items,
-        'market',
-        'up',
-        '市場へ資金が戻りやすい',
-        '会社株の売りで資金が市場へ戻り、市場株はやや上がりやすくなります。',
-      )
-      setImpact(
-        items,
-        targetKey === ownKey ? rivalKey : ownKey,
-        'neutral',
-        '直接の影響は小さい',
-        'この行動では別の会社株への波及は限定的です。',
-      )
-    } else {
-      setImpact(items, ownKey, 'neutral', '会社株への影響は小さい', '市場株の売りでは個別株への波及は限定的です。')
-      setImpact(items, rivalKey, 'neutral', '会社株への影響は小さい', '市場株の売りでは個別株への波及は限定的です。')
-    }
-  }
-
-  if (draft.tradeAction === 'short') {
-    setImpact(
-      items,
-      targetKey,
-      'strong-down',
-      '空売りで下がりやすい',
-      `${sizeText}の空売りで下押し圧力が強まりやすくなります。`,
-    )
-
-    if (targetIsCompany) {
-      setImpact(
-        items,
-        'market',
-        'up',
-        '市場へ逃避資金が向かいやすい',
-        '会社株の弱さが目立つと、市場株へ資金が移りやすくなります。',
-      )
-      setImpact(
-        items,
-        targetKey === ownKey ? rivalKey : ownKey,
-        'neutral',
-        '直接の影響は小さい',
-        'この行動では別の会社株への波及は限定的です。',
-      )
-    } else {
-      setImpact(items, ownKey, 'neutral', '会社株への影響は小さい', '市場株への空売りでは個別株への波及は限定的です。')
-      setImpact(items, rivalKey, 'neutral', '会社株への影響は小さい', '市場株への空売りでは個別株への波及は限定的です。')
-    }
-  }
-
-  if (draft.tradeAction === 'cover') {
-    setImpact(
-      items,
-      targetKey,
-      'up',
-      '買い戻しで反発しやすい',
-      `${sizeText}の買い戻しで価格が戻りやすくなります。`,
-    )
-
-    if (targetIsCompany) {
-      setImpact(
-        items,
-        'market',
-        'down',
-        '市場資金はやや細りやすい',
-        '会社株の買い戻しが入るため、市場株はやや重くなります。',
-      )
-      setImpact(
-        items,
-        targetKey === ownKey ? rivalKey : ownKey,
-        'neutral',
-        '直接の影響は小さい',
-        'この行動では別の会社株への波及は限定的です。',
-      )
-    } else {
-      setImpact(items, ownKey, 'neutral', '会社株への影響は小さい', '市場株の買い戻しでは個別株への波及は限定的です。')
-      setImpact(items, rivalKey, 'neutral', '会社株への影響は小さい', '市場株の買い戻しでは個別株への波及は限定的です。')
-    }
-  }
+  })
 
   return items
 }
@@ -406,20 +388,20 @@ function buildTradeImpactPreview(
 function buildWaitPreview(stockChoices: BattleStockChoice[]): BattleActionPreview {
   return {
     actionKind: 'wait',
-    bannerTitle: '今回の影響まとめ',
+    bannerTitle: '今回の見込み',
     overviewTitle: 'このターンは待機',
-    overviewSub: 'ポジションを増やさず、次ターンの値動きを見る選択です。',
+    overviewSub: 'ポジションを増やさず、次の動きを見ます。',
     stockImpactPreview: stockChoices.map((choice) => ({
       key: choice.key,
       title: choice.title,
       subtitle: choice.subtitle,
       level: 'neutral',
-      headline: '大きな影響は出ません',
-      detail: '待機のため、このターンは新しい売買圧力が発生しません。',
+      headline: '変動なし',
+      detail: '待機のため、この操作による追加変動はありません。',
     })),
     companySummaryItems: [],
-    actionChips: ['待つ'],
-    decisionLabel: 'このターンは待つ',
+    actionChips: ['待機'],
+    decisionLabel: 'このターンは待機',
   }
 }
 
@@ -429,14 +411,14 @@ function buildCompanyPreview(
 ): BattleActionPreview {
   return {
     actionKind: 'company',
-    bannerTitle: '今回の会社行動',
+    bannerTitle: '今回の見込み',
     overviewTitle: companyAction,
-    overviewSub: '会社資金と自社株への影響を伴う行動です。',
+    overviewSub: '追加操作の効果を適用します。',
     stockImpactPreview: [],
     companySummaryItems: [
       { label: '実行者', value: currentPlayer.name },
-      { label: '対象株', value: '自社株' },
-      { label: '会社行動', value: companyAction },
+      { label: '対象', value: '自分レート' },
+      { label: '操作', value: companyAction },
     ],
     actionChips: [currentPlayer.name, companyAction],
     decisionLabel: 'この内容で実行',
@@ -444,33 +426,51 @@ function buildCompanyPreview(
 }
 
 function buildTradePreview(
+  playerId: PlayerId,
   draft: BattleActionDraft,
   stockChoices: BattleStockChoice[],
   orderAmount: number,
   executedAmount: number,
   estimatedShares: number,
+  effectiveTradeAction: TradeAction,
+  selectedPrice: number,
+  projectedExecutionPrice: number,
+  priceImpactAmount: number,
 ): BattleActionPreview {
   const selectedChoice = stockChoices.find((choice) => choice.key === draft.stockKey) ?? stockChoices[0]
+  const isOrderAmountValid = orderAmount >= MIN_TRADE_ORDER_AMOUNT
   const executionEstimateText =
     estimatedShares <= 0 || executedAmount <= 0
-      ? '注文額不足'
-      : `${formatCurrency(executedAmount)} / 約${estimatedShares}株`
+      ? orderAmount > 0 && orderAmount < MIN_TRADE_ORDER_AMOUNT
+        ? `最低注文額は${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です`
+        : '注文額不足'
+      : priceImpactAmount > 0
+        ? `想定約定 ${formatCurrency(projectedExecutionPrice)} / 約${formatUnits(estimatedShares)}口`
+        : `現在価格 ${formatCurrency(selectedPrice)} に届くまで値動きなし`
 
   return {
     actionKind: 'trade',
-    bannerTitle: '今回の影響まとめ',
-    overviewTitle: buildTradeImpactSummary(selectedChoice.title, draft.tradeAction, estimatedShares),
-    overviewSub:
-      estimatedShares <= 0
-        ? '注文額が不足しているため、このターンは約定しません。'
-        : `執行見込み ${executionEstimateText}`,
-    stockImpactPreview: buildTradeImpactPreview(draft, stockChoices, estimatedShares),
+    bannerTitle: '今回の見込み',
+    overviewTitle: buildTradeImpactSummary(
+      selectedChoice.title,
+      effectiveTradeAction,
+      priceImpactAmount,
+      isOrderAmountValid,
+    ),
+    overviewSub: estimatedShares <= 0 ? executionEstimateText : `投入額 ${formatCurrency(orderAmount)} / ${executionEstimateText}`,
+    stockImpactPreview: buildTradeImpactPreview(
+      playerId,
+      draft,
+      stockChoices,
+      priceImpactAmount,
+      effectiveTradeAction,
+    ),
     companySummaryItems: [],
     actionChips: [
       selectedChoice.title,
       MODE_LABELS[draft.tradeMode],
       TRADE_LABELS[draft.tradeAction],
-      orderAmount > 0 ? `${orderAmount.toLocaleString()}円` : '注文額 0円',
+      orderAmount > 0 ? `${orderAmount.toLocaleString('ja-JP')}円` : '0円',
     ],
     decisionLabel: 'この内容で注文',
   }
@@ -499,13 +499,30 @@ export function buildBattleActionProjection(
   const selectedPrice = selectedStock?.currentPrice ?? 0
   const selectedHoldingQuantity = currentPlayer.holdings[normalizedDraft.stockKey]?.quantity ?? 0
   const selectedShortQuantity = currentPlayer.shorts[normalizedDraft.stockKey]?.quantity ?? 0
+  const effectiveTradeAction = resolveEffectiveTradeAction(
+    currentPlayer,
+    normalizedDraft.stockKey,
+    normalizedDraft.tradeAction,
+  )
   const availableCash = Math.max(0, Math.floor(currentPlayer.cash))
   const orderAmount = normalizeQuantity(normalizedDraft.quantity)
-  const estimatedShares = resolveOrderQuantity(selectedPrice, orderAmount)
-  const executedAmount = estimatedShares * selectedPrice
-  const requiresCashAmount =
-    normalizedDraft.tradeAction === 'buy' || normalizedDraft.tradeAction === 'short'
-  const requiredCashAmount = requiresCashAmount ? executedAmount : 0
+  const executedAmount = orderAmount
+  const { executionPrice: projectedExecutionPrice, priceImpactAmount } = resolveProjectedExecutionPrice(
+    selectedStock,
+    effectiveTradeAction,
+    executedAmount,
+  )
+  const requestedQuantity = resolveOrderQuantity(projectedExecutionPrice, orderAmount)
+  const projectedExecutedShares = requestedQuantity
+  const hasTradeConflict =
+    normalizedDraft.actionKind === 'trade'
+    && hasOppositePositionConflict(
+      currentPlayer,
+      normalizedDraft.stockKey,
+      effectiveTradeAction,
+    )
+  const requiresCashAmount = effectiveTradeAction === 'buy' || effectiveTradeAction === 'sell'
+  const requiredCashAmount = requiresCashAmount ? orderAmount : 0
   const isCashInsufficient =
     normalizedDraft.actionKind === 'trade'
     && requiresCashAmount
@@ -514,23 +531,21 @@ export function buildBattleActionProjection(
   const executionEstimateText =
     normalizedDraft.actionKind !== 'trade'
       ? '未設定'
-      : isCashInsufficient
-        ? `現金不足 (${formatCurrency(requiredCashAmount)} / 所持 ${formatCurrency(availableCash)})`
-      : estimatedShares <= 0 || executedAmount <= 0
-        ? '注文額不足'
-        : `${formatCurrency(executedAmount)} / 約${estimatedShares}株`
+      : orderAmount > 0 && orderAmount < MIN_TRADE_ORDER_AMOUNT
+        ? `最低注文額は${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です`
+        : isCashInsufficient
+          ? `現金不足 (${formatCurrency(requiredCashAmount)} / 所持 ${formatCurrency(availableCash)})`
+          : projectedExecutedShares <= 0 || executedAmount <= 0
+            ? '注文額不足'
+            : priceImpactAmount > 0
+              ? `想定約定 ${formatCurrency(projectedExecutionPrice)} / 約${formatUnits(projectedExecutedShares)}口`
+              : '値動きなし'
 
   const canSubmitTrade =
     normalizedDraft.actionKind === 'trade'
-    && estimatedShares > 0
+    && projectedExecutedShares > 0
     && !isCashInsufficient
-    && (
-      normalizedDraft.tradeAction === 'sell'
-        ? selectedHoldingQuantity > 0
-        : normalizedDraft.tradeAction === 'cover'
-          ? selectedShortQuantity > 0
-          : true
-    )
+    && !hasTradeConflict
 
   const canSubmitCompany =
     normalizedDraft.actionKind === 'company'
@@ -544,7 +559,18 @@ export function buildBattleActionProjection(
       ? buildWaitPreview(stockChoices)
       : normalizedDraft.actionKind === 'company'
         ? buildCompanyPreview(currentPlayer, normalizedDraft.companyAction)
-        : buildTradePreview(normalizedDraft, stockChoices, orderAmount, executedAmount, estimatedShares)
+        : buildTradePreview(
+          currentPlayer.id,
+          normalizedDraft,
+          stockChoices,
+          orderAmount,
+          executedAmount,
+          projectedExecutedShares,
+          effectiveTradeAction,
+          selectedPrice,
+          projectedExecutionPrice,
+          priceImpactAmount,
+        )
 
   return {
     draft: normalizedDraft,
@@ -552,11 +578,12 @@ export function buildBattleActionProjection(
     companyActions,
     visibleTradeActions,
     selectedPrice,
+    projectedExecutionPrice,
     selectedHoldingQuantity,
     selectedShortQuantity,
     availableCash,
     orderAmount,
-    estimatedShares,
+    estimatedShares: projectedExecutedShares,
     executedAmount,
     requiredCashAmount,
     isCashInsufficient,
@@ -593,7 +620,11 @@ export function buildBattleConfirmedAction(
       projection.draft.actionKind === 'company'
         ? ownStockKey(currentPlayer.id)
         : projection.draft.stockKey,
-    tradeAction: projection.draft.tradeAction,
+    tradeAction: resolveEffectiveTradeAction(
+      currentPlayer,
+      projection.draft.stockKey,
+      projection.draft.tradeAction,
+    ),
     tradeMode: projection.draft.tradeMode,
     quantity: projection.orderAmount,
     companyAction:

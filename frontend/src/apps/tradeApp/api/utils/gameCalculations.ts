@@ -1,4 +1,10 @@
-import type { PlayerId, PlayerState, StockKey, StockState } from '../types/game'
+import type {
+  PlayerId,
+  PlayerState,
+  StockKey,
+  StockState,
+  TradePositionEntry,
+} from '../types/game'
 
 export interface PlayerSnapshot {
   totalAssets: number
@@ -11,6 +17,8 @@ export interface PlayerSnapshot {
   speculationPnL: number
   managementEvaluation: number
 }
+
+type PositionPnLInput = Pick<TradePositionEntry, 'side' | 'entryPrice' | 'orderAmount'>
 
 export function getPriceMap(stocks: StockState[]): Record<StockKey, number> {
   return stocks.reduce(
@@ -33,6 +41,15 @@ export function calculateManagementEvaluation(
   const ownStockKey = getOwnStockKey(player.id)
   const currentOwnStockPrice = stocks.find((stock) => stock.key === ownStockKey)?.currentPrice ?? 0
   return (currentOwnStockPrice - player.startingOwnStockPrice) * player.managementStakeShares
+}
+
+export function calculatePlayerVictoryValue(
+  player: PlayerState,
+  stocks: StockState[],
+): number {
+  const ownStockKey = getOwnStockKey(player.id)
+  const currentOwnStockPrice = stocks.find((stock) => stock.key === ownStockKey)?.currentPrice ?? 0
+  return player.cash + currentOwnStockPrice
 }
 
 export function calculatePlayerSnapshot(
@@ -99,8 +116,31 @@ export function calculatePlayerSnapshot(
   }
 }
 
+export function calculateTradePositionPnL(
+  position: PositionPnLInput,
+  currentPrice: number,
+): number {
+  if (!Number.isFinite(currentPrice)) {
+    return 0
+  }
+
+  const rawPnL =
+    position.side === 'buy'
+      ? currentPrice - position.entryPrice
+      : position.entryPrice - currentPrice
+
+  return Math.round(rawPnL)
+}
+
+export function calculateTradePositionSettlementCash(
+  position: PositionPnLInput,
+  currentPrice: number,
+): number {
+  return Math.round(position.orderAmount + calculateTradePositionPnL(position, currentPrice))
+}
+
 export function formatCurrency(value: number): string {
-  return `¥${Math.round(value).toLocaleString('ja-JP')}`
+  return `${Math.round(value).toLocaleString('ja-JP')}円`
 }
 
 export function formatSignedNumber(value: number): string {
@@ -112,9 +152,9 @@ export function formatSignedNumber(value: number): string {
 
 export function formatSignedCurrency(value: number): string {
   const rounded = Math.round(value)
-  if (rounded > 0) return `+¥${rounded.toLocaleString('ja-JP')}`
-  if (rounded < 0) return `-¥${Math.abs(rounded).toLocaleString('ja-JP')}`
-  return '±¥0'
+  if (rounded > 0) return `+${rounded.toLocaleString('ja-JP')}円`
+  if (rounded < 0) return `-${Math.abs(rounded).toLocaleString('ja-JP')}円`
+  return '±0円'
 }
 
 export function describeDelta(value: number): {
@@ -124,7 +164,7 @@ export function describeDelta(value: number): {
 } {
   if (value > 0) {
     return {
-      arrow: '↑',
+      arrow: '↗',
       label: '上昇',
       className: 'is-up',
     }
@@ -132,7 +172,7 @@ export function describeDelta(value: number): {
 
   if (value < 0) {
     return {
-      arrow: '↓',
+      arrow: '↘',
       label: '下落',
       className: 'is-down',
     }

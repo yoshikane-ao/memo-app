@@ -4,7 +4,6 @@ import { useRouter } from 'vue-router'
 import StockBoard from './StockBoard.vue'
 import PlayerPanel from './PlayerPanel.vue'
 import ActionPanel from './ActionPanel.vue'
-import ActionHistoryPanel from './ActionHistoryPanel.vue'
 
 import { createInitialGameState } from '../api/data/mockGame'
 import { useTradeGameStore } from '../store/useTradeGameStore'
@@ -16,6 +15,7 @@ import type {
     SpeculationPosition,
     StockKey,
     StockState,
+    TradePositionEntry,
     TurnActionPayload,
 } from '../api/types/game'
 import {
@@ -25,13 +25,12 @@ import {
     COOLDOWN_ACTIONS,
     DEFAULT_MANAGEMENT_STAKE_SHARES,
     FACILITY_INVESTMENT_ACTION,
-    MODE_LABELS,
     NO_COMPANY_ACTION,
-    STOCK_LABELS,
-    TRADE_LABELS,
 } from '../api/types/game'
 import {
-    calculatePlayerSnapshot,
+    calculatePlayerVictoryValue,
+    calculateTradePositionPnL,
+    calculateTradePositionSettlementCash,
     formatCurrency,
     formatSignedCurrency,
 } from '../api/utils/gameCalculations'
@@ -39,8 +38,18 @@ import {
     buildBattleActionProjection,
     buildBattleConfirmedAction,
     createDefaultBattleActionDraft,
+    resolveNextBattlePlayer,
     type BattleActionDraft,
 } from '../lib/tradeBattle'
+import {
+    DEFAULT_MARKET_STOCK_STARTING_PRICE,
+    DEFAULT_PLAYER_STOCK_STARTING_PRICE,
+} from '../lib/tradeSetup'
+import {
+    calculateTradeImpactAmounts,
+    MIN_TRADE_ORDER_AMOUNT,
+    resolvePriceAfterDelta,
+} from '../lib/tradeImpact'
 
 import '../css/style.css'
 
@@ -52,31 +61,125 @@ const startSettings = computed(() => sessionSnapshot.value?.settings ?? null)
 const state = reactive(createInitialGameState())
 
 const DEFAULT_STARTING_CASH = 12000
-const DEFAULT_MARKET_CPU_COUNT = 63
 const STARTING_COMPANY_FUNDS = 3000
-
-type ActionTimelineEntry = {
-    id: number
-    turn: number
-    playerId: 'player1' | 'player2'
-    playerName: string
-    kind: string
-    summary: string
-}
+const MAX_TURNS = 10
 
 type TurnActionWithWait = TurnActionPayload & {
     metaAction?: 'wait'
 }
 
-const actionTimeline = ref<ActionTimelineEntry[]>([])
+type PendingClosePreview = {
+    positionId: string
+    stockKey: StockKey
+    stockName: string
+    side: TradePositionEntry['side']
+    executionPrice: number
+    realizedPnl: number
+    returnedCash: number
+    priceMap: Record<StockKey, number>
+}
+
+type ChartOrderMarker = {
+    id: string
+    stockKey: StockKey
+    playerId: PlayerId
+    side: 'buy' | 'sell'
+    executionPrice: number
+    historyIndex: number
+    turn: number
+}
+
 const actionDraft = ref<BattleActionDraft>(createDefaultBattleActionDraft())
+const pendingClosePositionId = ref<string | null>(null)
+const recentOrderMarkers = ref<ChartOrderMarker[]>([])
+const lastClosedPositionTurn = ref<number | null>(null)
+const isGameOver = ref(false)
 
 let logSequence = 1000
+let positionSequence = 0
 
 function resetBook(book: Record<string, HoldingPosition>): void {
     Object.values(book).forEach((position) => {
         position.quantity = 0
         position.avgPrice = 0
+    })
+}
+
+function createEmptyBook(): Record<StockKey, HoldingPosition> {
+    return {
+        p1: { quantity: 0, avgPrice: 0 },
+        p2: { quantity: 0, avgPrice: 0 },
+        market: { quantity: 0, avgPrice: 0 },
+    }
+}
+
+function syncPlayerBooksFromPositions(player: PlayerState): void {
+    const holdings = createEmptyBook()
+    const shorts = createEmptyBook()
+
+    player.positions.forEach((position) => {
+        const book = position.side === 'buy' ? holdings : shorts
+        const slot = book[position.stockKey]
+        const nextQuantity = normalizePositionUnits(slot.quantity + position.quantity)
+        const totalCost = slot.avgPrice * slot.quantity + position.entryPrice * position.quantity
+
+        slot.quantity = nextQuantity
+        slot.avgPrice = nextQuantity > 0 ? totalCost / nextQuantity : 0
+    })
+
+    ; (['p1', 'p2', 'market'] as StockKey[]).forEach((key) => {
+        player.holdings[key].quantity = holdings[key].quantity
+        player.holdings[key].avgPrice = holdings[key].avgPrice
+        player.shorts[key].quantity = shorts[key].quantity
+        player.shorts[key].avgPrice = shorts[key].avgPrice
+    })
+}
+
+function normalizePositionUnits(value: number): number {
+    if (!Number.isFinite(value) || value <= 0) {
+        return 0
+    }
+
+    return Math.round(value * 10000) / 10000
+}
+
+function formatPositionUnits(value: number): string {
+    const normalized = normalizePositionUnits(value)
+    return normalized.toLocaleString('ja-JP', {
+        minimumFractionDigits: normalized % 1 === 0 ? 0 : 2,
+        maximumFractionDigits: 2,
+    })
+}
+
+function resolveStartingPrice(stockKey: StockKey): number {
+    if (stockKey === 'market') {
+        return startSettings.value?.marketStartingPrice ?? DEFAULT_MARKET_STOCK_STARTING_PRICE
+    }
+
+    return DEFAULT_PLAYER_STOCK_STARTING_PRICE
+}
+
+function calculateCurrentTotalAssets(): number {
+    return state.players.reduce((total, player) => total + player.cash, 0)
+}
+
+function recalculateDynamicLines(): void {
+    state.stocks.forEach((stock) => {
+        stock.bubbleUpper = 0
+        stock.bubbleLower = 0
+    })
+}
+
+function resetStocksForBattleStart(): void {
+    state.stocks.forEach((stock) => {
+        const startingPrice = resolveStartingPrice(stock.key)
+        stock.basePrice = startingPrice
+        stock.currentPrice = startingPrice
+        stock.previousPrice = startingPrice
+        stock.bubbleUpper = 0
+        stock.bubbleLower = 0
+        stock.history = [startingPrice]
+        stock.shortInterest = 0
     })
 }
 
@@ -94,8 +197,11 @@ function normalizePlayersForBattleStart(): void {
         : 'player1'
 
     state.logs = []
-    actionTimeline.value = []
     logSequence = 1000
+    positionSequence = 0
+    recentOrderMarkers.value = []
+    isGameOver.value = false
+    resetStocksForBattleStart()
 
     state.players.forEach((player) => {
         const startingCash =
@@ -107,6 +213,7 @@ function normalizePlayersForBattleStart(): void {
         player.companyFunds = STARTING_COMPANY_FUNDS
         player.managementStakeShares = DEFAULT_MANAGEMENT_STAKE_SHARES
         player.startingOwnStockPrice = getStock(ownStockKey(player.id)).currentPrice
+        player.positions = []
         player.speculation = []
         player.marketBias = 0
         player.recentNetChange = 0
@@ -119,16 +226,15 @@ function normalizePlayersForBattleStart(): void {
             player.cooldowns[action] = 0
         })
 
-        player.lastSnapshotAssets = calculatePlayerSnapshot(player, state.stocks).totalAssets
+        player.lastSnapshotAssets = player.cash
         player.lastSnapshotCash = player.cash
     })
+
+    state.initialTotalAssets = Math.max(1, calculateCurrentTotalAssets())
+    recalculateDynamicLines()
 }
 
 normalizePlayersForBattleStart()
-
-const configuredMarketCpuCount = computed(() => {
-    return startSettings.value?.marketCpuCount ?? DEFAULT_MARKET_CPU_COUNT
-})
 
 const leftPlayer = computed(() => getPlayer('player1'))
 const rightPlayer = computed(() => getPlayer('player2'))
@@ -141,111 +247,172 @@ watch(
     () => state.currentPlayer,
     () => {
         actionDraft.value = createDefaultBattleActionDraft()
+        pendingClosePositionId.value = null
+        lastClosedPositionTurn.value = null
     },
 )
 
-const leftPlayerAssets = computed(() => calculatePlayerSnapshot(leftPlayer.value, state.stocks).totalAssets)
-const rightPlayerAssets = computed(() => calculatePlayerSnapshot(rightPlayer.value, state.stocks).totalAssets)
-const leftAssetDiff = computed(() => leftPlayerAssets.value - rightPlayerAssets.value)
-const rightAssetDiff = computed(() => rightPlayerAssets.value - leftPlayerAssets.value)
+const leftVictoryValue = computed(() => calculatePlayerVictoryValue(leftPlayer.value, state.stocks))
+const rightVictoryValue = computed(() => calculatePlayerVictoryValue(rightPlayer.value, state.stocks))
+const leftVictoryDiff = computed(() => leftVictoryValue.value - rightVictoryValue.value)
+const rightVictoryDiff = computed(() => rightVictoryValue.value - leftVictoryValue.value)
+const displayTurn = computed(() => Math.min(state.turn, MAX_TURNS))
 
-function recentMomentum(stockKey: StockKey): number {
-    const history = getStock(stockKey).history
-    const last = history[history.length - 1] ?? 0
-    const prev = history[history.length - 2] ?? last
-    return last - prev
+function createCurrentPriceMap(): Record<StockKey, number> {
+    return state.stocks.reduce<Record<StockKey, number>>(
+        (acc, stock) => {
+            acc[stock.key] = stock.currentPrice
+            return acc
+        },
+        { p1: 0, p2: 0, market: 0 },
+    )
 }
 
-const cpuMarketStats = computed(() => {
-    const totalCpu = configuredMarketCpuCount.value
+function moveProjectedPrice(
+    priceMap: Record<StockKey, number>,
+    stockKey: StockKey,
+    rawDelta: number,
+): void {
+    const stock = getStock(stockKey)
+    priceMap[stockKey] = resolvePriceAfterDelta(
+        priceMap[stockKey],
+        stock.basePrice,
+        stock.bubbleUpper,
+        stock.bubbleLower,
+        rawDelta,
+    ).nextPrice
+}
 
-    if (totalCpu <= 0) {
+function applyProjectedTradeEffectToPriceMap(
+    priceMap: Record<StockKey, number>,
+    playerId: PlayerId,
+    stockKey: StockKey,
+    tradeAction: TurnActionPayload['tradeAction'],
+    orderAmount: number,
+): void {
+    const stock = getStock(stockKey)
+    const impactAmounts = calculateTradeImpactAmounts(
+        playerId,
+        stockKey,
+        tradeAction,
+        orderAmount,
+        priceMap[stockKey],
+        stock.basePrice,
+    )
+
+    if (impactAmounts.p1 !== 0) moveProjectedPrice(priceMap, 'p1', impactAmounts.p1)
+    if (impactAmounts.p2 !== 0) moveProjectedPrice(priceMap, 'p2', impactAmounts.p2)
+    if (impactAmounts.market !== 0) moveProjectedPrice(priceMap, 'market', impactAmounts.market)
+}
+
+const pendingClosePreview = computed<PendingClosePreview | null>(() => {
+    if (isGameOver.value || pendingClosePositionId.value == null) {
+        return null
+    }
+
+    const player = activePlayer.value
+    const position = player.positions.find((item) => item.id === pendingClosePositionId.value)
+    if (!position) {
+        return null
+    }
+
+    const priceMap = createCurrentPriceMap()
+    const closeAction = position.side === 'buy' ? 'sell' : 'buy'
+    applyProjectedTradeEffectToPriceMap(priceMap, player.id, position.stockKey, closeAction, position.orderAmount)
+
+    const executionPrice = priceMap[position.stockKey]
+
+    return {
+        positionId: position.id,
+        stockKey: position.stockKey,
+        stockName: getStock(position.stockKey).name,
+        side: position.side,
+        executionPrice,
+        realizedPnl: calculateTradePositionPnL(position, executionPrice),
+        returnedCash: calculateTradePositionSettlementCash(position, executionPrice),
+        priceMap,
+    }
+})
+
+const projectedBoardPrices = computed<Partial<Record<StockKey, number>> | null>(() => {
+    if (isGameOver.value) {
+        return null
+    }
+
+    if (pendingClosePreview.value) {
+        return pendingClosePreview.value.priceMap
+    }
+
+    const currentPlayer = activePlayer.value
+    const priceMap = createCurrentPriceMap()
+
+    if (actionDraft.value.actionKind === 'wait') {
+        return priceMap
+    }
+
+    if (actionDraft.value.actionKind === 'company') {
+        const targetKey = ownStockKey(currentPlayer.id)
+        if (actionDraft.value.companyAction === CAPITAL_INCREASE_ACTION && currentPlayer.cooldowns[CAPITAL_INCREASE_ACTION] <= 0) {
+            moveProjectedPrice(priceMap, targetKey, -12)
+        } else if (actionDraft.value.companyAction === AD_CAMPAIGN_ACTION && currentPlayer.cooldowns[AD_CAMPAIGN_ACTION] <= 0 && currentPlayer.companyFunds >= 600) {
+            moveProjectedPrice(priceMap, targetKey, 6)
+        } else if (actionDraft.value.companyAction === FACILITY_INVESTMENT_ACTION && currentPlayer.cooldowns[FACILITY_INVESTMENT_ACTION] <= 0 && currentPlayer.companyFunds >= 700) {
+            moveProjectedPrice(priceMap, targetKey, 4)
+        }
+
+        return priceMap
+    }
+
+    if (!actionProjection.value.canSubmitTrade) {
+        return null
+    }
+
+    applyProjectedTradeEffectToPriceMap(
+        priceMap,
+        currentPlayer.id,
+        actionProjection.value.draft.stockKey,
+        actionProjection.value.draft.tradeAction,
+        actionProjection.value.orderAmount,
+    )
+
+    return priceMap
+})
+const battleResult = computed(() => {
+    if (!isGameOver.value) {
+        return null
+    }
+
+    if (leftVictoryValue.value > rightVictoryValue.value) {
         return {
-            participantCount: 0,
-            withdrawalCount: 0,
-            investmentTotal: 0,
-            weakParticipantCount: 0,
-            strongParticipantCount: 0,
-            p1ParticipantCount: 0,
-            p2ParticipantCount: 0,
-            p1InvestmentTotal: 0,
-            p2InvestmentTotal: 0,
+            title: `${leftPlayer.value.name} の勝利`,
+            tone: 'player1' as const,
         }
     }
 
-    const conditionBase = state.marketCondition === 'bull'
-        ? 78
-        : state.marketCondition === 'bear'
-            ? 46
-            : 62
-
-    const marketMomentum = recentMomentum('market')
-    const p1Momentum = recentMomentum('p1')
-    const p2Momentum = recentMomentum('p2')
-    const volatility = Math.abs(marketMomentum) + Math.abs(p1Momentum) + Math.abs(p2Momentum)
-    const averagePrice = Math.round(
-        state.stocks.reduce((sum, stock) => sum + stock.currentPrice, 0) / Math.max(state.stocks.length, 1)
-    )
-
-    const rawParticipantCount =
-        conditionBase +
-        Math.round((marketMomentum + p1Momentum + p2Momentum) / 3) +
-        Math.round(volatility / 5)
-
-    const participantCount = Math.max(0, Math.min(totalCpu, rawParticipantCount))
-    const withdrawalCount = Math.max(0, totalCpu - participantCount)
-    const investmentTotal = Math.max(
-        0,
-        Math.round(participantCount * (averagePrice * 15 + 120 + volatility * 8))
-    )
-
-    const sentimentBias = state.marketCondition === 'bull'
-        ? 0.08
-        : state.marketCondition === 'bear'
-            ? -0.06
-            : 0.02
-    const strongRatio = clamp(
-        0.34 + sentimentBias + marketMomentum / 42 + Math.max(p1Momentum, p2Momentum) / 80,
-        0.18,
-        0.62,
-    )
-    const strongParticipantCount = Math.round(participantCount * strongRatio)
-    const weakParticipantCount = Math.max(0, participantCount - strongParticipantCount)
-
-    const p1Price = getStock('p1').currentPrice
-    const p2Price = getStock('p2').currentPrice
-
-    const p1Appeal = clamp(1 + p1Momentum / 14 + (p1Price - p2Price) / 80, 0.55, 1.95)
-    const p2Appeal = clamp(1 + p2Momentum / 14 + (p2Price - p1Price) / 80, 0.55, 1.95)
-
-    const companyParticipantPool = Math.max(0, Math.round(participantCount * 0.72))
-    const appealTotal = p1Appeal + p2Appeal
-
-    const p1ParticipantCount = Math.max(
-        0,
-        Math.min(companyParticipantPool, Math.round(companyParticipantPool * (p1Appeal / appealTotal))),
-    )
-    const p2ParticipantCount = Math.max(0, companyParticipantPool - p1ParticipantCount)
-
-    const p1InvestmentTotal = Math.max(
-        0,
-        Math.round(p1ParticipantCount * (p1Price * 11 + 140 + Math.max(p1Momentum, 0) * 18)),
-    )
-    const p2InvestmentTotal = Math.max(
-        0,
-        Math.round(p2ParticipantCount * (p2Price * 11 + 140 + Math.max(p2Momentum, 0) * 18)),
-    )
+    if (rightVictoryValue.value > leftVictoryValue.value) {
+        return {
+            title: `${rightPlayer.value.name} の勝利`,
+            tone: 'player2' as const,
+        }
+    }
 
     return {
-        participantCount,
-        withdrawalCount,
-        investmentTotal,
-        weakParticipantCount,
-        strongParticipantCount,
-        p1ParticipantCount,
-        p2ParticipantCount,
-        p1InvestmentTotal,
-        p2InvestmentTotal,
+        title: '引き分け',
+        tone: 'draw' as const,
+    }
+})
+
+const pendingCloseSummary = computed(() => {
+    if (!pendingClosePreview.value) {
+        return null
+    }
+
+    return {
+        stockName: pendingClosePreview.value.stockName,
+        side: pendingClosePreview.value.side,
+        executionPriceText: formatCurrency(pendingClosePreview.value.executionPrice),
+        projectedPnlText: formatSignedCurrency(pendingClosePreview.value.realizedPnl),
+        returnedCashText: formatCurrency(pendingClosePreview.value.returnedCash),
     }
 })
 
@@ -269,41 +436,6 @@ function ownStockKey(playerId: PlayerId): StockKey {
     return playerId === 'player1' ? 'p1' : 'p2'
 }
 
-function pushTimeline(player: PlayerState, payload: TurnActionWithWait): void {
-    if (payload.metaAction === 'wait') {
-        const waitEntry: ActionTimelineEntry = {
-            id: logSequence += 1,
-            turn: state.turn,
-            playerId: player.id,
-            playerName: player.name,
-            kind: '待機',
-            summary: '次ターンまで様子見',
-        }
-
-        actionTimeline.value.unshift(waitEntry)
-        actionTimeline.value = actionTimeline.value.slice(0, 48)
-        return
-    }
-
-    const isCompany = payload.companyAction !== NO_COMPANY_ACTION
-    const selectedStock = getStock(payload.stockKey)
-    const estimatedShares = Math.max(0, Math.floor(payload.quantity / Math.max(selectedStock.currentPrice, 1)))
-
-    const entry: ActionTimelineEntry = {
-        id: logSequence += 1,
-        turn: state.turn,
-        playerId: player.id,
-        playerName: player.name,
-        kind: isCompany ? '会社行動' : MODE_LABELS[payload.tradeMode],
-        summary: isCompany
-            ? `${payload.companyAction}`
-            : `${STOCK_LABELS[payload.stockKey]} / ${TRADE_LABELS[payload.tradeAction]} / ${Math.max(0, Math.floor(payload.quantity)).toLocaleString()}円 / 約${estimatedShares}株`,
-    }
-
-    actionTimeline.value.unshift(entry)
-    actionTimeline.value = actionTimeline.value.slice(0, 48)
-}
-
 function pushLog(
     logs: LogEntry[],
     type: LogEntry['type'],
@@ -321,79 +453,183 @@ function pushLog(
     })
 }
 
-function randomBetween(min: number, max: number): number {
-    return Math.floor(Math.random() * (max - min + 1)) + min
+function pushOrderMarker(marker: Omit<ChartOrderMarker, 'id'>): void {
+    recentOrderMarkers.value = [
+        ...recentOrderMarkers.value,
+        {
+            id: `order-marker-${marker.turn}-${marker.playerId}-${marker.stockKey}-${recentOrderMarkers.value.length + 1}`,
+            ...marker,
+        },
+    ].slice(-12)
 }
 
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, value))
-}
-
-function addToPosition(position: HoldingPosition, quantity: number, price: number): void {
-    const totalCost = position.avgPrice * position.quantity + price * quantity
-    position.quantity += quantity
-    position.avgPrice = position.quantity > 0 ? totalCost / position.quantity : 0
-}
-
-function reducePosition(
-    position: HoldingPosition,
+function createTradePosition(
+    stockKey: StockKey,
+    side: TradePositionEntry['side'],
     quantity: number,
-): { executed: number; avgPrice: number } {
-    const executed = Math.min(position.quantity, quantity)
-    const avgPrice = position.avgPrice
+    entryPrice: number,
+    orderAmount: number,
+): TradePositionEntry {
+    positionSequence += 1
 
-    position.quantity -= executed
-    if (position.quantity <= 0) {
-        position.quantity = 0
-        position.avgPrice = 0
+    return {
+        id: `position-${positionSequence}`,
+        stockKey,
+        side,
+        quantity: normalizePositionUnits(quantity),
+        entryPrice,
+        orderAmount,
+        openedTurn: state.turn,
+    }
+}
+
+function appendTradePosition(
+    player: PlayerState,
+    stockKey: StockKey,
+    side: TradePositionEntry['side'],
+    quantity: number,
+    entryPrice: number,
+    orderAmount: number,
+): void {
+    player.positions.push(createTradePosition(stockKey, side, quantity, entryPrice, orderAmount))
+    syncPlayerBooksFromPositions(player)
+}
+
+type ConsumedPositionEntry = {
+    id: string
+    stockKey: StockKey
+    side: TradePositionEntry['side']
+    quantity: number
+    entryPrice: number
+    orderAmount: number
+}
+
+function extractTradePositionById(
+    player: PlayerState,
+    positionId: string,
+): ConsumedPositionEntry | null {
+    const targetPosition = player.positions.find((position) => position.id === positionId)
+    if (!targetPosition) {
+        return null
     }
 
-    return { executed, avgPrice }
+    player.positions = player.positions.filter((position) => position.id !== positionId)
+    syncPlayerBooksFromPositions(player)
+
+    return {
+        id: targetPosition.id,
+        stockKey: targetPosition.stockKey,
+        side: targetPosition.side,
+        quantity: targetPosition.quantity,
+        entryPrice: targetPosition.entryPrice,
+        orderAmount: targetPosition.orderAmount,
+    }
 }
 
-function moveStockPrice(stockKey: StockKey, rawDelta: number, logs: LogEntry[]): number {
+function closeOpenPosition(
+    player: PlayerState,
+    positionId: string,
+    logs: LogEntry[],
+): Omit<ChartOrderMarker, 'id'> | null {
+    const position = player.positions.find((item) => item.id === positionId)
+    if (!position) {
+        pushLog(logs, 'system', 'ポジション不足', `${player.name}が決済しようとしたポジションが見つかりません。`, 'warn')
+        return null
+    }
+
+    const stock = getStock(position.stockKey)
+    const closeAction = position.side === 'buy' ? 'sell' : 'buy'
+    applyTradePriceEffect(player.id, position.stockKey, closeAction, position.orderAmount, logs)
+    const executionPrice = getStock(position.stockKey).currentPrice
+    const historyIndex = Math.max(0, getStock(position.stockKey).history.length - 1)
+    const settled = extractTradePositionById(player, positionId)
+
+    if (!settled) {
+        pushLog(logs, 'system', 'ポジション不足', `${player.name}の${stock.name}ポジションを決済できませんでした。`, 'warn')
+        return null
+    }
+
+    if (settled.side === 'buy') {
+        const returnedCash = calculateTradePositionSettlementCash(settled, executionPrice)
+        const pnl = calculateTradePositionPnL(settled, executionPrice)
+        player.cash += returnedCash
+
+        pushLog(
+            logs,
+            'player',
+            'ポジション決済',
+            `${player.name}が${stock.name}の買いポジションを決済。回収 ${formatCurrency(returnedCash)} / 損益 ${formatSignedCurrency(pnl)}`,
+            pnl >= 0 ? 'up' : 'warn',
+        )
+        return {
+            stockKey: settled.stockKey,
+            playerId: player.id,
+            side: closeAction,
+            executionPrice,
+            historyIndex,
+            turn: state.turn,
+        }
+    }
+
+    const realized = calculateTradePositionPnL(settled, executionPrice)
+    const returnedCash = calculateTradePositionSettlementCash(settled, executionPrice)
+    player.cash += returnedCash
+    stock.shortInterest = Math.max(0, stock.shortInterest - settled.quantity)
+
+    pushLog(
+        logs,
+        'player',
+        'ポジション決済',
+        `${player.name}が${stock.name}の売りポジションを決済。回収 ${formatCurrency(returnedCash)} / 損益 ${formatSignedCurrency(realized)}`,
+        realized >= 0 ? 'up' : 'warn',
+    )
+    return {
+        stockKey: settled.stockKey,
+        playerId: player.id,
+        side: closeAction,
+        executionPrice,
+        historyIndex,
+        turn: state.turn,
+    }
+}
+
+function moveStockPrice(stockKey: StockKey, rawDelta: number, _logs: LogEntry[]): number {
     const stock = getStock(stockKey)
     const before = stock.currentPrice
-    let next = Math.max(12, before + rawDelta)
+    const resolved = resolvePriceAfterDelta(
+        before,
+        stock.basePrice,
+        stock.bubbleUpper,
+        stock.bubbleLower,
+        rawDelta,
+    )
 
-    if (next >= stock.bubbleUpper) {
-        next = Math.max(Math.floor(next / 2), stock.bubbleLower + 12)
-        pushLog(
-            logs,
-            'system',
-            'バブル崩壊',
-            `${stock.name}がバブル上限を超えたため急落しました。 ${formatCurrency(before)} → ${formatCurrency(next)}`,
-            'warn',
-        )
-    } else if (next <= stock.bubbleLower) {
-        next = stock.bubbleLower + 16
-        pushLog(
-            logs,
-            'system',
-            '底値反発',
-            `${stock.name}が下限近くまで下がったため反発しました。 ${formatCurrency(before)} → ${formatCurrency(next)}`,
-            'warn',
-        )
-    }
-
-    stock.currentPrice = next
-    stock.history = [...stock.history.slice(-11), next]
-    return next - before
+    stock.previousPrice = before
+    stock.currentPrice = resolved.nextPrice
+    stock.history = [...stock.history.slice(-(12 - resolved.historyTrail.length)), ...resolved.historyTrail]
+    return resolved.nextPrice - before
 }
 
-function applyCorrelation(sourceKey: StockKey, sourceDelta: number, logs: LogEntry[]): void {
-    if ((sourceKey === 'p1' || sourceKey === 'p2') && sourceDelta > 0) {
-        const pressure = -Math.max(2, Math.floor(sourceDelta / 2))
-        moveStockPrice('market', pressure, logs)
+function applyTradePriceEffect(
+    playerId: PlayerId,
+    stockKey: StockKey,
+    tradeAction: TurnActionPayload['tradeAction'],
+    executedAmount: number,
+    logs: LogEntry[],
+): void {
+    const targetStock = getStock(stockKey)
+    const impactAmounts = calculateTradeImpactAmounts(
+        playerId,
+        stockKey,
+        tradeAction,
+        executedAmount,
+        targetStock.currentPrice,
+        targetStock.basePrice,
+    )
 
-        pushLog(
-            logs,
-            'market',
-            '連動',
-            `${STOCK_LABELS[sourceKey]}の上昇に資金が集まり、市場株には売り圧力が出ました。`,
-            'down',
-        )
-    }
+    if (impactAmounts.p1 !== 0) moveStockPrice('p1', impactAmounts.p1, logs)
+    if (impactAmounts.p2 !== 0) moveStockPrice('p2', impactAmounts.p2, logs)
+    if (impactAmounts.market !== 0) moveStockPrice('market', impactAmounts.market, logs)
 }
 
 function settleSpeculation(player: PlayerState, logs: LogEntry[]): void {
@@ -422,8 +658,8 @@ function settleSpeculation(player: PlayerState, logs: LogEntry[]): void {
         pushLog(
             logs,
             'system',
-            '投機清算',
-            `${player.name}の${STOCK_LABELS[position.stockKey]} ${position.side === 'buy' ? '買い投機' : '空売り投機'} ${position.quantity}株を清算しました。返却 ${formatCurrency(position.committedCash)} / 損益 ${formatSignedCurrency(pnl)}`,
+            '短期決済',
+            `${player.name}の${getStock(position.stockKey).name} ${position.side === 'buy' ? '買い' : '売り'}ポジション 約${formatPositionUnits(position.quantity)}口を決済しました。返却 ${formatCurrency(position.committedCash)} / 損益 ${formatSignedCurrency(pnl)}`,
             pnl >= 0 ? 'up' : 'warn',
         )
     }
@@ -431,29 +667,37 @@ function settleSpeculation(player: PlayerState, logs: LogEntry[]): void {
 
 function resolveOrderQuantity(openPrice: number, rawAmount: number): number {
     const amount = Math.max(0, Math.floor(rawAmount))
-    if (amount < openPrice) return 0
-    return Math.floor(amount / openPrice)
+    if (amount < MIN_TRADE_ORDER_AMOUNT) return 0
+    if (openPrice <= 0) return 0
+    return normalizePositionUnits(amount / openPrice)
 }
 
-function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs: LogEntry[]): void {
+function applyPlayerOrder(
+    player: PlayerState,
+    payload: TurnActionPayload,
+    logs: LogEntry[],
+): Omit<ChartOrderMarker, 'id'> | null {
     const stock = getStock(payload.stockKey)
     const openPrice = stock.currentPrice
     const orderAmount = Math.max(0, Math.floor(payload.quantity))
     const quantity = resolveOrderQuantity(openPrice, orderAmount)
-    const requiredCash = openPrice * quantity
+    const requiredCash = orderAmount
 
     if (quantity <= 0) {
+        const shortageMessage = orderAmount > 0 && orderAmount < MIN_TRADE_ORDER_AMOUNT
+            ? `${player.name}の注文額 ${formatCurrency(orderAmount)} は最低注文額 ${formatCurrency(MIN_TRADE_ORDER_AMOUNT)} を下回っています。`
+            : `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を約定できません。`
         pushLog(
             logs,
             'system',
             '注文額不足',
-            `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を約定できません。`,
+            shortageMessage,
             'warn',
         )
-        return
+        return null
     }
 
-    if ((payload.tradeAction === 'buy' || payload.tradeAction === 'short') && player.cash < requiredCash) {
+    if ((payload.tradeAction === 'buy' || payload.tradeAction === 'sell') && player.cash < requiredCash) {
         pushLog(
             logs,
             'system',
@@ -461,100 +705,135 @@ function applyPlayerOrder(player: PlayerState, payload: TurnActionPayload, logs:
             `${player.name}は${stock.name}の注文に必要な現金が不足しています。`,
             'warn',
         )
-        return
+        return null
     }
 
-    const baseImpact = Math.max(1, Math.round(quantity / 8))
+    if (payload.tradeAction === 'buy' && (player.shorts[payload.stockKey]?.quantity ?? 0) > 0) {
+        pushLog(
+            logs,
+            'system',
+            '決済優先',
+            `${player.name}は${stock.name}に売りポジションを持っています。先にポジション決済で閉じてください。`,
+            'warn',
+        )
+        return null
+    }
+
+    if (payload.tradeAction === 'sell' && (player.holdings[payload.stockKey]?.quantity ?? 0) > 0) {
+        pushLog(
+            logs,
+            'system',
+            '決済優先',
+            `${player.name}は${stock.name}に買いポジションを持っています。先にポジション決済で閉じてください。`,
+            'warn',
+        )
+        return null
+    }
+
+    const executedAmount = orderAmount
 
     if (payload.tradeMode === 'speculation') {
-        if (payload.tradeAction !== 'buy' && payload.tradeAction !== 'short') {
-            pushLog(logs, 'system', '投機ルール', '投機では買い投機か空売り投機のみ選べます。', 'warn')
-            return
+        if (payload.tradeAction !== 'buy' && payload.tradeAction !== 'sell') {
+            pushLog(logs, 'system', '短期ルール', '短期では買いか売りのみ選べます。', 'warn')
+            return null
+        }
+
+        applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, executedAmount, logs)
+        const executionPrice = getStock(payload.stockKey).currentPrice
+        const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
+        const executedUnits = resolveOrderQuantity(executionPrice, orderAmount)
+        if (executedUnits <= 0) {
+            pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を建てられません。`, 'warn')
+            return null
         }
 
         player.cash -= requiredCash
         player.speculation.push({
             stockKey: payload.stockKey,
-            side: payload.tradeAction === 'buy' ? 'buy' : 'short',
-            quantity,
-            entryPrice: openPrice,
+            side: payload.tradeAction,
+            quantity: executedUnits,
+            entryPrice: executionPrice,
             committedCash: requiredCash,
             settlementTurn: state.turn + 2,
         })
 
         if (payload.tradeAction === 'buy') {
-            const delta = moveStockPrice(payload.stockKey, baseImpact, logs)
-            pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を買い投機。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'up')
-            applyCorrelation(payload.stockKey, delta, logs)
-            return
+            pushLog(logs, 'player', '短期', `${player.name}が${stock.name}を買いで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'up')
+            return {
+                stockKey: payload.stockKey,
+                playerId: player.id,
+                side: payload.tradeAction,
+                executionPrice,
+                historyIndex,
+                turn: state.turn,
+            }
         }
 
-        stock.shortInterest += quantity
-        const delta = moveStockPrice(payload.stockKey, -baseImpact, logs)
-        pushLog(logs, 'player', '投機', `${player.name}が${stock.name}を空売り投機。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'down')
-        applyCorrelation(payload.stockKey, delta, logs)
-        return
+        stock.shortInterest += executedUnits
+        pushLog(logs, 'player', '短期', `${player.name}が${stock.name}を売りで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'down')
+        return {
+            stockKey: payload.stockKey,
+            playerId: player.id,
+            side: payload.tradeAction,
+            executionPrice,
+            historyIndex,
+            turn: state.turn,
+        }
     }
 
     switch (payload.tradeAction) {
         case 'buy': {
             const cost = requiredCash
-            player.cash -= cost
-            addToPosition(player.holdings[payload.stockKey], quantity, openPrice)
+            applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, cost, logs)
+            const executionPrice = getStock(payload.stockKey).currentPrice
+            const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
+            const executedUnits = resolveOrderQuantity(executionPrice, cost)
+            if (executedUnits <= 0) {
+                pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を建てられません。`, 'warn')
+                return null
+            }
 
-            const delta = moveStockPrice(payload.stockKey, baseImpact, logs)
-            pushLog(logs, 'player', '売買', `${player.name}が${stock.name}を買いました。${formatCurrency(cost)} / ${quantity}株`, 'up')
-            applyCorrelation(payload.stockKey, delta, logs)
-            break
+            player.cash -= cost
+            appendTradePosition(player, payload.stockKey, 'buy', executedUnits, executionPrice, cost)
+
+            pushLog(logs, 'player', '買い', `${player.name}が${stock.name}を ${formatCurrency(cost)} で買い。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'up')
+            return {
+                stockKey: payload.stockKey,
+                playerId: player.id,
+                side: payload.tradeAction,
+                executionPrice,
+                historyIndex,
+                turn: state.turn,
+            }
         }
 
         case 'sell': {
-            const { executed } = reducePosition(player.holdings[payload.stockKey], quantity)
-            if (executed <= 0) {
-                pushLog(logs, 'system', '保有不足', `${player.name}は${stock.name}を売るための保有株が足りません。`, 'warn')
-                return
+            applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, requiredCash, logs)
+            const executionPrice = getStock(payload.stockKey).currentPrice
+            const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
+            const executedUnits = resolveOrderQuantity(executionPrice, requiredCash)
+            if (executedUnits <= 0) {
+                pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を売りで建てられません。`, 'warn')
+                return null
             }
 
-            player.cash += openPrice * executed
-            const impact = Math.max(1, Math.round(executed / 8))
-            const delta = moveStockPrice(payload.stockKey, -impact, logs)
-
-            pushLog(logs, 'player', '売買', `${player.name}が${stock.name}を売りました。${formatCurrency(openPrice * executed)} / ${executed}株`, 'down')
-            applyCorrelation(payload.stockKey, delta, logs)
-            break
-        }
-
-        case 'short': {
             player.cash -= requiredCash
-            addToPosition(player.shorts[payload.stockKey], quantity, openPrice)
-            stock.shortInterest += quantity
+            appendTradePosition(player, payload.stockKey, 'sell', executedUnits, executionPrice, requiredCash)
+            stock.shortInterest += executedUnits
 
-            const delta = moveStockPrice(payload.stockKey, -baseImpact, logs)
-            pushLog(logs, 'player', '空売り', `${player.name}が${stock.name}を空売りしました。注文額 ${formatCurrency(orderAmount)} / 約${quantity}株`, 'down')
-            applyCorrelation(payload.stockKey, delta, logs)
-            break
-        }
-
-        case 'cover': {
-            const shortPosition = player.shorts[payload.stockKey]
-            if (shortPosition.quantity <= 0) {
-                pushLog(logs, 'system', '空売り不足', `${player.name}は${stock.name}の空売りポジションを持っていません。`, 'warn')
-                return
+            pushLog(logs, 'player', '売り', `${player.name}が${stock.name}を ${formatCurrency(requiredCash)} で売り。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'down')
+            return {
+                stockKey: payload.stockKey,
+                playerId: player.id,
+                side: payload.tradeAction,
+                executionPrice,
+                historyIndex,
+                turn: state.turn,
             }
-
-            const { executed, avgPrice } = reducePosition(shortPosition, quantity)
-            const realized = (avgPrice - openPrice) * executed
-            player.cash += avgPrice * executed + realized
-            stock.shortInterest = Math.max(0, stock.shortInterest - executed)
-
-            const impact = Math.max(1, Math.round(executed / 8))
-            const delta = moveStockPrice(payload.stockKey, impact, logs)
-
-            pushLog(logs, 'player', '買い戻し', `${player.name}が${stock.name}を買い戻しました。${formatCurrency(openPrice * executed)} / ${executed}株 / 実現損益 ${formatSignedCurrency(realized)}`, realized >= 0 ? 'up' : 'warn')
-            applyCorrelation(payload.stockKey, delta, logs)
-            break
         }
     }
+
+    return null
 }
 
 function applyCompanyAction(
@@ -570,7 +849,7 @@ function applyCompanyAction(
     }
 
     if (action === BUYBACK_ACTION) {
-        pushLog(logs, 'system', '未解放の会社行動', '自社株買いはこのルールでは使用できません。', 'warn')
+        pushLog(logs, 'system', '未使用の追加操作', 'この操作は現在のルールでは使用できません。', 'warn')
         return
     }
 
@@ -581,38 +860,36 @@ function applyCompanyAction(
             player.companyFunds += 1500
             moveStockPrice(stockKey, -12, logs)
             player.cooldowns[action] = 3
-            pushLog(logs, 'player', '会社行動', `${player.name}が増資を実行。会社資金 +${formatCurrency(1500)}、自社株にはやや売り圧力。`, 'warn')
+            pushLog(logs, 'player', '追加操作', `${player.name}が資金調整を実行。予備資金 +${formatCurrency(1500)}、自分レートはやや下向きです。`, 'warn')
             break
         }
 
         case AD_CAMPAIGN_ACTION: {
             const cost = 600
             if (player.companyFunds < cost) {
-                pushLog(logs, 'system', '会社資金不足', `${player.name}は広告に必要な会社資金が不足しています。`, 'warn')
+                pushLog(logs, 'system', '予備資金不足', `${player.name}は注目集めに必要な予備資金が不足しています。`, 'warn')
                 return
             }
 
             player.companyFunds -= cost
             player.cash += 220
-            const delta = moveStockPrice(stockKey, 6, logs)
+            moveStockPrice(stockKey, 6, logs)
             player.cooldowns[action] = 2
-            pushLog(logs, 'player', '会社行動', `${player.name}が広告を実行。会社資金 -${formatCurrency(cost)}、現金 +${formatCurrency(220)}。`, 'up')
-            applyCorrelation(stockKey, delta, logs)
+            pushLog(logs, 'player', '追加操作', `${player.name}が注目集めを実行。予備資金 -${formatCurrency(cost)}、現金 +${formatCurrency(220)}。`, 'up')
             break
         }
 
         case FACILITY_INVESTMENT_ACTION: {
             const cost = 700
             if (player.companyFunds < cost) {
-                pushLog(logs, 'system', '会社資金不足', `${player.name}は設備投資に必要な会社資金が不足しています。`, 'warn')
+                pushLog(logs, 'system', '予備資金不足', `${player.name}は安定化に必要な予備資金が不足しています。`, 'warn')
                 return
             }
 
             player.companyFunds -= cost
-            player.marketBias += 2
             moveStockPrice(stockKey, 4, logs)
             player.cooldowns[action] = 2
-            pushLog(logs, 'player', '会社行動', `${player.name}が設備投資を実行。中長期の期待で自社株に追い風が出ています。`, 'up')
+            pushLog(logs, 'player', '追加操作', `${player.name}が安定化を実行。自分レートが上向きました。`, 'up')
             break
         }
     }
@@ -624,30 +901,15 @@ function reduceCooldowns(player: PlayerState): void {
     })
 }
 
-function applyCpuNoise(logs: LogEntry[]): void {
-    const marketCondition = state.marketCondition
-    const marketShift =
-        marketCondition === 'bull'
-            ? randomBetween(2, 8)
-            : marketCondition === 'bear'
-                ? randomBetween(-8, -2)
-                : randomBetween(-4, 4)
+function advanceTurn(): boolean {
+    if (state.turn >= MAX_TURNS) {
+        isGameOver.value = true
+        return false
+    }
 
-    moveStockPrice('market', marketShift, logs)
-
-    const playerOneShift = randomBetween(-7, 8) + getPlayer('player1').marketBias
-    const playerTwoShift = randomBetween(-7, 8) + getPlayer('player2').marketBias
-
-    moveStockPrice('p1', playerOneShift, logs)
-    moveStockPrice('p2', playerTwoShift, logs)
-
-    getPlayer('player1').marketBias = Math.trunc(getPlayer('player1').marketBias * 0.5)
-    getPlayer('player2').marketBias = Math.trunc(getPlayer('player2').marketBias * 0.5)
-}
-
-function advanceTurn(): void {
+    const nextPlayer = resolveNextBattlePlayer(state.currentPlayer, state.turn)
     state.turn += 1
-    state.currentPlayer = state.currentPlayer === 'player1' ? 'player2' : 'player1'
+    state.currentPlayer = nextPlayer
 
     if (state.turn % 4 === 0) {
         state.marketCondition = state.marketCondition === 'bull'
@@ -656,6 +918,8 @@ function advanceTurn(): void {
                 ? 'bear'
                 : 'bull'
     }
+
+    return true
 }
 
 function handleDraftChange(nextDraft: BattleActionDraft): void {
@@ -663,6 +927,15 @@ function handleDraftChange(nextDraft: BattleActionDraft): void {
 }
 
 function handleConfirmTurn(): void {
+    if (isGameOver.value) {
+        return
+    }
+
+    if (pendingClosePreview.value) {
+        executePendingClose(pendingClosePreview.value.positionId)
+        return
+    }
+
     const payload = buildBattleConfirmedAction(activePlayer.value, actionProjection.value)
     if (!payload) {
         return
@@ -670,6 +943,51 @@ function handleConfirmTurn(): void {
 
     handleTurn(payload)
     actionDraft.value = createDefaultBattleActionDraft()
+}
+
+function executePendingClose(positionId: string): void {
+    if (isGameOver.value) {
+        return
+    }
+
+    if (lastClosedPositionTurn.value === state.turn) {
+        return
+    }
+
+    const logs: LogEntry[] = []
+    const player = getPlayer(state.currentPlayer)
+    settleSpeculation(player, logs)
+    recalculateDynamicLines()
+
+    const closeMarker = closeOpenPosition(player, positionId, logs)
+    if (!closeMarker) {
+        pendingClosePositionId.value = null
+        state.logs.unshift(...logs.reverse())
+        state.logs = state.logs.slice(0, 36)
+        return
+    }
+
+    pushOrderMarker(closeMarker)
+    lastClosedPositionTurn.value = state.turn
+    reduceCooldowns(player)
+    recalculateDynamicLines()
+
+    state.logs.unshift(...logs.reverse())
+    state.logs = state.logs.slice(0, 36)
+
+    advanceTurn()
+    pendingClosePositionId.value = null
+    actionDraft.value = createDefaultBattleActionDraft()
+}
+
+function handleClosePosition(positionId: string): void {
+    if (isGameOver.value) {
+        return
+    }
+
+    pendingClosePositionId.value = pendingClosePositionId.value === positionId
+        ? null
+        : positionId
 }
 
 async function goBackToMenu(): Promise<void> {
@@ -681,23 +999,29 @@ async function goBackToMenu(): Promise<void> {
 }
 
 function handleTurn(payload: TurnActionWithWait): void {
+    if (isGameOver.value) {
+        return
+    }
+
     const logs: LogEntry[] = []
     const player = getPlayer(state.currentPlayer)
-
-    pushTimeline(player, payload)
     settleSpeculation(player, logs)
+    recalculateDynamicLines()
 
     if (payload.metaAction === 'wait') {
         pushLog(logs, 'player', '待機', `${player.name}はこのターンを待機し、大きな行動を見送りました。`, 'up')
     } else if (payload.companyAction !== NO_COMPANY_ACTION) {
         applyCompanyAction(player, payload.companyAction, logs)
     } else {
-        applyPlayerOrder(player, payload, logs)
+        const orderMarker = applyPlayerOrder(player, payload, logs)
+        if (orderMarker) {
+            pushOrderMarker(orderMarker)
+        }
     }
 
-    applyCpuNoise(logs)
     reduceCooldowns(getPlayer('player1'))
     reduceCooldowns(getPlayer('player2'))
+    recalculateDynamicLines()
 
     state.logs.unshift(...logs.reverse())
     state.logs = state.logs.slice(0, 36)
@@ -712,24 +1036,44 @@ function handleTurn(payload: TurnActionWithWait): void {
             <button type="button" class="menu-return-button" @click="goBackToMenu">
                 メニューへ戻る
             </button>
+
+            <div class="battle-status">
+                <span class="turn-badge">TURN {{ displayTurn }} / {{ MAX_TURNS }}</span>
+                <span v-if="isGameOver" class="finish-badge">終了</span>
+            </div>
         </div>
 
-        <PlayerPanel class="left-panel" :player="leftPlayer" :stocks="state.stocks"
-            :is-active="state.currentPlayer === 'player1'" :asset-diff="leftAssetDiff" />
+        <PlayerPanel class="left-panel" :player="leftPlayer" :stocks="state.stocks" :projected-prices="projectedBoardPrices"
+            :pending-close="pendingClosePreview"
+            :is-active="!isGameOver && state.currentPlayer === 'player1'" :victory-value="leftVictoryValue" :victory-diff="leftVictoryDiff"
+            @close-position="handleClosePosition" />
 
-        <StockBoard class="chart-panel" :stocks="state.stocks" :turn="state.turn"
-            :cpu-participant-count="cpuMarketStats.participantCount"
-            :cpu-investment-total="cpuMarketStats.investmentTotal"
-            :cpu-withdrawal-count="cpuMarketStats.withdrawalCount" />
+        <StockBoard class="chart-panel" :stocks="state.stocks" :turn="displayTurn"
+            :projected-prices="projectedBoardPrices" :order-markers="recentOrderMarkers" />
 
-        <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
-            :is-active="state.currentPlayer === 'player2'" :asset-diff="rightAssetDiff" />
+        <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks" :projected-prices="projectedBoardPrices"
+            :pending-close="pendingClosePreview"
+            :is-active="!isGameOver && state.currentPlayer === 'player2'" :victory-value="rightVictoryValue" :victory-diff="rightVictoryDiff"
+            @close-position="handleClosePosition" />
 
-        <ActionHistoryPanel class="history-panel" :preview="actionProjection.preview" :player1-name="leftPlayer.name"
-            :player2-name="rightPlayer.name" :cpu-stats="cpuMarketStats" />
+        <ActionPanel v-if="!isGameOver" class="action-panel-slot" :current-player="activePlayer" :draft="actionDraft"
+            :projection="actionProjection" :pending-close="pendingCloseSummary" @update:draft="handleDraftChange"
+            @confirm="handleConfirmTurn" />
 
-        <ActionPanel class="action-panel-slot" :current-player="activePlayer" :draft="actionDraft"
-            :projection="actionProjection" @update:draft="handleDraftChange" @confirm="handleConfirmTurn" />
+        <section v-else class="action-panel-slot result-card" :class="battleResult?.tone">
+            <div class="result-title">10ターン終了</div>
+            <div class="result-winner">{{ battleResult?.title }}</div>
+            <div class="result-score-row">
+                <div class="result-score-item">
+                    <span class="result-name">{{ leftPlayer.name }}</span>
+                    <strong>{{ formatCurrency(leftVictoryValue) }}</strong>
+                </div>
+                <div class="result-score-item">
+                    <span class="result-name">{{ rightPlayer.name }}</span>
+                    <strong>{{ formatCurrency(rightVictoryValue) }}</strong>
+                </div>
+            </div>
+        </section>
     </div>
 </template>
 
@@ -744,34 +1088,73 @@ function handleTurn(payload: TurnActionWithWait): void {
     max-height: 100%;
     padding: 7px 8px 8px;
     display: grid;
-    grid-template-columns: minmax(176px, 0.82fr) minmax(0, 4.8fr) minmax(176px, 0.82fr) minmax(260px, 1.08fr);
-    grid-template-rows: 34px minmax(0, 1fr) minmax(206px, 0.66fr);
+    grid-template-columns: minmax(208px, 1fr) minmax(0, 4.8fr) minmax(208px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr) auto;
     grid-template-areas:
-        'topbar topbar topbar topbar'
-        'left chart right history'
-        'action action action action';
-    gap: 8px;
+        'topbar topbar topbar'
+        'left chart right'
+        'action action action';
+    gap: 9px;
     align-items: stretch;
+    align-content: stretch;
     overflow: hidden;
 }
 
 .battle-topbar,
-.left-panel,
-.chart-panel,
-.right-panel,
-.history-panel,
 .action-panel-slot {
     min-height: 0;
     min-width: 0;
+    height: auto;
+}
+
+.left-panel,
+.chart-panel,
+.right-panel {
+    min-height: 0;
+    min-width: 0;
     height: 100%;
+    position: relative;
+    z-index: 1;
 }
 
 .battle-topbar {
     grid-area: topbar;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
+    gap: 10px;
     min-height: 0;
+}
+
+.battle-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.turn-badge,
+.finish-badge {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+}
+
+.turn-badge {
+    border: 1px solid rgba(122, 171, 255, 0.26);
+    background: rgba(14, 23, 44, 0.92);
+    color: #dfeaff;
+}
+
+.finish-badge {
+    border: 1px solid rgba(255, 143, 143, 0.26);
+    background: rgba(68, 18, 28, 0.92);
+    color: #ffd6dc;
 }
 
 .menu-return-button {
@@ -806,27 +1189,148 @@ function handleTurn(payload: TurnActionWithWait): void {
     grid-area: right;
 }
 
-.history-panel {
-    grid-area: history;
-}
-
 .action-panel-slot {
     grid-area: action;
+    align-self: end;
+    justify-self: stretch;
+    position: relative;
+    z-index: 2;
+    height: auto;
+    width: 100%;
+    max-width: 1420px;
+    margin: 0 auto;
+}
+
+.result-card {
+    border-radius: 18px;
+    border: 1px solid rgba(120, 156, 228, 0.2);
+    background:
+        linear-gradient(180deg, rgba(6, 12, 28, 0.98) 0%, rgba(4, 9, 21, 0.94) 100%),
+        radial-gradient(circle at top, rgba(78, 131, 255, 0.12), transparent 42%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.04),
+        0 16px 36px rgba(0, 0, 0, 0.28);
+    padding: 14px 18px;
+    display: grid;
+    gap: 10px;
+}
+
+.result-card.player1 {
+    border-color: rgba(99, 163, 255, 0.42);
+}
+
+.result-card.player2 {
+    border-color: rgba(255, 110, 138, 0.4);
+}
+
+.result-card.draw {
+    border-color: rgba(190, 205, 232, 0.28);
+}
+
+.result-title {
+    color: rgba(213, 227, 255, 0.74);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.result-winner {
+    color: #f5f8ff;
+    font-size: 20px;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.result-score-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.result-score-item {
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    padding: 10px 12px;
+    display: grid;
+    gap: 4px;
+}
+
+.result-name {
+    color: rgba(201, 216, 255, 0.72);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.result-score-item strong {
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
 }
 
 @media (min-width: 1700px) {
     .battle-screen {
-        grid-template-columns: minmax(188px, 0.86fr) minmax(0, 5.2fr) minmax(188px, 0.86fr) minmax(278px, 1.14fr);
-        grid-template-rows: 36px minmax(0, 1fr) minmax(214px, 0.68fr);
+        grid-template-columns: minmax(224px, 0.98fr) minmax(0, 5.4fr) minmax(224px, 0.98fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
     }
 }
 
 @media (max-width: 1480px) {
     .battle-screen {
-        grid-template-columns: minmax(154px, 0.78fr) minmax(0, 4.1fr) minmax(154px, 0.78fr) minmax(234px, 0.98fr);
-        grid-template-rows: 34px minmax(0, 1fr) minmax(194px, 0.62fr);
+        grid-template-columns: minmax(188px, 0.92fr) minmax(0, 4.2fr) minmax(188px, 0.92fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
         gap: 7px;
         padding: 7px 8px 8px;
+    }
+
+    .action-panel-slot {
+        max-width: 1320px;
+    }
+}
+
+@media (max-width: 1180px) {
+    .battle-screen {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: auto minmax(0, 0.92fr) auto auto;
+        grid-template-areas:
+            'topbar topbar'
+            'chart chart'
+            'left right'
+            'action action';
+    }
+
+    .left-panel,
+    .right-panel {
+        height: auto;
+    }
+
+    .action-panel-slot {
+        width: 100%;
+        max-width: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .battle-screen {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(220px, auto) auto auto auto;
+        grid-template-areas:
+            'topbar'
+            'chart'
+            'left'
+            'right'
+            'action';
+        padding: 6px;
+    }
+
+    .battle-topbar {
+        flex-wrap: wrap;
+    }
+
+    .battle-status,
+    .result-score-row {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 </style>
