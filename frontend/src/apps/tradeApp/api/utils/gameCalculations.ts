@@ -4,6 +4,8 @@ export interface PlayerSnapshot {
   totalAssets: number
   unrealizedPnL: number
   longValue: number
+  shortCollateralValue: number
+  speculationCommittedCash: number
   longPnL: number
   shortPnL: number
   speculationPnL: number
@@ -40,6 +42,8 @@ export function calculatePlayerSnapshot(
   const priceMap = getPriceMap(stocks)
 
   let longValue = 0
+  let shortCollateralValue = 0
+  let speculationCommittedCash = 0
   let longPnL = 0
   let shortPnL = 0
   let speculationPnL = 0
@@ -58,11 +62,13 @@ export function calculatePlayerSnapshot(
     PlayerState['shorts'][StockKey],
   ][]) {
     const currentPrice = priceMap[key]
+    shortCollateralValue += position.avgPrice * position.quantity
     shortPnL += (position.avgPrice - currentPrice) * position.quantity
   }
 
   for (const position of player.speculation) {
     const currentPrice = priceMap[position.stockKey]
+    speculationCommittedCash += position.committedCash
     speculationPnL +=
       position.side === 'buy'
         ? (currentPrice - position.entryPrice) * position.quantity
@@ -71,12 +77,21 @@ export function calculatePlayerSnapshot(
 
   const managementEvaluation = calculateManagementEvaluation(player, stocks)
   const unrealizedPnL = longPnL + shortPnL + speculationPnL
-  const totalAssets = player.cash + longValue + shortPnL + speculationPnL + managementEvaluation
+  const totalAssets =
+    player.cash
+    + longValue
+    + shortCollateralValue
+    + speculationCommittedCash
+    + shortPnL
+    + speculationPnL
+    + managementEvaluation
 
   return {
     totalAssets,
     unrealizedPnL,
     longValue,
+    shortCollateralValue,
+    speculationCommittedCash,
     longPnL,
     shortPnL,
     speculationPnL,

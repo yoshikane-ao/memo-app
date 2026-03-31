@@ -71,9 +71,12 @@ export type BattleActionProjection = {
   selectedPrice: number
   selectedHoldingQuantity: number
   selectedShortQuantity: number
+  availableCash: number
   orderAmount: number
   estimatedShares: number
   executedAmount: number
+  requiredCashAmount: number
+  isCashInsufficient: boolean
   executionEstimateText: string
   canSubmitTrade: boolean
   canSubmitCompany: boolean
@@ -496,13 +499,23 @@ export function buildBattleActionProjection(
   const selectedPrice = selectedStock?.currentPrice ?? 0
   const selectedHoldingQuantity = currentPlayer.holdings[normalizedDraft.stockKey]?.quantity ?? 0
   const selectedShortQuantity = currentPlayer.shorts[normalizedDraft.stockKey]?.quantity ?? 0
+  const availableCash = Math.max(0, Math.floor(currentPlayer.cash))
   const orderAmount = normalizeQuantity(normalizedDraft.quantity)
   const estimatedShares = resolveOrderQuantity(selectedPrice, orderAmount)
   const executedAmount = estimatedShares * selectedPrice
+  const requiresCashAmount =
+    normalizedDraft.tradeAction === 'buy' || normalizedDraft.tradeAction === 'short'
+  const requiredCashAmount = requiresCashAmount ? executedAmount : 0
+  const isCashInsufficient =
+    normalizedDraft.actionKind === 'trade'
+    && requiresCashAmount
+    && requiredCashAmount > availableCash
   const visibleTradeActions = visibleTradeActionsForMode(normalizedDraft.tradeMode)
   const executionEstimateText =
     normalizedDraft.actionKind !== 'trade'
       ? '未設定'
+      : isCashInsufficient
+        ? `現金不足 (${formatCurrency(requiredCashAmount)} / 所持 ${formatCurrency(availableCash)})`
       : estimatedShares <= 0 || executedAmount <= 0
         ? '注文額不足'
         : `${formatCurrency(executedAmount)} / 約${estimatedShares}株`
@@ -510,6 +523,7 @@ export function buildBattleActionProjection(
   const canSubmitTrade =
     normalizedDraft.actionKind === 'trade'
     && estimatedShares > 0
+    && !isCashInsufficient
     && (
       normalizedDraft.tradeAction === 'sell'
         ? selectedHoldingQuantity > 0
@@ -540,9 +554,12 @@ export function buildBattleActionProjection(
     selectedPrice,
     selectedHoldingQuantity,
     selectedShortQuantity,
+    availableCash,
     orderAmount,
     estimatedShares,
     executedAmount,
+    requiredCashAmount,
+    isCashInsufficient,
     executionEstimateText,
     canSubmitTrade,
     canSubmitCompany,

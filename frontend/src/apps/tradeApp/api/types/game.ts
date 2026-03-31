@@ -35,6 +35,7 @@ export interface SpeculationPosition {
   side: 'buy' | 'short'
   quantity: number
   entryPrice: number
+  committedCash: number
   settlementTurn: number
 }
 

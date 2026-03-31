@@ -100,6 +100,7 @@ describe('calculatePlayerSnapshot', () => {
         side: 'buy',
         quantity: 4,
         entryPrice: 90,
+        committedCash: 360,
         settlementTurn: 3,
       },
     ]
@@ -109,8 +110,10 @@ describe('calculatePlayerSnapshot', () => {
 
     expect(managementEvaluation).toBe((112 - 100) * 30)
     expect(snapshot.longValue).toBe(700)
+    expect(snapshot.shortCollateralValue).toBe(500)
     expect(snapshot.shortPnL).toBe(25)
+    expect(snapshot.speculationCommittedCash).toBe(360)
     expect(snapshot.speculationPnL).toBe(20)
-    expect(snapshot.totalAssets).toBe(12000 + 700 + 25 + 20 + 360)
+    expect(snapshot.totalAssets).toBe(12000 + 700 + 500 + 360 + 25 + 20 + managementEvaluation)
   })
 })

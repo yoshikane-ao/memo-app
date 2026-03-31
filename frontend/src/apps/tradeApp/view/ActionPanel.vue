@@ -91,6 +91,9 @@ const confirmHint = computed(() => {
         if (props.projection.orderAmount <= 0) {
             return '注文額を入力すると執行見込みが確定します'
         }
+        if (props.projection.isCashInsufficient) {
+            return `現金不足です。必要 ${props.projection.requiredCashAmount.toLocaleString()}円 / 所持 ${props.projection.availableCash.toLocaleString()}円`
+        }
         if (!canSubmitTrade.value) {
             return '現在の保有数または注文額では約定できません'
         }
