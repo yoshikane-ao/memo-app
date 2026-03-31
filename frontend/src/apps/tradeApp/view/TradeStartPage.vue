@@ -1,21 +1,30 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import BattleModeSelector from './start/BattleModeSelector.vue'
 import StartingCashSection from './start/StartingCashSection.vue'
 import TurnOrderSection from './start/TurnOrderSection.vue'
 import ProfileSlotCard from './start/ProfileSlotCard.vue'
 import ProfileCreateModal from './ProfileCreateModal.vue'
 import ProfilePickerModal from './ProfilePickerModal.vue'
-import { useTradeGameStore, type BattleMode, type FirstPlayer } from '../store/useTradeGameStore'
+import { useTradeGameStore, type FirstPlayer } from '../store/useTradeGameStore'
 import {
   useTradeProfileStore,
   type CreateTradeProfileInput,
   type TradeProfile,
 } from '../store/useTradeProfileStore'
-import { buildTradeSessionSnapshot, type TradeSetupDraft } from '../lib/tradeSetup'
+import {
+  DEFAULT_MARKET_STOCK_STARTING_PRICE,
+  DEFAULT_PLAYER_STOCK_STARTING_PRICE,
+  RANDOM_MARKET_STOCK_MAX,
+  RANDOM_MARKET_STOCK_MIN,
+  buildTradeSessionSnapshot,
+  normalizeMarketStartingPrice,
+  type TradeSetupDraft,
+  type MarketStartingPriceMode,
+} from '../lib/tradeSetup'
+import { STOCK_PRICE_TICK } from '../lib/tradeImpact'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
-import { createCpuIdentity, createGuestIdentity } from '../types/playerIdentity'
+import { createGuestIdentity } from '../types/playerIdentity'
 import startBackgroundUrl from '../assets/start-screen-background.png'
 
 type StartingCashMode = 'same' | 'separate'
@@ -30,14 +39,13 @@ const router = useRouter()
 const gameStore = useTradeGameStore()
 const profileStore = useTradeProfileStore()
 
-const battleMode = ref<BattleMode>('pvp')
 const firstPlayer = ref<FirstPlayer>('random')
 const startingCashMode = ref<StartingCashMode>('same')
 const sharedStartingCash = ref(12000)
 const player1StartingCash = ref(12000)
 const player2StartingCash = ref(12000)
-const weakCpuCount = ref(42)
-const strongCpuCount = ref(21)
+const marketStartingPriceMode = ref<MarketStartingPriceMode>('fixed')
+const marketStartingPrice = ref(DEFAULT_MARKET_STOCK_STARTING_PRICE)
 const statusMessage = ref('')
 
 const p1Identity = ref<PlayerIdentity>(createGuestIdentity('p1'))
@@ -48,40 +56,10 @@ const isPickerOpen = ref(false)
 const isCreateModalOpen = ref(false)
 const createTargetSlot = ref<PlayerSlot>('p1')
 
-const totalCpuCount = computed(() => normalizeNonNegativeInt(weakCpuCount.value) + normalizeNonNegativeInt(strongCpuCount.value))
-
 const p1Profile = computed<TradeProfile | null>(() => resolveProfile(p1Identity.value))
 const p2Profile = computed<TradeProfile | null>(() => resolveProfile(p2Identity.value))
 
-const displayP1Identity = computed(() => {
-  return battleMode.value === 'cvc' ? createCpuIdentity() : p1Identity.value
-})
-
-const displayP2Identity = computed(() => {
-  if (battleMode.value === 'pvc' || battleMode.value === 'cvc') {
-    return createCpuIdentity()
-  }
-  return p2Identity.value
-})
-
-const p1Disabled = computed(() => battleMode.value === 'cvc')
-const p2Disabled = computed(() => battleMode.value === 'pvc' || battleMode.value === 'cvc')
-
-const profileSummaryCopy = computed(() => {
-  if (battleMode.value === 'pvp') {
-    return 'P1 と P2 はゲストのままでも開始できます。プロフィールを選ぶと戦績を保存できます。'
-  }
-  if (battleMode.value === 'pvc') {
-    return 'PLAYER 1 のみプロフィールを選択できます。CPU 側の戦績は保存されません。'
-  }
-  return 'CPU vs CPU ではキャラクター選択は不要です。'
-})
-
 const resolvedPlayer1Name = computed(() => {
-  if (battleMode.value === 'cvc') {
-    return 'CPU 1'
-  }
-
   if (p1Identity.value.kind === 'profile') {
     return p1Profile.value?.name || 'PLAYER 1'
   }
@@ -90,14 +68,6 @@ const resolvedPlayer1Name = computed(() => {
 })
 
 const resolvedPlayer2Name = computed(() => {
-  if (battleMode.value === 'pvc') {
-    return 'CPU'
-  }
-
-  if (battleMode.value === 'cvc') {
-    return 'CPU 2'
-  }
-
   if (p2Identity.value.kind === 'profile') {
     return p2Profile.value?.name || 'PLAYER 2'
   }
@@ -117,26 +87,21 @@ const resolvedPlayer2Cash = computed(() => {
     : normalizeCash(player2StartingCash.value)
 })
 
-const canStart = computed(() => totalCpuCount.value <= 100)
-
-void profileSummaryCopy
 void resolvedPlayer1Cash
 void resolvedPlayer2Cash
 
 onMounted(() => {
   profileStore.seedIfEmpty()
   const draft = gameStore.state.draft
-  battleMode.value = draft.battleMode
   firstPlayer.value = draft.firstPlayer
   startingCashMode.value = draft.startingCashMode
   sharedStartingCash.value = draft.sharedStartingCash
   player1StartingCash.value = draft.player1StartingCash
   player2StartingCash.value = draft.player2StartingCash
-  weakCpuCount.value = draft.weakCpuCount
-  strongCpuCount.value = draft.strongCpuCount
-  p1Identity.value = draft.p1Identity
-  p2Identity.value = draft.p2Identity
-  syncModeIdentities(battleMode.value)
+  marketStartingPriceMode.value = draft.marketStartingPriceMode
+  marketStartingPrice.value = draft.marketStartingPrice
+  p1Identity.value = draft.p1Identity.kind === 'cpu' ? createGuestIdentity('p1') : draft.p1Identity
+  p2Identity.value = draft.p2Identity.kind === 'cpu' ? createGuestIdentity('p2') : draft.p2Identity
   syncDraftToStore()
 })
 
@@ -164,14 +129,16 @@ function normalizeCash(value: number): number {
 
 function buildCurrentDraft(): TradeSetupDraft {
   return {
-    battleMode: battleMode.value,
+    battleMode: 'pvp',
     firstPlayer: firstPlayer.value,
     startingCashMode: startingCashMode.value,
     sharedStartingCash: sharedStartingCash.value,
     player1StartingCash: player1StartingCash.value,
     player2StartingCash: player2StartingCash.value,
-    weakCpuCount: weakCpuCount.value,
-    strongCpuCount: strongCpuCount.value,
+    weakCpuCount: 0,
+    strongCpuCount: 0,
+    marketStartingPriceMode: marketStartingPriceMode.value,
+    marketStartingPrice: marketStartingPrice.value,
     p1Identity: p1Identity.value,
     p2Identity: p2Identity.value,
   }
@@ -179,34 +146,6 @@ function buildCurrentDraft(): TradeSetupDraft {
 
 function syncDraftToStore(): void {
   gameStore.setDraft(buildCurrentDraft())
-}
-
-function setBattleMode(mode: BattleMode): void {
-  battleMode.value = mode
-  syncModeIdentities(mode)
-  syncDraftToStore()
-  statusMessage.value = ''
-}
-
-function syncModeIdentities(mode: BattleMode): void {
-  if (mode === 'pvc') {
-    p2Identity.value = createCpuIdentity()
-    return
-  }
-
-  if (mode === 'cvc') {
-    p1Identity.value = createCpuIdentity()
-    p2Identity.value = createCpuIdentity()
-    return
-  }
-
-  if (p1Identity.value.kind === 'cpu') {
-    p1Identity.value = createGuestIdentity('p1')
-  }
-
-  if (p2Identity.value.kind === 'cpu') {
-    p2Identity.value = createGuestIdentity('p2')
-  }
 }
 
 function setStartingCashMode(value: StartingCashMode): void {
@@ -240,43 +179,27 @@ function setPlayerCash(slot: PlayerSlot, value: number): void {
   syncDraftToStore()
 }
 
-function adjustCpu(target: 'weak' | 'strong', delta: number): void {
-  if (target === 'weak') {
-    weakCpuCount.value = Math.max(0, normalizeNonNegativeInt(weakCpuCount.value) + delta)
-  } else {
-    strongCpuCount.value = Math.max(0, normalizeNonNegativeInt(strongCpuCount.value) + delta)
+function setMarketStartingPriceMode(mode: MarketStartingPriceMode): void {
+  marketStartingPriceMode.value = mode
+  if (mode === 'fixed') {
+    marketStartingPrice.value = normalizeMarketStartingPrice(
+      marketStartingPrice.value || DEFAULT_MARKET_STOCK_STARTING_PRICE,
+    )
   }
   syncDraftToStore()
 }
 
-function setCpuCount(target: 'weak' | 'strong', value: number): void {
-  const normalized = normalizeNonNegativeInt(value)
-  if (target === 'weak') {
-    weakCpuCount.value = normalized
-  } else {
-    strongCpuCount.value = normalized
-  }
+function setMarketStartingPrice(value: number): void {
+  marketStartingPrice.value = normalizeMarketStartingPrice(value)
   syncDraftToStore()
 }
 
 function openPicker(slot: PlayerSlot): void {
-  if (battleMode.value === 'cvc') {
-    return
-  }
-  if (battleMode.value === 'pvc' && slot === 'p2') {
-    return
-  }
   pickerSlot.value = slot
   isPickerOpen.value = true
 }
 
 function openCreate(slot: PlayerSlot): void {
-  if (battleMode.value === 'cvc') {
-    return
-  }
-  if (battleMode.value === 'pvc' && slot === 'p2') {
-    return
-  }
   createTargetSlot.value = slot
   isCreateModalOpen.value = true
 }
@@ -352,39 +275,15 @@ function serializeIdentity(identity: PlayerIdentity): SelectedPlayerPayload {
 }
 
 function startLocalBattleSubmit(): void {
-  if (!canStart.value) {
-    statusMessage.value = 'CPU 合計は 100 人以下にしてください。'
-    return
-  }
-
   const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles)
   gameStore.initializeGame(session)
 
   router.push({ name: 'menu-workspace-trade-battle' }).catch(() => {
     statusMessage.value = 'バトル画面へ移動できませんでした。'
   })
-}
-
-function startLocalBattle(): void {
-  if (!canStart.value) {
-    statusMessage.value = 'CPU人数の合計を100人以下にしてください。'
-    return
-  }
-
-  const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles)
-  gameStore.initializeGame(session)
-
-  router.push({ name: 'menu-workspace-trade-battle' }).catch(() => {
-    statusMessage.value = 'バトル画面へ移動できませんでした。'
-  })
-}
-
-function showPlaceholder(feature: string): void {
-  statusMessage.value = `${feature} はまだ未接続です。まずはローカル対戦を動かします。`
 }
 void handleCreateProfile
 void persistSelectedIdentities
-void startLocalBattle
 </script>
 
 <template>
@@ -425,7 +324,7 @@ void startLocalBattle
               <div class="hero-panel__inner hero-panel__inner--neutral">
                 <header class="hero-panel__head">
                   <p class="hero-panel__eyebrow">進行設定</p>
-                  <h2>先攻とCPU</h2>
+                  <h2>先攻と開始価格</h2>
                 </header>
 
                 <div class="flow-panel">
@@ -436,44 +335,68 @@ void startLocalBattle
                     @update:model-value="firstPlayer = $event"
                   />
 
-                  <div class="cpu-settings">
-                    <div class="cpu-row">
-                      <span>弱CPU</span>
-                      <div class="cpu-row__controls">
-                        <button type="button" @click="adjustCpu('weak', -1)">-</button>
-                        <input type="number" min="0" max="100" :value="weakCpuCount" @input="setCpuCount('weak', Number(($event.target as HTMLInputElement).value))" />
-                        <button type="button" @click="adjustCpu('weak', 1)">+</button>
+                  <div class="market-price-settings">
+                    <div class="market-price-settings__head">
+                      <strong>マーケットの開始価格</strong>
+                      <span>Player1 / Player2 レートは {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円固定</span>
+                    </div>
+
+                    <div class="market-price-settings__mode">
+                      <button
+                        type="button"
+                        :class="{ 'is-active': marketStartingPriceMode === 'fixed' }"
+                        @click="setMarketStartingPriceMode('fixed')"
+                      >
+                        固定
+                      </button>
+                      <button
+                        type="button"
+                        :class="{ 'is-active': marketStartingPriceMode === 'random' }"
+                        @click="setMarketStartingPriceMode('random')"
+                      >
+                        ランダム
+                      </button>
+                    </div>
+
+                    <div v-if="marketStartingPriceMode === 'fixed'" class="market-price-settings__input">
+                      <span>マーケット</span>
+                      <div class="market-price-settings__money">
+                        <span>円</span>
+                        <input
+                          type="number"
+                          :min="STOCK_PRICE_TICK"
+                          :step="STOCK_PRICE_TICK"
+                          :value="marketStartingPrice"
+                          @input="setMarketStartingPrice(Number(($event.target as HTMLInputElement).value))"
+                        />
                       </div>
                     </div>
 
-                    <div class="cpu-row">
-                      <span>強CPU</span>
-                      <div class="cpu-row__controls">
-                        <button type="button" @click="adjustCpu('strong', -1)">-</button>
-                        <input type="number" min="0" max="100" :value="strongCpuCount" @input="setCpuCount('strong', Number(($event.target as HTMLInputElement).value))" />
-                        <button type="button" @click="adjustCpu('strong', 1)">+</button>
-                      </div>
-                    </div>
-
-                    <p class="cpu-summary">市場参加CPU 合計: {{ totalCpuCount }}人</p>
+                    <p v-else class="market-price-settings__hint">
+                      {{ RANDOM_MARKET_STOCK_MIN.toLocaleString() }}〜{{ RANDOM_MARKET_STOCK_MAX.toLocaleString() }}円で開始時に決定
+                    </p>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section class="hero-panel" aria-label="対戦モード">
+            <section class="hero-panel" aria-label="ルール">
               <div class="hero-panel__inner hero-panel__inner--red">
                 <header class="hero-panel__head">
-                  <p class="hero-panel__eyebrow">対戦モード</p>
-                  <h2>対戦形式</h2>
+                  <p class="hero-panel__eyebrow">ルール</p>
+                  <h2>シンプル設定</h2>
                 </header>
 
                 <div class="mode-panel">
-                  <BattleModeSelector :model-value="battleMode" @update:model-value="setBattleMode" />
                   <p class="mode-panel__copy">
-                    ゲストのままでも開始できます。プロフィールを選ぶと戦績を保存できます。
+                    いまは 2人対戦専用です。
                   </p>
-                  <p v-if="statusMessage" class="mode-panel__status">{{ statusMessage }}</p>
+                  <p class="mode-panel__copy">
+                    勝敗は総資産ではなく、最後に持っている現金で決まります。
+                  </p>
+                  <p class="mode-panel__copy">
+                    Player1 レートと Player2 レートの開始価格は {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円固定です。
+                  </p>
                 </div>
               </div>
             </section>
@@ -484,9 +407,9 @@ void startLocalBattle
               <div class="hero-profile-card__inner hero-profile-card__inner--blue">
                 <ProfileSlotCard
                   slot="p1"
-                  :identity="displayP1Identity"
+                  :identity="p1Identity"
                   :profile="p1Profile"
-                  :disabled="p1Disabled"
+                  :disabled="false"
                   @select="openPicker('p1')"
                   @create="openCreate('p1')"
                   @reset-guest="resetSlotToGuest('p1')"
@@ -499,13 +422,7 @@ void startLocalBattle
               <div class="hero-profile-hub__inner">
                 <div class="hero-stage__actions" aria-label="start actions">
                   <button type="button" class="hero-action hero-action--blue" @click="startLocalBattleSubmit">
-                    ローカル対戦を開始
-                  </button>
-                  <button type="button" class="hero-action hero-action--green" @click="showPlaceholder('オンライン対戦')">
-                    オンライン対戦
-                  </button>
-                  <button type="button" class="hero-action hero-action--violet" @click="showPlaceholder('成績')">
-                    成績
+                    対戦開始
                   </button>
                 </div>
                 <p v-if="statusMessage" class="hero-profile-hub__status">{{ statusMessage }}</p>
@@ -516,9 +433,9 @@ void startLocalBattle
               <div class="hero-profile-card__inner hero-profile-card__inner--red">
                 <ProfileSlotCard
                   slot="p2"
-                  :identity="displayP2Identity"
-                  :profile="battleMode === 'pvp' ? p2Profile : null"
-                  :disabled="p2Disabled"
+                  :identity="p2Identity"
+                  :profile="p2Profile"
+                  :disabled="false"
                   @select="openPicker('p2')"
                   @create="openCreate('p2')"
                   @reset-guest="resetSlotToGuest('p2')"
@@ -705,7 +622,6 @@ void startLocalBattle
 }
 
 .hero-profile-hub__status,
-.cpu-summary,
 .mode-panel__copy,
 .mode-panel__status {
   margin: 0;
@@ -725,34 +641,41 @@ void startLocalBattle
   gap: 8px;
 }
 
-.cpu-settings {
+.market-price-settings {
   display: grid;
-  gap: 6px;
-}
-
-.cpu-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.cpu-row span {
-  font-size: 11px;
-  color: #a8b8de;
-  font-weight: 700;
-}
-
-.cpu-row__controls {
-  display: grid;
-  grid-template-columns: 28px 58px 28px;
   gap: 8px;
-  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.cpu-row__controls button,
-.cpu-row__controls input {
-  height: 30px;
+.market-price-settings__head {
+  display: grid;
+  gap: 2px;
+}
+
+.market-price-settings__head strong {
+  font-size: 12px;
+  color: #f3f8ff;
+}
+
+.market-price-settings__head span,
+.market-price-settings__hint {
+  font-size: 10px;
+  line-height: 1.4;
+  color: rgba(216, 225, 244, 0.82);
+}
+
+.market-price-settings__mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.market-price-settings__mode button,
+.market-price-settings__money input {
+  height: 32px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(10, 16, 30, 0.92);
@@ -760,13 +683,47 @@ void startLocalBattle
   box-sizing: border-box;
 }
 
-.cpu-row__controls button {
+.market-price-settings__mode button {
   cursor: pointer;
+  font-size: 11px;
+  font-weight: 800;
 }
 
-.cpu-row__controls input {
+.market-price-settings__mode button.is-active {
+  border-color: rgba(125, 205, 255, 0.62);
+  background: linear-gradient(135deg, rgba(73, 119, 255, 0.78), rgba(58, 198, 255, 0.74));
+}
+
+.market-price-settings__input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.market-price-settings__input > span {
+  font-size: 11px;
+  color: #a8b8de;
+  font-weight: 700;
+}
+
+.market-price-settings__money {
+  display: grid;
+  grid-template-columns: auto 88px;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-price-settings__money > span {
+  font-size: 11px;
+  color: #7fb5ff;
+  font-weight: 800;
+}
+
+.market-price-settings__money input {
   width: 100%;
-  text-align: center;
+  padding: 0 10px;
+  text-align: right;
 }
 
 .mode-panel__status {

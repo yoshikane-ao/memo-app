@@ -6,6 +6,7 @@ import {
   createDefaultTradeSetupDraft,
   normalizeCash,
   normalizeCpuCount,
+  normalizeMarketStartingPrice,
   normalizeNonNegativeInt,
   syncIdentitiesForBattleMode,
 } from '../lib/tradeSetup'
@@ -21,6 +22,7 @@ export type {
   BattleMode,
   FirstPlayer,
   GameStartSettings,
+  MarketStartingPriceMode,
   ResolvedFirstPlayer,
   StartingCashMode,
   TradeSessionSnapshot,
@@ -163,6 +165,7 @@ export const useTradeGameStore = defineStore('tradeGame', () => {
     state.draft.player2StartingCash = normalizeCash(state.draft.player2StartingCash)
     state.draft.weakCpuCount = normalizeCpuCount(state.draft.weakCpuCount)
     state.draft.strongCpuCount = normalizeCpuCount(state.draft.strongCpuCount)
+    state.draft.marketStartingPrice = normalizeMarketStartingPrice(state.draft.marketStartingPrice)
   }
 
   function initializeGame(session: TradeSessionSnapshot): void {

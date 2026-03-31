@@ -1,11 +1,18 @@
 import type { TradeProfile } from '../store/useTradeProfileStore'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
 import { createCpuIdentity, createGuestIdentity } from '../types/playerIdentity'
+import { roundToStockPriceTick, STOCK_PRICE_TICK } from './tradeImpact'
 
 export type BattleMode = 'pvp' | 'pvc' | 'cvc'
 export type FirstPlayer = 'p1' | 'p2' | 'random'
 export type ResolvedFirstPlayer = 'p1' | 'p2'
 export type StartingCashMode = 'same' | 'separate'
+export type MarketStartingPriceMode = 'fixed' | 'random'
+
+export const DEFAULT_PLAYER_STOCK_STARTING_PRICE = 1000000
+export const DEFAULT_MARKET_STOCK_STARTING_PRICE = 10000
+export const RANDOM_MARKET_STOCK_MIN = 8000
+export const RANDOM_MARKET_STOCK_MAX = 12000
 
 export type GameStartSettings = {
   battleMode: BattleMode
@@ -15,6 +22,7 @@ export type GameStartSettings = {
   marketCpuCount: number
   player1StartingCash: number
   player2StartingCash: number
+  marketStartingPrice: number
 }
 
 export type TradeSetupDraft = {
@@ -26,6 +34,8 @@ export type TradeSetupDraft = {
   player2StartingCash: number
   weakCpuCount: number
   strongCpuCount: number
+  marketStartingPriceMode: MarketStartingPriceMode
+  marketStartingPrice: number
   p1Identity: PlayerIdentity
   p2Identity: PlayerIdentity
 }
@@ -91,6 +101,28 @@ export function normalizeCpuCount(value: number): number {
   return normalizeNonNegativeInt(value)
 }
 
+export function normalizeMarketStartingPrice(
+  value: number,
+  fallback = DEFAULT_MARKET_STOCK_STARTING_PRICE,
+): number {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+
+  return roundToStockPriceTick(value)
+}
+
+function resolveMarketStartingPrice(draft: TradeSetupDraft): number {
+  if (draft.marketStartingPriceMode === 'random') {
+    const min = roundToStockPriceTick(RANDOM_MARKET_STOCK_MIN)
+    const max = roundToStockPriceTick(RANDOM_MARKET_STOCK_MAX)
+    const stepCount = Math.floor((max - min) / STOCK_PRICE_TICK)
+    return min + Math.floor(Math.random() * (stepCount + 1)) * STOCK_PRICE_TICK
+  }
+
+  return normalizeMarketStartingPrice(draft.marketStartingPrice)
+}
+
 export function createDefaultTradeSetupDraft(): TradeSetupDraft {
   return {
     battleMode: 'pvp',
@@ -101,6 +133,8 @@ export function createDefaultTradeSetupDraft(): TradeSetupDraft {
     player2StartingCash: DEFAULT_STARTING_CASH,
     weakCpuCount: 42,
     strongCpuCount: 21,
+    marketStartingPriceMode: 'fixed',
+    marketStartingPrice: DEFAULT_MARKET_STOCK_STARTING_PRICE,
     p1Identity: createGuestIdentity('p1'),
     p2Identity: createGuestIdentity('p2'),
   }
@@ -269,6 +303,7 @@ export function buildTradeSessionSnapshot(
       marketCpuCount: viewModel.totalCpuCount,
       player1StartingCash: viewModel.player1.resolvedCash,
       player2StartingCash: viewModel.player2.resolvedCash,
+      marketStartingPrice: resolveMarketStartingPrice(draft),
     },
     resolvedFirstPlayer,
     player1Identity: viewModel.player1.identity,

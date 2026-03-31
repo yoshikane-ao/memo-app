@@ -1,12 +1,25 @@
 import { describe, expect, it } from 'vitest'
 import type { PlayerState, StockState } from '../types/game'
-import { calculateManagementEvaluation, calculatePlayerSnapshot } from './gameCalculations'
+import {
+  AD_CAMPAIGN_ACTION,
+  BUYBACK_ACTION,
+  CAPITAL_INCREASE_ACTION,
+  FACILITY_INVESTMENT_ACTION,
+} from '../types/game'
+import {
+  calculateManagementEvaluation,
+  calculatePlayerSnapshot,
+  calculatePlayerVictoryValue,
+  calculateTradePositionPnL,
+  calculateTradePositionSettlementCash,
+} from './gameCalculations'
 
 function createStocks(): StockState[] {
   return [
     {
       key: 'p1',
-      name: 'プレイヤー1会社株',
+      name: 'プレイヤー1レート',
+      basePrice: 100,
       currentPrice: 100,
       previousPrice: 100,
       bubbleUpper: 180,
@@ -17,7 +30,8 @@ function createStocks(): StockState[] {
     },
     {
       key: 'p2',
-      name: 'プレイヤー2会社株',
+      name: 'プレイヤー2レート',
+      basePrice: 90,
       currentPrice: 90,
       previousPrice: 90,
       bubbleUpper: 170,
@@ -28,7 +42,8 @@ function createStocks(): StockState[] {
     },
     {
       key: 'market',
-      name: '市場株',
+      name: 'マーケット',
+      basePrice: 80,
       currentPrice: 80,
       previousPrice: 80,
       bubbleUpper: 160,
@@ -58,12 +73,13 @@ function createPlayer(): PlayerState {
       p2: { quantity: 0, avgPrice: 0 },
       market: { quantity: 0, avgPrice: 0 },
     },
+    positions: [],
     speculation: [],
     cooldowns: {
-      増資: 0,
-      広告: 0,
-      自社株買い: 0,
-      設備投資: 0,
+      [CAPITAL_INCREASE_ACTION]: 0,
+      [AD_CAMPAIGN_ACTION]: 0,
+      [BUYBACK_ACTION]: 0,
+      [FACILITY_INVESTMENT_ACTION]: 0,
     },
     recentCashChange: 0,
     recentNetChange: 0,
@@ -115,5 +131,79 @@ describe('calculatePlayerSnapshot', () => {
     expect(snapshot.speculationCommittedCash).toBe(360)
     expect(snapshot.speculationPnL).toBe(20)
     expect(snapshot.totalAssets).toBe(12000 + 700 + 500 + 360 + 25 + 20 + managementEvaluation)
+  })
+
+  it('treats position pnl as order-based price difference for buy positions', () => {
+    const pnl = calculateTradePositionPnL(
+      {
+        side: 'buy',
+        entryPrice: 20000,
+        orderAmount: 10000,
+      },
+      10000,
+    )
+    const settlement = calculateTradePositionSettlementCash(
+      {
+        side: 'buy',
+        entryPrice: 20000,
+        orderAmount: 10000,
+      },
+      10000,
+    )
+
+    expect(pnl).toBe(-10000)
+    expect(settlement).toBe(0)
+  })
+
+  it('keeps a same-price sell position at zero pnl and returns the committed cash', () => {
+    const pnl = calculateTradePositionPnL(
+      {
+        side: 'sell',
+        entryPrice: 10000,
+        orderAmount: 10000,
+      },
+      10000,
+    )
+    const settlement = calculateTradePositionSettlementCash(
+      {
+        side: 'sell',
+        entryPrice: 10000,
+        orderAmount: 10000,
+      },
+      10000,
+    )
+
+    expect(pnl).toBe(0)
+    expect(settlement).toBe(10000)
+  })
+
+  it('uses cash plus own-rate market value for the victory value', () => {
+    const stocks = createStocks()
+    stocks[0].currentPrice = 112
+    const player = createPlayer()
+
+    expect(calculatePlayerVictoryValue(player, stocks)).toBe(12000 + 112)
+  })
+
+  it('allows settlement cash to go negative when a losing position is closed deeply underwater', () => {
+    const pnl = calculateTradePositionPnL(
+      {
+        side: 'buy',
+        entryPrice: 20000,
+        orderAmount: 10000,
+      },
+      0,
+    )
+    const settlement = calculateTradePositionSettlementCash(
+      {
+        side: 'buy',
+        entryPrice: 20000,
+        orderAmount: 10000,
+      },
+      0,
+    )
+
+    expect(pnl).toBe(-20000)
+    expect(settlement).toBe(-10000)
   })
 })

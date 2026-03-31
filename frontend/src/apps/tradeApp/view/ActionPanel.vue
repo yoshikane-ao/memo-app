@@ -1,34 +1,43 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import type {
-    CompanyAction,
-    PlayerState,
-    TradeAction,
-    TradeMode,
+  CompanyAction,
+  PlayerState,
+  StockKey,
+  TradeAction,
+  TradeMode,
 } from '../api/types/game'
 import {
-    COMPANY_ACTIONS,
-    MODE_LABELS,
-    TRADE_LABELS,
+  COMPANY_ACTIONS,
+  MODE_LABELS,
+  TRADE_LABELS,
 } from '../api/types/game'
 import type {
-    BattleActionDraft,
-    BattleActionProjection,
+  BattleActionDraft,
+  BattleActionProjection,
 } from '../lib/tradeBattle'
+import { MIN_TRADE_ORDER_AMOUNT, resolveTradeImpactPattern } from '../lib/tradeImpact'
 
 const props = defineProps<{
-    currentPlayer: PlayerState
-    draft: BattleActionDraft
-    projection: BattleActionProjection
+  currentPlayer: PlayerState
+  draft: BattleActionDraft
+  projection: BattleActionProjection
+  pendingClose?: {
+    stockName: string
+    side: 'buy' | 'sell'
+    executionPriceText: string
+    projectedPnlText: string
+    returnedCashText: string
+  } | null
 }>()
 
 const emit = defineEmits<{
-    'update:draft': [draft: BattleActionDraft]
-    confirm: []
+  'update:draft': [draft: BattleActionDraft]
+  confirm: []
 }>()
 
 const form = reactive<BattleActionDraft>({
-    ...props.draft,
+  ...props.draft,
 })
 
 const quickAmounts = [1000, 5000, 10000] as const
@@ -36,509 +45,597 @@ const quickAmounts = [1000, 5000, 10000] as const
 let syncingFromProps = false
 
 watch(
-    () => props.draft,
-    (draft) => {
-        syncingFromProps = true
-        Object.assign(form, draft)
-        syncingFromProps = false
-    },
-    { deep: true, immediate: true },
+  () => props.draft,
+  (draft) => {
+    syncingFromProps = true
+    Object.assign(form, draft)
+    syncingFromProps = false
+  },
+  { deep: true, immediate: true },
 )
 
 watch(
-    form,
-    () => {
-        if (syncingFromProps) {
-            return
-        }
-        emit('update:draft', { ...form })
-    },
-    { deep: true },
+  form,
+  () => {
+    if (syncingFromProps) return
+    emit('update:draft', { ...form })
+  },
+  { deep: true },
 )
 
 const actionKind = computed({
-    get: () => form.actionKind,
-    set: (value: BattleActionDraft['actionKind']) => {
-        form.actionKind = value
-    },
+  get: () => form.actionKind,
+  set: (value: BattleActionDraft['actionKind']) => {
+    form.actionKind = value
+  },
 })
 
 const companyActions = computed(() => props.projection.companyActions)
-const stockChoices = computed(() => props.projection.stockChoices)
-const selectedPrice = computed(() => props.projection.selectedPrice)
-const selectedHolding = computed(() => ({ quantity: props.projection.selectedHoldingQuantity }))
-const selectedShort = computed(() => ({ quantity: props.projection.selectedShortQuantity }))
 const visibleTradeActions = computed(() => props.projection.visibleTradeActions)
-const executionEstimateText = computed(() => props.projection.executionEstimateText)
-const companySummaryItems = computed(() => props.projection.preview.companySummaryItems)
 const canSubmitTrade = computed(() => props.projection.canSubmitTrade)
 const canSubmitCompany = computed(() => props.projection.canSubmitCompany)
 const canSubmitWait = computed(() => props.projection.canSubmitWait)
 const canSubmit = computed(() => props.projection.canSubmit)
-const impactOverviewTitle = computed(() => props.projection.preview.overviewTitle)
-const impactOverviewSub = computed(() => props.projection.preview.overviewSub)
-const waitImpactPreview = computed(() => props.projection.preview.stockImpactPreview)
+const isClosePending = computed(() => props.pendingClose != null)
 
-const selectedChoice = computed(() =>
-    stockChoices.value.find((choice) => choice.key === form.stockKey) ?? stockChoices.value[0],
-)
-const selectedTradeModeLabel = computed(() => MODE_LABELS[form.tradeMode])
-const selectedTradeActionLabel = computed(() => TRADE_LABELS[form.tradeAction])
-const orderAmountLabel = computed(() => `${props.projection.orderAmount.toLocaleString()}円`)
+type GuideTone = 'up-strong' | 'up' | 'down' | 'down-strong'
 
-const confirmHint = computed(() => {
-    if (actionKind.value === 'trade') {
-        if (props.projection.orderAmount <= 0) {
-            return '注文額を入力すると執行見込みが確定します'
-        }
-        if (props.projection.isCashInsufficient) {
-            return `現金不足です。必要 ${props.projection.requiredCashAmount.toLocaleString()}円 / 所持 ${props.projection.availableCash.toLocaleString()}円`
-        }
-        if (!canSubmitTrade.value) {
-            return '現在の保有数または注文額では約定できません'
-        }
-        return 'この内容で 1 ターン分の注文を送ります'
-    }
+type TradeGuideEffect = {
+  label: string
+  percentText: string
+  tone: GuideTone
+}
 
-    if (actionKind.value === 'company') {
-        return '会社資金と自社株への影響を確認して実行します'
-    }
-
-    return 'このターンはポジションを増やさずに待機します'
-})
+type TradeGuideItem = {
+  key: StockKey
+  title: string
+  effects: TradeGuideEffect[]
+}
 
 function ownStockKey(): 'p1' | 'p2' {
-    return props.currentPlayer.id === 'player1' ? 'p1' : 'p2'
+  return props.currentPlayer.id === 'player1' ? 'p1' : 'p2'
+}
+
+function rivalStockKey(): 'p1' | 'p2' {
+  return ownStockKey() === 'p1' ? 'p2' : 'p1'
 }
 
 function nextCompanyAction(): CompanyAction {
-    return companyActions.value[0] ?? COMPANY_ACTIONS[0]
+  return companyActions.value[0] ?? COMPANY_ACTIONS[0]
 }
 
 function setActionKind(kind: 'trade' | 'company' | 'wait'): void {
-    actionKind.value = kind
+  actionKind.value = kind
 
-    if (kind === 'trade') {
-        form.companyAction = COMPANY_ACTIONS[0]
-        return
-    }
+  if (kind === 'trade') {
+    form.companyAction = COMPANY_ACTIONS[0]
+    return
+  }
 
-    if (kind === 'wait') {
-        form.companyAction = COMPANY_ACTIONS[0]
-        form.quantity = 0
-        return
-    }
+  if (kind === 'wait') {
+    form.companyAction = COMPANY_ACTIONS[0]
+    form.quantity = 0
+    return
+  }
 
-    form.stockKey = ownStockKey()
-    if (form.companyAction === COMPANY_ACTIONS[0] || form.companyAction === COMPANY_ACTIONS[3]) {
-        form.companyAction = nextCompanyAction()
-    }
+  form.stockKey = ownStockKey()
+  form.companyAction = nextCompanyAction()
 }
 
 function isTradeDisabled(action: TradeAction): boolean {
-    if (actionKind.value !== 'trade') return true
+  if (actionKind.value !== 'trade') return true
 
-    if (form.tradeMode === 'speculation') {
-        return action !== 'buy' && action !== 'short'
-    }
+  if (action === 'buy') {
+    return props.projection.selectedShortQuantity > 0
+  }
 
-    if (action === 'sell') return props.projection.selectedHoldingQuantity <= 0
-    if (action === 'cover') return props.projection.selectedShortQuantity <= 0
-    return false
+  if (action === 'sell') {
+    return props.projection.selectedHoldingQuantity > 0
+  }
+
+  return false
 }
 
 function selectTradeAction(action: TradeAction): void {
-    if (isTradeDisabled(action)) return
-    form.tradeAction = action
+  if (isTradeDisabled(action)) return
+  form.tradeAction = action
 }
 
 function stepAmount(diff: number): void {
-    form.quantity = Math.max(0, props.projection.orderAmount + diff)
+  form.quantity = Math.max(0, props.projection.orderAmount + diff)
 }
 
 function addPreset(amount: number): void {
-    form.quantity = props.projection.orderAmount + amount
+  form.quantity = props.projection.orderAmount + amount
 }
 
 function resetAmount(): void {
-    form.quantity = 0
+  form.quantity = 0
 }
 
 function submitTurn(): void {
-    if (!canSubmit.value) return
-    emit('confirm')
+  if (!isClosePending.value && !canSubmit.value) return
+  emit('confirm')
 }
 
-watch(
-    () => form.tradeMode,
-    (mode: TradeMode) => {
-        if (mode === 'speculation' && (form.tradeAction === 'sell' || form.tradeAction === 'cover')) {
-            form.tradeAction = 'buy'
-        }
-    },
-)
+function resolveGuideTitle(targetKey: StockKey): string {
+  if (targetKey === ownStockKey()) {
+    return form.tradeAction === 'buy' ? '自社を買う' : '自社を売る'
+  }
+
+  if (targetKey === rivalStockKey()) {
+    return form.tradeAction === 'buy' ? '相手を買う' : '相手を売る'
+  }
+
+  return form.tradeAction === 'buy' ? '市場を買う' : '市場を売る'
+}
+
+function resolveEffectLabel(effectKey: StockKey): string {
+  if (effectKey === 'market') return '市場'
+  return effectKey === ownStockKey() ? '自社' : '相手'
+}
+
+function resolveGuideTone(value: number): GuideTone {
+  if (value >= 1) return 'up-strong'
+  if (value > 0) return 'up'
+  if (value <= -1) return 'down-strong'
+  return 'down'
+}
+
+function formatGuidePercent(value: number): string {
+  const percent = Math.round(value * 100)
+  return `${percent > 0 ? '+' : ''}${percent}%`
+}
+
+function formatPositionAmount(value: number): string {
+  const normalized = Math.round(value * 100) / 100
+  return normalized.toLocaleString('ja-JP', {
+    minimumFractionDigits: normalized % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+const tradeGuideItems = computed<TradeGuideItem[]>(() => {
+  const targets: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
+  const effectOrder: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
+
+  return targets.map((targetKey) => {
+    const pattern = resolveTradeImpactPattern(props.currentPlayer.id, targetKey, form.tradeAction)
+
+    return {
+      key: targetKey,
+      title: resolveGuideTitle(targetKey),
+      effects: effectOrder.map((effectKey) => ({
+        label: resolveEffectLabel(effectKey),
+        percentText: formatGuidePercent(pattern[effectKey]),
+        tone: resolveGuideTone(pattern[effectKey]),
+      })),
+    }
+  })
+})
+
+const tradeSummaryTitle = computed(() => {
+  if (isClosePending.value) {
+    return `${props.pendingClose?.stockName ?? ''}の${props.pendingClose?.side === 'buy' ? '買い' : '売り'}ポジションを決済`
+  }
+
+  if (form.tradeAction === 'buy') return 'この内容で買いを実行'
+  return 'この内容で売りを実行'
+})
+
+const selectedPriceText = computed(() => {
+  return `${Math.round(props.projection.selectedPrice).toLocaleString('ja-JP')}円`
+})
+
+const selectedHoldingText = computed(() => {
+  return `${formatPositionAmount(props.projection.selectedHoldingQuantity)}口`
+})
+
+const selectedShortText = computed(() => {
+  return `${formatPositionAmount(props.projection.selectedShortQuantity)}口`
+})
+
+const tradeHint = computed(() => {
+  if (isClosePending.value) {
+    return `想定約定 ${props.pendingClose?.executionPriceText ?? ''} / 回収 ${props.pendingClose?.returnedCashText ?? ''} / 損益 ${props.pendingClose?.projectedPnlText ?? ''}`
+  }
+
+  if (props.projection.orderAmount <= 0) {
+    return '注文額を入力すると着地価格と損益が反映されます。'
+  }
+
+  if (props.projection.orderAmount < MIN_TRADE_ORDER_AMOUNT) {
+    return `最低注文額は ${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です。`
+  }
+
+  if (props.projection.isCashInsufficient) {
+    return `資金不足です。必要 ${props.projection.requiredCashAmount.toLocaleString('ja-JP')}円 / 所持 ${props.projection.availableCash.toLocaleString('ja-JP')}円`
+  }
+
+  if (!canSubmitTrade.value) {
+    return '反対方向のポジションが残っています。先に決済してください。'
+  }
+
+  return `注文額 ${props.projection.orderAmount.toLocaleString('ja-JP')}円`
+})
+
+const confirmButtonLabel = computed(() => {
+  return isClosePending.value ? 'ポジション決済を確定' : '行動を決定'
+})
+
+const companySummaryTitle = computed(() => {
+  return isClosePending.value ? tradeSummaryTitle.value : 'この内容で追加操作を実行'
+})
+
+const companySummaryHint = computed(() => {
+  return isClosePending.value ? tradeHint.value : 'クールダウン中の操作は選べません。'
+})
+
+const waitSummaryTitle = computed(() => {
+  return isClosePending.value ? tradeSummaryTitle.value : 'このターンは待機する'
+})
+
+const waitSummaryHint = computed(() => {
+  return isClosePending.value ? tradeHint.value : 'ポジションはそのままで、相手に手番を渡します。'
+})
 
 watch(
-    () => props.currentPlayer.id,
-    () => {
-        if (actionKind.value === 'company') {
-            form.stockKey = ownStockKey()
-        }
-    },
+  () => props.currentPlayer.id,
+  () => {
+    if (actionKind.value === 'company') {
+      form.stockKey = ownStockKey()
+    }
+  },
 )
 </script>
 
 <template>
-    <section class="action-panel" :class="`mode-${actionKind}`">
-        <div class="panel-head">
-            <div>
-                <div class="panel-title">行動入力</div>
-                <div class="panel-subtitle">下段で 1 ターン分の入力を完了し、右側の予測と見比べながら確定します</div>
-            </div>
-            <div class="turn-note">1ターン1行動</div>
+  <section class="action-panel" :class="[`mode-${actionKind}`, { 'is-close-pending': isClosePending }]">
+    <div class="panel-grid trade-grid" v-if="actionKind === 'trade'">
+      <article class="card kind-card kind-span">
+        <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
+        <div class="segment vertical-segment">
+          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('trade')">
+            注文
+          </button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">
+            追加操作
+          </button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">
+            待つ
+          </button>
+        </div>
+      </article>
+
+      <article class="card stock-card stock-span">
+        <div class="card-title-row"><span class="step">2</span><span>対象レート</span></div>
+        <div class="stock-choice-list">
+          <button
+            v-for="item in tradeGuideItems"
+            :key="item.key"
+            type="button"
+            class="stock-choice trade-guide-choice"
+            :class="{ selected: form.stockKey === item.key }"
+            @click="form.stockKey = item.key"
+          >
+            <span class="stock-choice-main">{{ item.title }}</span>
+            <span class="trade-guide-effects">
+              <span
+                v-for="effect in item.effects"
+                :key="`${item.key}-${effect.label}`"
+                class="trade-guide-chip"
+                :class="`is-${effect.tone}`"
+              >
+                <span class="trade-guide-chip-label">{{ effect.label }}</span>
+                <span class="trade-guide-chip-value">{{ effect.percentText }}</span>
+              </span>
+            </span>
+          </button>
+        </div>
+        <div class="meta-pills">
+          <span class="meta-pill">現在 {{ selectedPriceText }}</span>
+          <span class="meta-pill">買い {{ selectedHoldingText }}</span>
+          <span class="meta-pill">売り {{ selectedShortText }}</span>
+        </div>
+      </article>
+
+      <article class="card mode-card mode-span">
+        <div class="card-title-row"><span class="step">3</span><span>方式 / 操作</span></div>
+        <div class="stack-group">
+          <div class="segment segment-2">
+            <button
+              v-for="mode in (['investment', 'speculation'] as TradeMode[])"
+              :key="mode"
+              type="button"
+              class="segment-button"
+              :class="{ selected: form.tradeMode === mode }"
+              @click="form.tradeMode = mode"
+            >
+              {{ MODE_LABELS[mode] }}
+            </button>
+          </div>
+
+          <div class="segment segment-2">
+            <button
+              v-for="action in visibleTradeActions"
+              :key="action"
+              type="button"
+              class="segment-button"
+              :class="{ selected: form.tradeAction === action }"
+              :disabled="isTradeDisabled(action)"
+              @click="selectTradeAction(action)"
+            >
+              {{ TRADE_LABELS[action] }}
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <article class="card amount-card amount-span">
+        <div class="card-title-row amount-title-row">
+          <span><span class="step">4</span> 注文金額</span>
+          <button type="button" class="mini-clear-button" @click="resetAmount">クリア</button>
         </div>
 
-        <div class="panel-grid trade-grid" v-if="actionKind === 'trade'">
-            <article class="card kind-card span-1 compact-kind-card">
-                <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
-                <div class="segment vertical-segment">
-                    <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('trade')">売買</button>
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">会社行動</button>
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待つ</button>
-                </div>
-            </article>
-
-            <article class="card stock-card span-3">
-                <div class="card-title-row"><span class="step">2</span><span>対象株</span></div>
-                <div class="stock-choice-list">
-                    <button
-                        v-for="choice in stockChoices"
-                        :key="choice.key"
-                        type="button"
-                        class="stock-choice"
-                        :class="{ selected: form.stockKey === choice.key }"
-                        @click="form.stockKey = choice.key"
-                    >
-                        <span class="stock-choice-main">{{ choice.title }}</span>
-                        <span class="stock-choice-sub">{{ choice.subtitle }}</span>
-                    </button>
-                </div>
-                <div class="meta-pills">
-                    <span class="pill">現在 {{ Math.round(selectedPrice) }}円</span>
-                    <span class="pill">保有 {{ selectedHolding.quantity }}株</span>
-                    <span class="pill">空売り {{ selectedShort.quantity }}株</span>
-                </div>
-            </article>
-
-            <article class="card mode-card span-3">
-                <div class="card-title-row"><span class="step">3</span><span>方式 / 売買</span></div>
-                <div class="stack-group">
-                    <div class="segment segment-2 compact-segment-2">
-                        <button
-                            v-for="mode in (['investment', 'speculation'] as TradeMode[])"
-                            :key="mode"
-                            type="button"
-                            class="segment-button"
-                            :class="{ selected: form.tradeMode === mode }"
-                            @click="form.tradeMode = mode"
-                        >
-                            {{ MODE_LABELS[mode] }}
-                        </button>
-                    </div>
-
-                    <div class="segment segment-4 compact-buttons">
-                        <button
-                            v-for="action in visibleTradeActions"
-                            :key="action"
-                            type="button"
-                            class="segment-button"
-                            :class="{ selected: form.tradeAction === action }"
-                            :disabled="isTradeDisabled(action)"
-                            @click="selectTradeAction(action)"
-                        >
-                            {{ TRADE_LABELS[action] }}
-                        </button>
-                    </div>
-                </div>
-            </article>
-
-            <article class="card amount-card span-2">
-                <div class="card-title-row amount-title-row">
-                    <span><span class="step">4</span> 注文金額</span>
-                    <button type="button" class="mini-clear-button" @click="resetAmount">クリア</button>
-                </div>
-
-                <div class="amount-preset-grid">
-                    <button
-                        v-for="amount in quickAmounts"
-                        :key="amount"
-                        type="button"
-                        class="preset-chip preset-block"
-                        @click="addPreset(amount)"
-                    >
-                        +{{ amount.toLocaleString() }}
-                    </button>
-                </div>
-
-                <div class="amount-box compact-amount-box">
-                    <button type="button" class="amount-step" @click="stepAmount(-500)">−</button>
-                    <input v-model.number="form.quantity" type="number" min="0" step="500" class="amount-input" />
-                    <button type="button" class="amount-step" @click="stepAmount(500)">＋</button>
-                </div>
-                <div class="helper-line">執行見込み {{ executionEstimateText }}</div>
-            </article>
-
-            <article class="card summary-card span-3 confirm-card">
-                <div class="card-title-row"><span class="step">5</span><span>確認</span></div>
-
-                <div class="summary-card-body confirm-card-body">
-                    <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">注文チケット</div>
-                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
-                        <span class="summary-banner-sub compact-banner-sub">{{ confirmHint }}</span>
-                    </div>
-
-                    <div class="ticket-grid">
-                        <article class="ticket-item">
-                            <div class="ticket-label">対象</div>
-                            <div class="ticket-value">{{ selectedChoice?.title }}</div>
-                            <div class="ticket-sub">{{ selectedChoice?.subtitle }}</div>
-                        </article>
-
-                        <article class="ticket-item">
-                            <div class="ticket-label">方式 / 売買</div>
-                            <div class="ticket-value">{{ selectedTradeModeLabel }}</div>
-                            <div class="ticket-sub">{{ selectedTradeActionLabel }}</div>
-                        </article>
-
-                        <article class="ticket-item">
-                            <div class="ticket-label">注文金額</div>
-                            <div class="ticket-value">{{ orderAmountLabel }}</div>
-                            <div class="ticket-sub">入力した金額ベースで計算</div>
-                        </article>
-
-                        <article class="ticket-item emphasize">
-                            <div class="ticket-label">執行見込み</div>
-                            <div class="ticket-value">{{ executionEstimateText }}</div>
-                            <div class="ticket-sub">現在価格での概算です</div>
-                        </article>
-                    </div>
-                </div>
-
-                <button type="button" class="confirm-button" :disabled="!canSubmitTrade" @click="submitTurn">行動を決定</button>
-            </article>
+        <div class="amount-preset-grid">
+          <button
+            v-for="amount in quickAmounts"
+            :key="amount"
+            type="button"
+            class="preset-chip preset-block"
+            @click="addPreset(amount)"
+          >
+            +{{ amount.toLocaleString('ja-JP') }}
+          </button>
         </div>
 
-        <div class="panel-grid company-grid" v-else-if="actionKind === 'company'">
-            <article class="card kind-card span-2 compact-kind-card">
-                <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
-                <div class="segment vertical-segment">
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
-                    <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('company')">会社行動</button>
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待つ</button>
-                </div>
-            </article>
-
-            <article class="card company-card span-4">
-                <div class="card-title-row"><span class="step">2</span><span>会社行動</span></div>
-                <div class="segment segment-3 company-actions compact-company-actions">
-                    <button
-                        v-for="action in companyActions"
-                        :key="action"
-                        type="button"
-                        class="segment-button"
-                        :class="{ selected: form.companyAction === action }"
-                        :disabled="props.currentPlayer.cooldowns[action] > 0"
-                        @click="form.companyAction = action"
-                    >
-                        {{ action }}
-                    </button>
-                </div>
-                <div class="helper-line">増資は会社資金を増やし、広告と設備投資は自社株の追い風になります</div>
-            </article>
-
-            <article class="card summary-card span-6 company-summary-card">
-                <div class="card-title-row"><span class="step">3</span><span>確認</span></div>
-                <div class="summary-card-body company-summary-body">
-                    <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">今回の実行内容</div>
-                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
-                        <span class="summary-banner-sub compact-banner-sub">{{ confirmHint }}</span>
-                    </div>
-                    <div class="summary-badges company-summary-grid">
-                        <div v-for="item in companySummaryItems" :key="item.label" class="summary-badge">
-                            <span class="summary-badge-label">{{ item.label }}</span>
-                            <strong class="summary-badge-value">{{ item.value }}</strong>
-                        </div>
-                    </div>
-                </div>
-                <button type="button" class="confirm-button" :disabled="!canSubmitCompany" @click="submitTurn">この内容で実行</button>
-            </article>
+        <div class="amount-box">
+          <button type="button" class="amount-step" @click="stepAmount(-1000)">−</button>
+          <input v-model.number="form.quantity" type="number" min="0" step="1000" class="amount-input" />
+          <button type="button" class="amount-step" @click="stepAmount(1000)">＋</button>
         </div>
+        <div class="helper-line">{{ props.projection.executionEstimateText }}</div>
+      </article>
 
-        <div class="panel-grid wait-grid" v-else>
-            <article class="card kind-card span-2 compact-kind-card">
-                <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
-                <div class="segment vertical-segment">
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
-                    <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">会社行動</button>
-                    <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('wait')">待つ</button>
-                </div>
-            </article>
-
-            <article class="card summary-card span-10 wait-summary-card">
-                <div class="card-title-row"><span class="step">2</span><span>確認</span></div>
-                <div class="summary-card-body wait-summary-body">
-                    <div class="summary-banner compact-summary-banner">
-                        <div class="summary-banner-title">待機内容</div>
-                        <strong class="summary-banner-main compact-banner-main">{{ impactOverviewTitle }}</strong>
-                        <span class="summary-banner-sub compact-banner-sub">{{ impactOverviewSub }}</span>
-                    </div>
-                    <div class="wait-chip-row">
-                        <span v-for="item in waitImpactPreview" :key="item.key" class="wait-chip">
-                            {{ item.title }}: {{ item.headline }}
-                        </span>
-                    </div>
-                </div>
-                <button type="button" class="confirm-button" :disabled="!canSubmitWait" @click="submitTurn">このターンは待つ</button>
-            </article>
+      <article class="card summary-card summary-span">
+        <div class="card-title-row"><span class="step">5</span><span>確認</span></div>
+        <div class="summary-banner">
+          <div class="summary-banner-title">{{ tradeSummaryTitle }}</div>
+          <span class="summary-banner-sub">{{ tradeHint }}</span>
         </div>
-    </section>
+        <button
+          type="button"
+          class="confirm-button"
+          :disabled="isClosePending ? false : !canSubmitTrade"
+          @click="submitTurn"
+        >
+          {{ confirmButtonLabel }}
+        </button>
+      </article>
+    </div>
+
+    <div class="panel-grid company-grid" v-else-if="actionKind === 'company'">
+      <article class="card kind-card company-kind-span">
+        <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
+        <div class="segment vertical-segment">
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">注文</button>
+          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('company')">追加操作</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待つ</button>
+        </div>
+      </article>
+
+      <article class="card company-card company-actions-span">
+        <div class="card-title-row"><span class="step">2</span><span>追加操作</span></div>
+        <div class="segment segment-3">
+          <button
+            v-for="action in companyActions"
+            :key="action"
+            type="button"
+            class="segment-button"
+            :class="{ selected: form.companyAction === action }"
+            :disabled="props.currentPlayer.cooldowns[action] > 0"
+            @click="form.companyAction = action"
+          >
+            {{ action }}
+          </button>
+        </div>
+      </article>
+
+      <article class="card summary-card company-summary-span">
+        <div class="card-title-row"><span class="step">3</span><span>確認</span></div>
+        <div class="summary-banner">
+          <div class="summary-banner-title">{{ companySummaryTitle }}</div>
+          <span class="summary-banner-sub">{{ companySummaryHint }}</span>
+        </div>
+        <button
+          type="button"
+          class="confirm-button"
+          :disabled="isClosePending ? false : !canSubmitCompany"
+          @click="submitTurn"
+        >
+          {{ confirmButtonLabel }}
+        </button>
+      </article>
+    </div>
+
+    <div class="panel-grid wait-grid" v-else>
+      <article class="card kind-card wait-kind-span">
+        <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
+        <div class="segment vertical-segment">
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">注文</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">追加操作</button>
+          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('wait')">待つ</button>
+        </div>
+      </article>
+
+      <article class="card summary-card wait-summary-span">
+        <div class="card-title-row"><span class="step">2</span><span>確認</span></div>
+        <div class="summary-banner">
+          <div class="summary-banner-title">{{ waitSummaryTitle }}</div>
+          <span class="summary-banner-sub">{{ waitSummaryHint }}</span>
+        </div>
+        <button
+          type="button"
+          class="confirm-button"
+          :disabled="isClosePending ? false : !canSubmitWait"
+          @click="submitTurn"
+        >
+          {{ confirmButtonLabel }}
+        </button>
+      </article>
+    </div>
+  </section>
 </template>
 
 <style scoped>
 .action-panel {
-    height: 100%;
-    min-height: 0;
-    min-width: 0;
-    border-radius: 16px;
-    border: 1px solid rgba(120, 156, 228, 0.16);
-    background:
-        linear-gradient(180deg, rgba(2, 10, 28, 0.96) 0%, rgba(2, 8, 22, 0.92) 100%),
-        radial-gradient(circle at top, rgba(78, 131, 255, 0.05), transparent 45%);
-    padding: 6px 8px 8px;
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    gap: 6px;
-    overflow: hidden;
-}
-
-.panel-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.panel-title {
-    color: #f4f8ff;
-    font-size: 12px;
-    font-weight: 800;
-    line-height: 1.05;
-}
-
-.panel-subtitle {
-    margin-top: 1px;
-    color: rgba(193, 214, 255, 0.66);
-    font-size: 9px;
-    line-height: 1.2;
-}
-
-.turn-note {
-    flex: 0 0 auto;
-    padding: 2px 7px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: #dfeaff;
-    font-size: 9px;
-    font-weight: 800;
+  height: auto;
+  min-height: 0;
+  min-width: 0;
+  container-type: inline-size;
+  border-radius: 12px;
+  border: 1px solid rgba(120, 156, 228, 0.16);
+  background:
+    linear-gradient(180deg, rgba(2, 10, 28, 0.96) 0%, rgba(2, 8, 22, 0.92) 100%),
+    radial-gradient(circle at top, rgba(78, 131, 255, 0.05), transparent 45%);
+  padding: 8px 9px 9px;
+  overflow: visible;
 }
 
 .panel-grid {
-    min-height: 0;
-    min-width: 0;
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    gap: 6px;
-    align-items: stretch;
+  min-height: 0;
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  align-items: stretch;
+  grid-auto-rows: minmax(0, auto);
 }
 
-.trade-grid .span-1 { grid-column: span 1; }
-.trade-grid .span-2 { grid-column: span 2; }
-.trade-grid .span-3 { grid-column: span 3; }
-.company-grid .span-2 { grid-column: span 2; }
-.company-grid .span-4 { grid-column: span 4; }
-.company-grid .span-6 { grid-column: span 6; }
-.wait-grid .span-2 { grid-column: span 2; }
-.wait-grid .span-10 { grid-column: span 10; }
+.trade-grid {
+  grid-template-columns:
+    minmax(108px, 0.9fr)
+    minmax(0, 2.5fr)
+    minmax(0, 2fr)
+    minmax(186px, 1.35fr)
+    minmax(228px, 1.6fr);
+}
+
+.company-grid {
+  grid-template-columns:
+    minmax(132px, 1fr)
+    minmax(0, 2.8fr);
+}
+
+.wait-grid {
+  grid-template-columns:
+    minmax(132px, 1fr)
+    minmax(0, 4.2fr);
+}
+
+.trade-grid > .kind-span,
+.trade-grid > .stock-span,
+.trade-grid > .mode-span,
+.trade-grid > .amount-span,
+.trade-grid > .summary-span,
+.company-grid > .company-kind-span,
+.company-grid > .company-actions-span,
+.wait-grid > .wait-kind-span,
+.wait-grid > .wait-summary-span {
+  grid-column: auto;
+}
+
+.company-grid > .company-summary-span {
+  grid-column: 1 / -1;
+}
 
 .card {
-    min-width: 0;
-    min-height: 0;
-    border-radius: 14px;
-    padding: 6px;
-    display: grid;
-    align-content: start;
-    gap: 5px;
-    background: rgba(8, 15, 34, 0.92);
-    border: 1px solid rgba(118, 139, 182, 0.18);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  min-width: 0;
+  min-height: 0;
+  border-radius: 10px;
+  padding: 7px;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  background: rgba(8, 15, 34, 0.92);
+  border: 1px solid rgba(118, 139, 182, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-.kind-card { border-color: rgba(102, 168, 255, 0.34); }
-.stock-card { border-color: rgba(76, 205, 225, 0.3); }
-.mode-card { border-color: rgba(146, 130, 255, 0.3); }
-.amount-card { border-color: rgba(88, 205, 131, 0.34); }
-.company-card { border-color: rgba(255, 122, 182, 0.3); }
+.kind-card {
+  border-color: rgba(102, 168, 255, 0.34);
+}
+
+.stock-card {
+  border-color: rgba(76, 205, 225, 0.3);
+}
+
+.mode-card {
+  border-color: rgba(146, 130, 255, 0.3);
+}
+
+.amount-card {
+  border-color: rgba(88, 205, 131, 0.34);
+}
+
+.company-card {
+  border-color: rgba(255, 122, 182, 0.3);
+}
+
 .summary-card {
-    border-color: rgba(122, 172, 255, 0.32);
-    background:
-        linear-gradient(180deg, rgba(11, 24, 48, 0.98), rgba(6, 15, 31, 0.95)),
-        radial-gradient(circle at top, rgba(78, 131, 255, 0.1), transparent 50%);
-    grid-template-rows: auto minmax(0, 1fr) auto;
+  border-color: rgba(122, 172, 255, 0.32);
+  background:
+    linear-gradient(180deg, rgba(11, 24, 48, 0.98), rgba(6, 15, 31, 0.95)),
+    radial-gradient(circle at top, rgba(78, 131, 255, 0.1), transparent 50%);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
 
 .card-title-row {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    color: #eef5ff;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #eef5ff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .amount-title-row {
-    justify-content: space-between;
+  justify-content: space-between;
 }
 
 .step {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.08);
-    color: #f5f9ff;
-    font-size: 8px;
-    flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f9ff;
+  font-size: 8px;
+  flex: 0 0 auto;
 }
 
 .segment {
-    display: grid;
-    gap: 5px;
+  display: grid;
+  gap: 6px;
 }
 
-.segment-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.segment-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.segment-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.vertical-segment { grid-template-columns: 1fr; }
+.segment-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.segment-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.vertical-segment {
+  grid-template-columns: 1fr;
+}
 
 .stack-group {
-    display: grid;
-    gap: 5px;
+  display: grid;
+  gap: 6px;
 }
 
 .segment-button,
@@ -547,265 +644,318 @@ watch(
 .confirm-button,
 .mini-clear-button,
 .stock-choice {
-    min-width: 0;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    color: #edf4ff;
-    font-size: 10px;
-    font-weight: 800;
-    cursor: pointer;
-    transition:
-        transform 0.16s ease,
-        border-color 0.16s ease,
-        background-color 0.16s ease,
-        opacity 0.16s ease;
+  min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #edf4ff;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    opacity 0.16s ease;
 }
 
-.segment-button { min-height: 30px; padding: 0 6px; line-height: 1.15; }
-.small-kind-button { min-height: 26px; font-size: 9px; padding: 0 4px; }
+.segment-button {
+  min-height: 32px;
+  padding: 0 8px;
+  line-height: 1.1;
+}
+
+.small-kind-button {
+  min-height: 30px;
+  font-size: 9px;
+  padding: 0 8px;
+}
+
 .segment-button.selected,
 .stock-choice.selected {
-    border-color: rgba(111, 159, 255, 0.7);
-    background: linear-gradient(180deg, rgba(94, 147, 255, 0.76), rgba(74, 124, 233, 0.82));
+  border-color: rgba(111, 159, 255, 0.7);
+  background: linear-gradient(180deg, rgba(94, 147, 255, 0.76), rgba(74, 124, 233, 0.82));
 }
+
 .segment-button:disabled,
 .confirm-button:disabled {
-    opacity: 0.42;
-    cursor: not-allowed;
+  opacity: 0.42;
+  cursor: not-allowed;
 }
 
 .stock-choice-list {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
-}
-
-.stock-choice {
-    min-height: 42px;
-    padding: 5px 6px;
-    display: grid;
-    align-content: center;
-    justify-items: start;
-    text-align: left;
-    gap: 2px;
-}
-
-.stock-choice-main {
-    color: #f3f8ff;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1.05;
-}
-
-.stock-choice-sub {
-    color: rgba(217, 231, 255, 0.74);
-    font-size: 8px;
-    font-weight: 700;
-    line-height: 1.1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .meta-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.meta-pill,
+.helper-line {
+  color: rgba(220, 234, 255, 0.78);
+  font-size: 8px;
+}
+
+.meta-pill {
+  min-height: 24px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stock-choice {
+  min-height: 72px;
+  padding: 8px;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  text-align: left;
+  gap: 6px;
+}
+
+.stock-choice-main {
+  color: #f3f8ff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.trade-guide-effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.trade-guide-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.trade-guide-chip-label,
+.trade-guide-chip-value {
+  color: inherit;
+}
+
+.trade-guide-chip-value {
+  font-size: 8px;
+  font-weight: 900;
+}
+
+.trade-guide-chip.is-up-strong {
+  color: #8fe4c2;
+  background: rgba(31, 102, 77, 0.32);
+  border-color: rgba(111, 214, 179, 0.22);
+}
+
+.trade-guide-chip.is-up {
+  color: #8bc2ff;
+  background: rgba(36, 73, 133, 0.28);
+  border-color: rgba(111, 159, 255, 0.22);
+}
+
+.trade-guide-chip.is-down-strong {
+  color: #ff93a4;
+  background: rgba(124, 33, 49, 0.32);
+  border-color: rgba(255, 123, 142, 0.22);
+}
+
+.trade-guide-chip.is-down {
+  color: #ffb0bb;
+  background: rgba(112, 42, 54, 0.24);
+  border-color: rgba(255, 145, 163, 0.2);
 }
 
 .amount-preset-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
-.pill,
 .preset-chip,
-.helper-line,
 .mini-clear-button {
-    color: rgba(220, 234, 255, 0.78);
-    font-size: 9px;
+  color: rgba(220, 234, 255, 0.78);
+  font-size: 8px;
 }
 
-.pill,
 .preset-chip {
-    min-height: 24px;
-    padding: 0 6px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-}
-
-.preset-block {
-    min-height: 28px;
-    border-radius: 9px;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border-radius: 8px;
 }
 
 .mini-clear-button {
-    padding: 2px 7px;
-    border-radius: 999px;
-    line-height: 1;
-}
-
-.helper-line {
-    line-height: 1.2;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1;
 }
 
 .amount-box {
-    display: grid;
-    grid-template-columns: 32px minmax(0, 1fr) 32px;
-    gap: 5px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  gap: 6px;
 }
 
 .amount-step {
-    min-height: 32px;
+  min-height: 32px;
 }
 
 .amount-input {
-    width: 100%;
-    min-height: 32px;
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(2, 10, 22, 0.88);
-    color: #edf4ff;
-    font-size: 11px;
-    font-weight: 800;
-    text-align: center;
-    outline: none;
+  width: 100%;
+  min-height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(2, 10, 22, 0.88);
+  color: #edf4ff;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+  outline: none;
 }
 
-.summary-card-body {
-    min-height: 0;
-    display: grid;
-    gap: 5px;
-    overflow: hidden;
-}
-
-.confirm-card-body,
-.company-summary-body,
-.wait-summary-body {
-    grid-template-rows: auto minmax(0, 1fr);
+.helper-line {
+  line-height: 1.3;
 }
 
 .summary-banner {
-    border-radius: 10px;
-    padding: 6px 7px;
-    display: grid;
-    gap: 2px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 10px;
+  padding: 8px 9px;
+  display: grid;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .summary-banner-title {
-    color: rgba(193, 214, 255, 0.7);
-    font-size: 8px;
-    font-weight: 700;
-}
-
-.summary-banner-main {
-    color: #f7fbff;
-    font-size: 11px;
-    font-weight: 800;
-    line-height: 1.15;
+  color: #f7fbff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .summary-banner-sub {
-    color: rgba(220, 234, 255, 0.78);
-    font-size: 8px;
-    line-height: 1.15;
-}
-
-.ticket-grid {
-    min-height: 0;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 5px;
-}
-
-.ticket-item,
-.summary-badge,
-.wait-chip {
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.045);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.ticket-item {
-    padding: 6px;
-    display: grid;
-    gap: 2px;
-}
-
-.ticket-item.emphasize {
-    border-color: rgba(118, 195, 255, 0.32);
-    background: rgba(52, 88, 154, 0.16);
-}
-
-.ticket-label,
-.summary-badge-label {
-    color: rgba(193, 214, 255, 0.7);
-    font-size: 8px;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.ticket-value,
-.summary-badge-value {
-    color: #f4f8ff;
-    font-size: 10px;
-    font-weight: 800;
-    line-height: 1.15;
-}
-
-.ticket-sub {
-    color: rgba(220, 234, 255, 0.74);
-    font-size: 7px;
-    line-height: 1.15;
-}
-
-.summary-badges {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
-}
-
-.summary-badge {
-    padding: 6px;
-    display: grid;
-    gap: 2px;
-}
-
-.company-summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.wait-chip-row {
-    min-height: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    align-content: flex-start;
-}
-
-.wait-chip {
-    padding: 5px 7px;
-    color: #edf4ff;
-    font-size: 8px;
-    font-weight: 700;
+  color: rgba(220, 234, 255, 0.78);
+  font-size: 9px;
+  line-height: 1.25;
 }
 
 .confirm-button {
-    min-height: 32px;
-    background: linear-gradient(180deg, rgba(110, 161, 255, 0.9), rgba(77, 126, 233, 0.92));
-    border-color: rgba(147, 186, 255, 0.55);
-    font-size: 10px;
+  min-height: 38px;
+  background: linear-gradient(180deg, rgba(110, 161, 255, 0.9), rgba(77, 126, 233, 0.92));
+  border-color: rgba(147, 186, 255, 0.55);
+  font-size: 10px;
 }
 
-@media (max-width: 1500px) {
-    .panel-grid { gap: 5px; }
-    .card { padding: 5px; }
-    .stock-choice { min-height: 38px; }
-    .segment-button { min-height: 28px; font-size: 9px; }
-    .ticket-grid { gap: 4px; }
-    .ticket-item { padding: 5px; }
+.action-panel.is-close-pending .panel-grid > .card:not(.summary-card) {
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+@container (max-width: 1120px) {
+  .trade-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trade-grid > .kind-span {
+    grid-column: 1;
+  }
+
+  .trade-grid > .stock-span {
+    grid-column: 2;
+  }
+
+  .trade-grid > .mode-span,
+  .trade-grid > .amount-span {
+    grid-column: span 2;
+  }
+
+  .trade-grid > .summary-span {
+    grid-column: span 2;
+  }
+
+  .company-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .company-grid > .company-kind-span,
+  .company-grid > .company-actions-span,
+  .company-grid > .company-summary-span {
+    grid-column: 1;
+  }
+
+  .stock-choice {
+    min-height: 66px;
+  }
+
+  .card-title-row {
+    font-size: 9px;
+  }
+
+  .segment-button,
+  .stock-choice-main {
+    font-size: 9px;
+  }
+
+  .summary-banner-title {
+    font-size: 10px;
+  }
+
+  .summary-banner-sub {
+    font-size: 8px;
+  }
+}
+
+@container (max-width: 760px) {
+  .trade-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trade-grid > .kind-span {
+    grid-column: 1;
+  }
+
+  .trade-grid > .mode-span,
+  .trade-grid > .amount-span,
+  .trade-grid > .summary-span {
+    grid-column: 1;
+  }
+
+  .stock-choice-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .company-grid,
+  .wait-grid,
+  .trade-grid > .stock-span,
+  .company-grid > .company-kind-span,
+  .company-grid > .company-actions-span,
+  .company-grid > .company-summary-span,
+  .wait-grid > .wait-kind-span,
+  .wait-grid > .wait-summary-span {
+    grid-column: 1;
+  }
+
+  .company-grid,
+  .wait-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>
