@@ -86,6 +86,7 @@ type ChartOrderMarker = {
     stockKey: StockKey
     playerId: PlayerId
     side: 'buy' | 'sell'
+    isPendingClose?: boolean
     executionPrice: number
     historyIndex: number
     turn: number
@@ -444,6 +445,7 @@ const activePositionMarkers = computed<ChartOrderMarker[]>(() =>
                 stockKey: position.stockKey,
                 playerId: player.id,
                 side: position.side,
+                isPendingClose: pendingClosePositionId.value === position.id,
                 executionPrice: position.entryPrice,
                 historyIndex,
                 turn: position.openedTurn,

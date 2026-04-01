@@ -61,6 +61,7 @@ describe('StockBoard', () => {
             stockKey: 'p1',
             playerId: 'player1',
             side: 'buy',
+            isPendingClose: true,
             executionPrice: 10040,
             historyIndex: 3,
             turn: 2,
@@ -85,13 +86,18 @@ describe('StockBoard', () => {
     expect(wrapper.findAll('[data-series-projection]')).toHaveLength(3)
     expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-player-marker')).toBe('P1')
     expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-side')).toBe('buy')
+    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-pending-close')).toBe('true')
+    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).toContain('is-pending-close')
+    expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring').exists()).toBe(true)
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe('P2')
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-side')).toBe('sell')
+    expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-pending-close')).toBe('false')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(true)
     expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(true)
+    expect(wrapper.text()).toContain('P1 買い 保留')
   })
 
-  it('dims other series and their projected guides when a focus target is selected', async () => {
+  it('dims other series, pending markers, and projected guides when a focus target is selected', async () => {
     const wrapper = mount(StockBoard, {
       props: {
         stocks: createStocks(),
@@ -101,6 +107,27 @@ describe('StockBoard', () => {
           p1: 10100,
           p2: 10080,
         },
+        orderMarkers: [
+          {
+            id: 'marker-1',
+            stockKey: 'p1',
+            playerId: 'player1',
+            side: 'buy',
+            isPendingClose: true,
+            executionPrice: 10040,
+            historyIndex: 3,
+            turn: 2,
+          },
+          {
+            id: 'marker-2',
+            stockKey: 'p2',
+            playerId: 'player2',
+            side: 'sell',
+            executionPrice: 9930,
+            historyIndex: 3,
+            turn: 3,
+          },
+        ],
       },
     })
 
@@ -115,5 +142,7 @@ describe('StockBoard', () => {
     expect(wrapper.find('[data-series-label="p2"]').classes()).toContain('is-dimmed')
     expect(wrapper.find('[data-series-projection="market"]').classes()).toContain('is-dimmed')
     expect(wrapper.find('[data-series-projection="p2"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-order-marker="marker-2"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).not.toContain('is-dimmed')
   })
 })
