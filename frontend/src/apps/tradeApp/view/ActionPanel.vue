@@ -123,17 +123,8 @@ function setActionKind(kind: 'trade' | 'company' | 'wait'): void {
 }
 
 function isTradeDisabled(action: TradeAction): boolean {
-  if (actionKind.value !== 'trade') return true
-
-  if (action === 'buy') {
-    return props.projection.selectedShortQuantity > 0
-  }
-
-  if (action === 'sell') {
-    return props.projection.selectedHoldingQuantity > 0
-  }
-
-  return false
+  void action
+  return actionKind.value !== 'trade'
 }
 
 function selectTradeAction(action: TradeAction): void {

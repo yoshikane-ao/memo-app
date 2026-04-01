@@ -45,11 +45,16 @@ function createStocks(): StockState[] {
 }
 
 describe('StockBoard', () => {
-  it('renders order markers with player and side labels', () => {
+  it('renders all rate lines on one shared chart with active position markers, edge labels, and projected guides', () => {
     const wrapper = mount(StockBoard, {
       props: {
         stocks: createStocks(),
         turn: 3,
+        projectedPrices: {
+          market: 9900,
+          p1: 10100,
+          p2: 10080,
+        },
         orderMarkers: [
           {
             id: 'marker-1',
@@ -73,12 +78,42 @@ describe('StockBoard', () => {
       },
     })
 
+    expect(wrapper.findAll('.chart-svg')).toHaveLength(1)
+    expect(wrapper.findAll('[data-series]')).toHaveLength(3)
     expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2)
+    expect(wrapper.findAll('[data-series-label]')).toHaveLength(3)
+    expect(wrapper.findAll('[data-series-projection]')).toHaveLength(3)
     expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-player-marker')).toBe('P1')
     expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-side')).toBe('buy')
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe('P2')
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-side')).toBe('sell')
-    expect(wrapper.text()).toContain('P1 買い')
-    expect(wrapper.text()).toContain('P2 売り')
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(true)
+    expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(true)
+  })
+
+  it('dims other series and their projected guides when a focus target is selected', async () => {
+    const wrapper = mount(StockBoard, {
+      props: {
+        stocks: createStocks(),
+        turn: 3,
+        projectedPrices: {
+          market: 9900,
+          p1: 10100,
+          p2: 10080,
+        },
+      },
+    })
+
+    const focusButton = wrapper.find('[data-focus-toggle="p1"]')
+    await focusButton.trigger('click')
+
+    expect(focusButton.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.find('[data-series="p1"]').classes()).toContain('is-focused')
+    expect(wrapper.find('[data-series="market"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-series="p2"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-series-label="market"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-series-label="p2"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-series-projection="market"]').classes()).toContain('is-dimmed')
+    expect(wrapper.find('[data-series-projection="p2"]').classes()).toContain('is-dimmed')
   })
 })

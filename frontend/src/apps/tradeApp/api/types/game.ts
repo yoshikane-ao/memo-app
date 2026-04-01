@@ -45,6 +45,7 @@ export interface TradePositionEntry {
   side: 'buy' | 'sell'
   quantity: number
   entryPrice: number
+  entryHistoryPointId?: number
   orderAmount: number
   openedTurn: number
 }

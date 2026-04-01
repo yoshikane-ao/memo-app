@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import StartingCashSection from './start/StartingCashSection.vue'
@@ -15,14 +15,9 @@ import {
 import {
   DEFAULT_MARKET_STOCK_STARTING_PRICE,
   DEFAULT_PLAYER_STOCK_STARTING_PRICE,
-  RANDOM_MARKET_STOCK_MAX,
-  RANDOM_MARKET_STOCK_MIN,
   buildTradeSessionSnapshot,
-  normalizeMarketStartingPrice,
   type TradeSetupDraft,
-  type MarketStartingPriceMode,
 } from '../lib/tradeSetup'
-import { STOCK_PRICE_TICK } from '../lib/tradeImpact'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
 import { createGuestIdentity } from '../types/playerIdentity'
 import startBackgroundUrl from '../assets/start-screen-background.png'
@@ -41,11 +36,9 @@ const profileStore = useTradeProfileStore()
 
 const firstPlayer = ref<FirstPlayer>('random')
 const startingCashMode = ref<StartingCashMode>('same')
-const sharedStartingCash = ref(12000)
-const player1StartingCash = ref(12000)
-const player2StartingCash = ref(12000)
-const marketStartingPriceMode = ref<MarketStartingPriceMode>('fixed')
-const marketStartingPrice = ref(DEFAULT_MARKET_STOCK_STARTING_PRICE)
+const sharedStartingCash = ref(100000)
+const player1StartingCash = ref(100000)
+const player2StartingCash = ref(100000)
 const statusMessage = ref('')
 
 const p1Identity = ref<PlayerIdentity>(createGuestIdentity('p1'))
@@ -98,8 +91,6 @@ onMounted(() => {
   sharedStartingCash.value = draft.sharedStartingCash
   player1StartingCash.value = draft.player1StartingCash
   player2StartingCash.value = draft.player2StartingCash
-  marketStartingPriceMode.value = draft.marketStartingPriceMode
-  marketStartingPrice.value = draft.marketStartingPrice
   p1Identity.value = draft.p1Identity.kind === 'cpu' ? createGuestIdentity('p1') : draft.p1Identity
   p2Identity.value = draft.p2Identity.kind === 'cpu' ? createGuestIdentity('p2') : draft.p2Identity
   syncDraftToStore()
@@ -137,8 +128,8 @@ function buildCurrentDraft(): TradeSetupDraft {
     player2StartingCash: player2StartingCash.value,
     weakCpuCount: 0,
     strongCpuCount: 0,
-    marketStartingPriceMode: marketStartingPriceMode.value,
-    marketStartingPrice: marketStartingPrice.value,
+    marketStartingPriceMode: 'fixed',
+    marketStartingPrice: DEFAULT_MARKET_STOCK_STARTING_PRICE,
     p1Identity: p1Identity.value,
     p2Identity: p2Identity.value,
   }
@@ -179,21 +170,6 @@ function setPlayerCash(slot: PlayerSlot, value: number): void {
   syncDraftToStore()
 }
 
-function setMarketStartingPriceMode(mode: MarketStartingPriceMode): void {
-  marketStartingPriceMode.value = mode
-  if (mode === 'fixed') {
-    marketStartingPrice.value = normalizeMarketStartingPrice(
-      marketStartingPrice.value || DEFAULT_MARKET_STOCK_STARTING_PRICE,
-    )
-  }
-  syncDraftToStore()
-}
-
-function setMarketStartingPrice(value: number): void {
-  marketStartingPrice.value = normalizeMarketStartingPrice(value)
-  syncDraftToStore()
-}
-
 function openPicker(slot: PlayerSlot): void {
   pickerSlot.value = slot
   isPickerOpen.value = true
@@ -227,13 +203,13 @@ function handleSelectProfile(identity: PlayerIdentity): void {
 function handleCreateProfileSubmit(payload: CreateTradeProfileInput): void {
   const created = profileStore.createProfile(payload)
   assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
-  statusMessage.value = `${created.name} を割り当てました。`
+  statusMessage.value = `${created.name} を作成して選択しました。`
 }
 
 function handleCreateProfile(payload: CreateTradeProfileInput): void {
   const created = profileStore.createProfile(payload)
   assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
-  statusMessage.value = `${created.name} を選択しました。`
+  statusMessage.value = `${created.name} を保存しました。`
 }
 
 function resetSlotToGuest(slot: PlayerSlot): void {
@@ -250,7 +226,7 @@ function openStats(slot: PlayerSlot): void {
     name: 'menu-workspace-trade-profile-stats',
     params: { profileId: identity.profileId },
   }).catch(() => {
-    statusMessage.value = '成績画面のルートがまだありません。配線前の世界はいつもこうです。'
+    statusMessage.value = '戦績画面へ移動できませんでした。プロフィール一覧から再度開いてください。'
   })
 }
 
@@ -299,92 +275,40 @@ void persistSelectedIdentities
           <div class="hero-stage__spacer" aria-hidden="true"></div>
 
           <div class="hero-stage__settings-row">
-            <section class="hero-panel" aria-label="対戦条件">
+            <section class="hero-panel" aria-label="蟇ｾ謌ｦ譚｡莉ｶ">
               <div class="hero-panel__inner hero-panel__inner--blue">
                 <header class="hero-panel__head">
-                  <p class="hero-panel__eyebrow">対戦条件</p>
-                  <h2>初期資産</h2>
+                  <p class="hero-panel__eyebrow">蟇ｾ謌ｦ譚｡莉ｶ</p>
+                  <h2>蛻晄悄雉・肇</h2>
                 </header>
-                <StartingCashSection
-                  :cash-mode="startingCashMode"
-                  :shared-cash="sharedStartingCash"
-                  :player1-cash="player1StartingCash"
-                  :player2-cash="player2StartingCash"
-                  :player1-name="resolvedPlayer1Name"
-                  :player2-name="resolvedPlayer2Name"
-                  @update:cash-mode="setStartingCashMode"
-                  @update:shared-cash="setSharedCash"
+                <StartingCashSection :cash-mode="startingCashMode" :shared-cash="sharedStartingCash"
+                  :player1-cash="player1StartingCash" :player2-cash="player2StartingCash"
+                  :player1-name="resolvedPlayer1Name" :player2-name="resolvedPlayer2Name"
+                  @update:cash-mode="setStartingCashMode" @update:shared-cash="setSharedCash"
                   @update:player1-cash="setPlayerCash('p1', $event)"
-                  @update:player2-cash="setPlayerCash('p2', $event)"
-                />
+                  @update:player2-cash="setPlayerCash('p2', $event)" />
               </div>
             </section>
 
-            <section class="hero-panel" aria-label="進行設定">
+            <section class="hero-panel" aria-label="turn order settings">
               <div class="hero-panel__inner hero-panel__inner--neutral">
                 <header class="hero-panel__head">
-                  <p class="hero-panel__eyebrow">進行設定</p>
-                  <h2>先攻と開始価格</h2>
+                  <p class="hero-panel__eyebrow">TURN ORDER</p>
+                  <h2>順番設定</h2>
                 </header>
 
                 <div class="flow-panel">
-                  <TurnOrderSection
-                    :model-value="firstPlayer"
-                    :player1-name="resolvedPlayer1Name"
-                    :player2-name="resolvedPlayer2Name"
-                    @update:model-value="firstPlayer = $event"
-                  />
-
-                  <div class="market-price-settings">
-                    <div class="market-price-settings__head">
-                      <strong>マーケットの開始価格</strong>
-                      <span>Player1 / Player2 レートは {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円固定</span>
-                    </div>
-
-                    <div class="market-price-settings__mode">
-                      <button
-                        type="button"
-                        :class="{ 'is-active': marketStartingPriceMode === 'fixed' }"
-                        @click="setMarketStartingPriceMode('fixed')"
-                      >
-                        固定
-                      </button>
-                      <button
-                        type="button"
-                        :class="{ 'is-active': marketStartingPriceMode === 'random' }"
-                        @click="setMarketStartingPriceMode('random')"
-                      >
-                        ランダム
-                      </button>
-                    </div>
-
-                    <div v-if="marketStartingPriceMode === 'fixed'" class="market-price-settings__input">
-                      <span>マーケット</span>
-                      <div class="market-price-settings__money">
-                        <span>円</span>
-                        <input
-                          type="number"
-                          :min="STOCK_PRICE_TICK"
-                          :step="STOCK_PRICE_TICK"
-                          :value="marketStartingPrice"
-                          @input="setMarketStartingPrice(Number(($event.target as HTMLInputElement).value))"
-                        />
-                      </div>
-                    </div>
-
-                    <p v-else class="market-price-settings__hint">
-                      {{ RANDOM_MARKET_STOCK_MIN.toLocaleString() }}〜{{ RANDOM_MARKET_STOCK_MAX.toLocaleString() }}円で開始時に決定
-                    </p>
-                  </div>
+                  <TurnOrderSection :model-value="firstPlayer" :player1-name="resolvedPlayer1Name"
+                    :player2-name="resolvedPlayer2Name" @update:model-value="firstPlayer = $event" />
                 </div>
               </div>
             </section>
 
-            <section class="hero-panel" aria-label="ルール">
+            <section class="hero-panel" aria-label="rules">
               <div class="hero-panel__inner hero-panel__inner--red">
                 <header class="hero-panel__head">
-                  <p class="hero-panel__eyebrow">ルール</p>
-                  <h2>シンプル設定</h2>
+                  <p class="hero-panel__eyebrow">RULES</p>
+                  <h2>シンプル設計</h2>
                 </header>
 
                 <div class="mode-panel">
@@ -392,10 +316,10 @@ void persistSelectedIdentities
                     いまは 2人対戦専用です。
                   </p>
                   <p class="mode-panel__copy">
-                    勝敗は総資産ではなく、最後に持っている現金で決まります。
+                    先攻後攻を決めて、資金を持った状態で対戦を開始します。
                   </p>
                   <p class="mode-panel__copy">
-                    Player1 レートと Player2 レートの開始価格は {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円固定です。
+                    Player1 と Player2 の株価は {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円開始です。
                   </p>
                 </div>
               </div>
@@ -403,22 +327,15 @@ void persistSelectedIdentities
           </div>
 
           <div class="hero-stage__profile-row">
-            <section class="hero-profile-card" aria-label="プレイヤー1プロフィール">
+            <section class="hero-profile-card" aria-label="繝励Ξ繧､繝､繝ｼ1繝励Ο繝輔ぅ繝ｼ繝ｫ">
               <div class="hero-profile-card__inner hero-profile-card__inner--blue">
-                <ProfileSlotCard
-                  slot="p1"
-                  :identity="p1Identity"
-                  :profile="p1Profile"
-                  :disabled="false"
-                  @select="openPicker('p1')"
-                  @create="openCreate('p1')"
-                  @reset-guest="resetSlotToGuest('p1')"
-                  @open-stats="openStats('p1')"
-                />
+                <ProfileSlotCard slot="p1" :identity="p1Identity" :profile="p1Profile" :disabled="false"
+                  @select="openPicker('p1')" @create="openCreate('p1')" @reset-guest="resetSlotToGuest('p1')"
+                  @open-stats="openStats('p1')" />
               </div>
             </section>
 
-            <section class="hero-profile-hub" aria-label="対戦開始">
+            <section class="hero-profile-hub" aria-label="battle actions">
               <div class="hero-profile-hub__inner">
                 <div class="hero-stage__actions" aria-label="start actions">
                   <button type="button" class="hero-action hero-action--blue" @click="startLocalBattleSubmit">
@@ -429,18 +346,11 @@ void persistSelectedIdentities
               </div>
             </section>
 
-            <section class="hero-profile-card" aria-label="プレイヤー2プロフィール">
+            <section class="hero-profile-card" aria-label="繝励Ξ繧､繝､繝ｼ2繝励Ο繝輔ぅ繝ｼ繝ｫ">
               <div class="hero-profile-card__inner hero-profile-card__inner--red">
-                <ProfileSlotCard
-                  slot="p2"
-                  :identity="p2Identity"
-                  :profile="p2Profile"
-                  :disabled="false"
-                  @select="openPicker('p2')"
-                  @create="openCreate('p2')"
-                  @reset-guest="resetSlotToGuest('p2')"
-                  @open-stats="openStats('p2')"
-                />
+                <ProfileSlotCard slot="p2" :identity="p2Identity" :profile="p2Profile" :disabled="false"
+                  @select="openPicker('p2')" @create="openCreate('p2')" @reset-guest="resetSlotToGuest('p2')"
+                  @open-stats="openStats('p2')" />
               </div>
             </section>
           </div>
@@ -448,13 +358,8 @@ void persistSelectedIdentities
       </div>
     </section>
 
-    <ProfilePickerModal
-      v-model="isPickerOpen"
-      :slot="pickerSlot"
-      :profiles="profileStore.sortedProfiles"
-      @select="handleSelectProfile"
-      @create="openCreate(pickerSlot || 'p1')"
-    />
+    <ProfilePickerModal v-model="isPickerOpen" :slot="pickerSlot" :profiles="profileStore.sortedProfiles"
+      @select="handleSelectProfile" @create="openCreate(pickerSlot || 'p1')" />
 
     <ProfileCreateModal v-model="isCreateModalOpen" @create="handleCreateProfileSubmit" />
   </main>
@@ -639,91 +544,6 @@ void persistSelectedIdentities
 .mode-panel {
   display: grid;
   gap: 8px;
-}
-
-.market-price-settings {
-  display: grid;
-  gap: 8px;
-  padding: 10px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.market-price-settings__head {
-  display: grid;
-  gap: 2px;
-}
-
-.market-price-settings__head strong {
-  font-size: 12px;
-  color: #f3f8ff;
-}
-
-.market-price-settings__head span,
-.market-price-settings__hint {
-  font-size: 10px;
-  line-height: 1.4;
-  color: rgba(216, 225, 244, 0.82);
-}
-
-.market-price-settings__mode {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.market-price-settings__mode button,
-.market-price-settings__money input {
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(10, 16, 30, 0.92);
-  color: #f5f7fb;
-  box-sizing: border-box;
-}
-
-.market-price-settings__mode button {
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 800;
-}
-
-.market-price-settings__mode button.is-active {
-  border-color: rgba(125, 205, 255, 0.62);
-  background: linear-gradient(135deg, rgba(73, 119, 255, 0.78), rgba(58, 198, 255, 0.74));
-}
-
-.market-price-settings__input {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.market-price-settings__input > span {
-  font-size: 11px;
-  color: #a8b8de;
-  font-weight: 700;
-}
-
-.market-price-settings__money {
-  display: grid;
-  grid-template-columns: auto 88px;
-  align-items: center;
-  gap: 8px;
-}
-
-.market-price-settings__money > span {
-  font-size: 11px;
-  color: #7fb5ff;
-  font-weight: 800;
-}
-
-.market-price-settings__money input {
-  width: 100%;
-  padding: 0 10px;
-  text-align: right;
 }
 
 .mode-panel__status {

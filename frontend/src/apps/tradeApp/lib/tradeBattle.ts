@@ -169,13 +169,26 @@ export function resolveEffectiveTradeAction(
 
 export function resolveNextBattlePlayer(
   currentPlayerId: PlayerId,
-  completedActionTurn: number,
+  currentTurn: number,
 ): PlayerId {
-  if (completedActionTurn % 2 === 1) {
-    return currentPlayerId === 'player1' ? 'player2' : 'player1'
+  const leadPlayer = resolveTurnLeadPlayer(currentTurn)
+
+  if (currentPlayerId === leadPlayer) {
+    return leadPlayer === 'player1' ? 'player2' : 'player1'
   }
 
-  return currentPlayerId
+  return resolveTurnLeadPlayer(currentTurn + 1)
+}
+
+export function resolveTurnLeadPlayer(turn: number): PlayerId {
+  return turn % 2 === 1 ? 'player1' : 'player2'
+}
+
+export function isBattleTurnComplete(
+  currentPlayerId: PlayerId,
+  currentTurn: number,
+): boolean {
+  return currentPlayerId !== resolveTurnLeadPlayer(currentTurn)
 }
 
 function resolveOrderQuantity(executionPrice: number, orderAmount: number): number {
@@ -184,22 +197,6 @@ function resolveOrderQuantity(executionPrice: number, orderAmount: number): numb
   }
 
   return orderAmount / executionPrice
-}
-
-function hasOppositePositionConflict(
-  player: PlayerState,
-  stockKey: StockKey,
-  tradeAction: TradeAction,
-): boolean {
-  if (tradeAction === 'buy') {
-    return (player.shorts[stockKey]?.quantity ?? 0) > 0
-  }
-
-  if (tradeAction === 'sell') {
-    return (player.holdings[stockKey]?.quantity ?? 0) > 0
-  }
-
-  return false
 }
 
 function isPositiveAction(action: TradeAction): boolean {
@@ -514,13 +511,6 @@ export function buildBattleActionProjection(
   )
   const requestedQuantity = resolveOrderQuantity(projectedExecutionPrice, orderAmount)
   const projectedExecutedShares = requestedQuantity
-  const hasTradeConflict =
-    normalizedDraft.actionKind === 'trade'
-    && hasOppositePositionConflict(
-      currentPlayer,
-      normalizedDraft.stockKey,
-      effectiveTradeAction,
-    )
   const requiresCashAmount = effectiveTradeAction === 'buy' || effectiveTradeAction === 'sell'
   const requiredCashAmount = requiresCashAmount ? orderAmount : 0
   const isCashInsufficient =
@@ -545,7 +535,6 @@ export function buildBattleActionProjection(
     normalizedDraft.actionKind === 'trade'
     && projectedExecutedShares > 0
     && !isCashInsufficient
-    && !hasTradeConflict
 
   const canSubmitCompany =
     normalizedDraft.actionKind === 'company'

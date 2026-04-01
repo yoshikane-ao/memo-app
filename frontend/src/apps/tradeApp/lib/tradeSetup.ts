@@ -1,7 +1,7 @@
 import type { TradeProfile } from '../store/useTradeProfileStore'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
 import { createCpuIdentity, createGuestIdentity } from '../types/playerIdentity'
-import { roundToStockPriceTick, STOCK_PRICE_TICK } from './tradeImpact'
+import { roundToStockPriceTick } from './tradeImpact'
 
 export type BattleMode = 'pvp' | 'pvc' | 'cvc'
 export type FirstPlayer = 'p1' | 'p2' | 'random'
@@ -10,9 +10,9 @@ export type StartingCashMode = 'same' | 'separate'
 export type MarketStartingPriceMode = 'fixed' | 'random'
 
 export const DEFAULT_PLAYER_STOCK_STARTING_PRICE = 1000000
-export const DEFAULT_MARKET_STOCK_STARTING_PRICE = 10000
-export const RANDOM_MARKET_STOCK_MIN = 8000
-export const RANDOM_MARKET_STOCK_MAX = 12000
+export const DEFAULT_MARKET_STOCK_STARTING_PRICE = 1000000
+export const RANDOM_MARKET_STOCK_MIN = DEFAULT_MARKET_STOCK_STARTING_PRICE
+export const RANDOM_MARKET_STOCK_MAX = DEFAULT_MARKET_STOCK_STARTING_PRICE
 
 export type GameStartSettings = {
   battleMode: BattleMode
@@ -68,7 +68,7 @@ export type TradeStartViewModel = {
   player2: TradeStartPlayerViewModel
 }
 
-const DEFAULT_STARTING_CASH = 12000
+const DEFAULT_STARTING_CASH = 100000
 
 const battleModeLabels: Record<BattleMode, string> = {
   pvp: 'P1 vs P2',
@@ -112,15 +112,8 @@ export function normalizeMarketStartingPrice(
   return roundToStockPriceTick(value)
 }
 
-function resolveMarketStartingPrice(draft: TradeSetupDraft): number {
-  if (draft.marketStartingPriceMode === 'random') {
-    const min = roundToStockPriceTick(RANDOM_MARKET_STOCK_MIN)
-    const max = roundToStockPriceTick(RANDOM_MARKET_STOCK_MAX)
-    const stepCount = Math.floor((max - min) / STOCK_PRICE_TICK)
-    return min + Math.floor(Math.random() * (stepCount + 1)) * STOCK_PRICE_TICK
-  }
-
-  return normalizeMarketStartingPrice(draft.marketStartingPrice)
+function resolveMarketStartingPrice(_draft: TradeSetupDraft): number {
+  return DEFAULT_MARKET_STOCK_STARTING_PRICE
 }
 
 export function createDefaultTradeSetupDraft(): TradeSetupDraft {

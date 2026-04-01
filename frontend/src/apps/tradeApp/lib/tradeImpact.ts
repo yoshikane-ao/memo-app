@@ -117,11 +117,8 @@ export function normalizeStockPriceDelta(rawDelta: number): number {
 }
 
 export function resolvePriceStep(basePrice: number): number {
-  if (!Number.isFinite(basePrice) || basePrice <= 0) {
-    return 1
-  }
-
-  return Math.max(1, Math.round(basePrice * PRICE_STEP_RATIO))
+  void basePrice
+  return STOCK_PRICE_TICK
 }
 
 function roundToPriceStep(value: number, basePrice: number): number {
