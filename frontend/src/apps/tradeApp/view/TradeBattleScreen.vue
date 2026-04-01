@@ -86,6 +86,8 @@ type ChartOrderMarker = {
     id: string
     stockKey: StockKey
     playerId: PlayerId
+    positionId?: string
+    pnl?: number
     side: 'buy' | 'sell'
     isPendingClose?: boolean
     executionPrice: number
@@ -265,6 +267,10 @@ normalizePlayersForBattleStart()
 const leftPlayer = computed(() => getPlayer('player1'))
 const rightPlayer = computed(() => getPlayer('player2'))
 const activePlayer = computed(() => getPlayer(state.currentPlayer))
+const playerNames = computed(() => ({
+    p1: leftPlayer.value.name,
+    p2: rightPlayer.value.name,
+}))
 const actionProjection = computed(() =>
     buildBattleActionProjection(activePlayer.value, state.stocks, actionDraft.value),
 )
@@ -520,6 +526,13 @@ const activePositionMarkers = computed<ChartOrderMarker[]>(() =>
                 id: `position-marker-${position.id}`,
                 stockKey: position.stockKey,
                 playerId: player.id,
+                positionId: position.id,
+                pnl: calculateTradePositionPnL(
+                    position,
+                    pendingClosePreview.value?.positionId === position.id
+                        ? pendingClosePreview.value.executionPrice
+                        : getStock(position.stockKey).currentPrice,
+                ),
                 side: position.side,
                 isPendingClose: pendingClosePositionId.value === position.id,
                 executionPrice: position.entryPrice,
@@ -1047,6 +1060,10 @@ function handleClosePosition(positionId: string): void {
         return
     }
 
+    if (!activePlayer.value.positions.some((position) => position.id === positionId)) {
+        return
+    }
+
     pendingClosePositionId.value = pendingClosePositionId.value === positionId
         ? null
         : positionId
@@ -1120,15 +1137,17 @@ function handleTurn(payload: TurnActionWithWait): void {
 
         <StockBoard class="chart-panel" :stocks="state.stocks" :turn="displayTurn"
             :projected-prices="projectedBoardPrices" :order-markers="activePositionMarkers"
+            :interactive-player-id="!isGameOver ? state.currentPlayer : null"
             :resolved-animation="resolvedChartAnimation"
-            :resolved-animation-duration-ms="RESOLVED_CHART_ANIMATION_DURATION_MS" />
+            :resolved-animation-duration-ms="RESOLVED_CHART_ANIMATION_DURATION_MS"
+            @close-position="handleClosePosition" />
 
         <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
             :projected-prices="projectedBoardPrices" :pending-close="pendingClosePreview"
             :is-active="!isGameOver && state.currentPlayer === 'player2'" :victory-value="rightVictoryValue"
             :victory-diff="rightVictoryDiff" @close-position="handleClosePosition" />
 
-        <ActionPanel v-if="!isGameOver" class="action-panel-slot" :current-player="activePlayer" :draft="actionDraft"
+        <ActionPanel v-if="!isGameOver" class="action-panel-slot" :current-player="activePlayer" :player-names="playerNames" :draft="actionDraft"
             :projection="actionProjection" :pending-close="pendingCloseSummary" @update:draft="handleDraftChange"
             @confirm="handleConfirmTurn" />
 

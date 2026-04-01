@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { PlayerId, StockKey, StockState } from '../api/types/game'
 import chartBackdrop from '../assets/trade-chart-background.png'
 
@@ -7,6 +7,8 @@ type OrderMarker = {
   id: string
   stockKey: StockKey
   playerId: PlayerId
+  positionId?: string
+  pnl?: number
   side: 'buy' | 'sell'
   isPendingClose?: boolean
   executionPrice: number
@@ -29,8 +31,11 @@ type ChartOrderMarkerViewModel = OrderMarker & {
   accentColor: string
   badgeFill: string
   badgeTextFill: string
+  isInteractive: boolean
   pointX: number
   pointY: number
+  currentPointX: number
+  currentPointY: number
   stemY1: number
   stemY2: number
   badgeX: number
@@ -89,11 +94,34 @@ type SharedChartViewModel = {
   priceLabels: ChartPriceLabelViewModel[]
 }
 
+type SelectedMarkerSummary = {
+  id: string
+  label: string
+  entryPriceText: string
+  pnlText: string
+  pnlTone: 'positive' | 'negative' | 'flat'
+  boxX: number
+  boxY: number
+  boxWidth: number
+  boxHeight: number
+  labelX: number
+  labelY: number
+  priceX: number
+  priceY: number
+  pnlX: number
+  pnlY: number
+  connectorX1: number
+  connectorY1: number
+  connectorX2: number
+  connectorY2: number
+}
+
 const props = defineProps<{
   stocks: StockState[]
   turn: number
   projectedPrices?: Partial<Record<StockKey, number>> | null
   orderMarkers?: OrderMarker[]
+  interactivePlayerId?: PlayerId | null
   resolvedAnimation?: {
     id: number
     stocks: StockState[]
@@ -102,8 +130,18 @@ const props = defineProps<{
   resolvedAnimationDurationMs?: number
 }>()
 
+const emit = defineEmits<{
+  (event: 'close-position', positionId: string): void
+}>()
+
 const focusedSeriesKey = ref<StockKey | null>(null)
+const selectedMarkerId = ref<string | null>(null)
 const commitAnimationDurationMs = computed(() => props.resolvedAnimationDurationMs ?? 760)
+const historySourceStocks = computed(() => props.resolvedAnimation?.stocks ?? props.stocks)
+const historyVisibleCount = computed(() => historySourceStocks.value.reduce(
+  (max, stock) => Math.max(max, stock.history.length, 1),
+  1,
+))
 const isCommitAnimationActive = computed(() => props.resolvedAnimation != null)
 
 const viewWidth = 860
@@ -114,10 +152,9 @@ const padBottom = 22
 const padLeft = 42
 const chartWidth = viewWidth - padLeft - padRight
 const chartHeight = viewHeight - padTop - padBottom
-const maxVisiblePoints = 8
-const labelBoxHeight = 16
-const labelBoxInset = 34
-const labelBoxWidth = 80
+const labelBoxHeight = 22
+const labelBoxInset = 14
+const labelBoxWidth = 84
 const chartTickStep = 50000
 const previewZoomTargetRatio = 0.42
 const previewZoomMinRange = 60000
@@ -262,13 +299,9 @@ function resolveChartRange(
 }
 
 function buildSharedSeries(): ChartSeries[] {
-  const sourceStocks = props.resolvedAnimation?.stocks ?? props.stocks
+  const sourceStocks = historySourceStocks.value
   const sourceProjectedPrices = props.resolvedAnimation?.projectedPrices ?? props.projectedPrices
-  const maxHistoryLength = sourceStocks.reduce(
-    (max, stock) => Math.max(max, stock.history.length, 1),
-    1,
-  )
-  const visibleCount = Math.min(maxVisiblePoints, maxHistoryLength)
+  const visibleCount = historyVisibleCount.value
 
   return chartOrder.map((key) => {
     const stock = sourceStocks.find((item) => item.key === key)
@@ -277,9 +310,13 @@ function buildSharedSeries(): ChartSeries[] {
     }
 
     const visibleHistory = stock.history.slice(-visibleCount)
+    const visibleCurrentPrice = visibleHistory[visibleHistory.length - 1] ?? stock.currentPrice
+    const visiblePreviousPrice = visibleHistory[visibleHistory.length - 2] ?? stock.previousPrice
 
     return {
       ...stock,
+      currentPrice: visibleCurrentPrice,
+      previousPrice: visiblePreviousPrice,
       color: colorMap[key],
       label: labelMap[key],
       visibleHistory,
@@ -332,6 +369,7 @@ function buildVisibleOrderMarkers(
       const localIndex = marker.historyIndex - series.visibleStartIndex + series.offset
       const pointX = x(localIndex, sharedChart.plotCount)
       const pointY = y(marker.executionPrice, sharedChart)
+      const currentPoint = buildLastPoint(series, sharedChart)
       const laneKey = `${localIndex}-${marker.side}`
       const laneIndex = laneMap.get(laneKey) ?? 0
       laneMap.set(laneKey, laneIndex + 1)
@@ -340,18 +378,18 @@ function buildVisibleOrderMarkers(
       const markerLabel = isPendingClose
         ? `${sideLabelMap[marker.side]} 保留`
         : sideLabelMap[marker.side]
-      const badgeWidth = isPendingClose ? 78 : 54
-      const badgeHeight = isPendingClose ? 16 : 14
-      const offset = 18 + laneIndex * 14
+      const badgeWidth = isPendingClose ? 108 : 84
+      const badgeHeight = isPendingClose ? 25 : 22
+      const offset = 24 + laneIndex * 20
       const badgeY = marker.side === 'buy'
         ? clamp(pointY + offset, padTop + 4, padTop + chartHeight - badgeHeight - 4)
         : clamp(pointY - offset - badgeHeight, padTop + 4, padTop + chartHeight - badgeHeight - 4)
       const badgeX = clamp(pointX - badgeWidth / 2, padLeft + 2, viewWidth - padRight - badgeWidth - 2)
       const stemY1 = marker.side === 'buy' ? badgeY : badgeY + badgeHeight
-      const stemY2 = marker.side === 'buy' ? pointY + 8 : pointY - 8
+      const stemY2 = marker.side === 'buy' ? pointY + 10 : pointY - 10
       const arrowPoints = marker.side === 'buy'
-        ? `${pointX - 4},${pointY + 8} ${pointX + 4},${pointY + 8} ${pointX},${pointY + 2}`
-        : `${pointX - 4},${pointY - 8} ${pointX + 4},${pointY - 8} ${pointX},${pointY - 2}`
+        ? `${pointX - 6.4},${pointY + 12} ${pointX + 6.4},${pointY + 12} ${pointX},${pointY + 3}`
+        : `${pointX - 6.4},${pointY - 12} ${pointX + 6.4},${pointY - 12} ${pointX},${pointY - 3}`
 
       return {
         ...marker,
@@ -360,8 +398,11 @@ function buildVisibleOrderMarkers(
         accentColor: isPendingClose ? '#ffd166' : playerAccentMap[marker.playerId],
         badgeFill: isPendingClose ? 'rgba(77, 53, 6, 0.96)' : playerBadgeFillMap[marker.playerId],
         badgeTextFill: isPendingClose ? '#fff3c3' : '#f4f8ff',
+        isInteractive: marker.positionId != null && marker.playerId === props.interactivePlayerId,
         pointX,
         pointY,
+        currentPointX: currentPoint.x,
+        currentPointY: currentPoint.y,
         stemY1,
         stemY2,
         badgeX,
@@ -369,7 +410,7 @@ function buildVisibleOrderMarkers(
         badgeWidth,
         badgeHeight,
         textX: badgeX + badgeWidth / 2,
-        textY: badgeY + badgeHeight / 2 + 2.1,
+        textY: badgeY + badgeHeight / 2 + 2.75,
         arrowPoints,
       }
     })
@@ -481,8 +522,8 @@ function buildPriceLabels(
       boxY,
       boxWidth: labelBoxWidth,
       boxHeight: labelBoxHeight,
-      textX: labelX + 6,
-      textY: centerY + 1.8,
+      textX: labelX + 4,
+      textY: centerY + 2.7,
     }
   })
 }
@@ -538,6 +579,18 @@ function buildProjectionAnimationKey(projection: ChartProjectionViewModel): stri
   return `${projection.key}-${projection.path}-${projection.pointX}-${projection.pointY}`
 }
 
+function resolvePnlTone(value: number): SelectedMarkerSummary['pnlTone'] {
+  if (value > 0) return 'positive'
+  if (value < 0) return 'negative'
+  return 'flat'
+}
+
+function formatSignedPrice(value: number): string {
+  const rounded = Math.round(value)
+  const prefix = rounded > 0 ? '+' : ''
+  return `${prefix}${formatPrice(rounded)}円`
+}
+
 function lastPoint(series: ChartSeries): { x: number; y: number } {
   const point = buildLastPoint(series, chart.value)
 
@@ -558,6 +611,99 @@ function isSeriesFocused(key: StockKey): boolean {
 function isSeriesDimmed(key: StockKey): boolean {
   return focusedSeriesKey.value !== null && focusedSeriesKey.value !== key
 }
+
+function handleOrderMarkerClick(marker: ChartOrderMarkerViewModel): void {
+  if (!marker.isInteractive || !marker.positionId) {
+    return
+  }
+
+  selectedMarkerId.value = selectedMarkerId.value === marker.id ? null : marker.id
+  emit('close-position', marker.positionId)
+}
+
+function handleDocumentClick(event: MouseEvent): void {
+  if (!selectedMarkerId.value) {
+    return
+  }
+
+  const target = event.target
+  if (!(target instanceof Element)) {
+    selectedMarkerId.value = null
+    return
+  }
+
+  const markerElement = target.closest<HTMLElement>('[data-order-marker]')
+  if (markerElement?.getAttribute('data-order-marker') === selectedMarkerId.value) {
+    return
+  }
+
+  selectedMarkerId.value = null
+}
+
+const selectedMarkerSummary = computed<SelectedMarkerSummary | null>(() => {
+  const selectedMarker = chart.value.orderMarkers.find((marker) => marker.id === selectedMarkerId.value) ?? null
+
+  if (!selectedMarker) {
+    return null
+  }
+
+  const pnl = selectedMarker.pnl ?? 0
+  const boxWidth = 208
+  const boxHeight = 64
+  const minX = padLeft + 4
+  const maxX = viewWidth - padRight - boxWidth - 4
+  const boxX = clamp(
+    selectedMarker.badgeX + selectedMarker.badgeWidth / 2 - boxWidth / 2,
+    minX,
+    maxX,
+  )
+  const boxY = clamp(
+    selectedMarker.badgeY + selectedMarker.badgeHeight + 10,
+    padTop + 4,
+    padTop + chartHeight - boxHeight - 4,
+  )
+  return {
+    id: selectedMarker.id,
+    label: `${selectedMarker.playerLabel} ${selectedMarker.markerLabel}`,
+    entryPriceText: `${formatPrice(selectedMarker.executionPrice)}円`,
+    pnlText: formatSignedPrice(pnl),
+    pnlTone: resolvePnlTone(pnl),
+    boxX,
+    boxY,
+    boxWidth,
+    boxHeight,
+    labelX: boxX + 14,
+    labelY: boxY + 18,
+    priceX: boxX + 14,
+    priceY: boxY + 38,
+    pnlX: boxX + 14,
+    pnlY: boxY + 54,
+    connectorX1: selectedMarker.badgeX + selectedMarker.badgeWidth / 2,
+    connectorY1: selectedMarker.badgeY + selectedMarker.badgeHeight,
+    connectorX2: boxX + boxWidth / 2,
+    connectorY2: boxY,
+  }
+})
+
+watch(
+  () => chart.value.orderMarkers,
+  (markers) => {
+    if (markers.some((marker) => marker.id === selectedMarkerId.value)) {
+      return
+    }
+
+    selectedMarkerId.value = null
+  },
+  { immediate: true, deep: true },
+)
+
+onMounted(() => {
+  document.addEventListener('click', handleDocumentClick)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
+})
 </script>
 
 <template>
@@ -654,20 +800,52 @@ function isSeriesDimmed(key: StockKey): boolean {
           `order-marker--${marker.playerId}`,
           `order-marker--${marker.side}`,
           { 'is-pending-close': marker.isPendingClose === true },
+          { 'is-interactive': marker.isInteractive },
           { 'is-dimmed': isSeriesDimmed(marker.stockKey) },
         ]" :data-order-marker="marker.id" :data-player-marker="marker.playerLabel" :data-side="marker.side"
-          :data-pending-close="marker.isPendingClose === true ? 'true' : 'false'">
+          :data-pending-close="marker.isPendingClose === true ? 'true' : 'false'"
+          :data-marker-clickable="marker.isInteractive ? 'true' : 'false'"
+          focusable="false" @click="handleOrderMarkerClick(marker)">
           <line class="order-marker__stem" :x1="marker.pointX" :x2="marker.pointX" :y1="marker.stemY1"
-            :y2="marker.stemY2" :stroke="marker.accentColor" />
-          <circle v-if="marker.isPendingClose" class="order-marker__pending-ring" :cx="marker.pointX"
-            :cy="marker.pointY" r="8.4" :stroke="marker.accentColor" />
-          <polygon class="order-marker__arrow" :points="marker.arrowPoints" :fill="marker.accentColor" />
-          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="4.4"
-            :fill="marker.accentColor" />
+            :y2="marker.stemY2" :stroke="marker.accentColor" focusable="false" />
+          <circle v-if="marker.isPendingClose" class="order-marker__pending-ring-mover" :cx="marker.pointX"
+            :cy="marker.pointY" r="12.4" :stroke="marker.accentColor" focusable="false">
+            <animate attributeName="cx" :values="`${marker.pointX};${marker.currentPointX};${marker.pointX}`"
+              dur="1.45s" repeatCount="indefinite" />
+            <animate attributeName="cy" :values="`${marker.pointY};${marker.currentPointY};${marker.pointY}`"
+              dur="1.45s" repeatCount="indefinite" />
+          </circle>
+          <polygon class="order-marker__arrow" :points="marker.arrowPoints" :fill="marker.accentColor" focusable="false" />
+          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="6.1"
+            :fill="marker.accentColor" focusable="false" />
+          <rect v-if="marker.isInteractive" class="order-marker__hitbox" :x="marker.badgeX - 3"
+            :y="marker.badgeY - 3" :width="marker.badgeWidth + 6" :height="marker.badgeHeight + 6" rx="8"
+            focusable="false" @click.stop="handleOrderMarkerClick(marker)" />
           <rect class="order-marker__badge" :x="marker.badgeX" :y="marker.badgeY" :width="marker.badgeWidth"
-            :height="marker.badgeHeight" rx="6" :fill="marker.badgeFill" :stroke="marker.accentColor" />
-          <text class="order-marker__text" :x="marker.textX" :y="marker.textY" :fill="marker.badgeTextFill">
+            :height="marker.badgeHeight" rx="6" :fill="marker.badgeFill" :stroke="marker.accentColor"
+            focusable="false" @click.stop="handleOrderMarkerClick(marker)" />
+          <text class="order-marker__text" :x="marker.textX" :y="marker.textY" :fill="marker.badgeTextFill"
+            focusable="false" @click.stop="handleOrderMarkerClick(marker)">
             {{ marker.playerLabel }} {{ marker.markerLabel }}
+          </text>
+        </g>
+
+        <g v-if="selectedMarkerSummary" class="marker-detail"
+          :data-selected-marker-summary="selectedMarkerSummary.id">
+          <line class="marker-detail__connector" :x1="selectedMarkerSummary.connectorX1"
+            :y1="selectedMarkerSummary.connectorY1" :x2="selectedMarkerSummary.connectorX2"
+            :y2="selectedMarkerSummary.connectorY2" />
+          <rect class="marker-detail__box" :x="selectedMarkerSummary.boxX" :y="selectedMarkerSummary.boxY"
+            :width="selectedMarkerSummary.boxWidth" :height="selectedMarkerSummary.boxHeight" rx="8" />
+          <text class="marker-detail__label" :x="selectedMarkerSummary.labelX" :y="selectedMarkerSummary.labelY">
+            {{ selectedMarkerSummary.label }}
+          </text>
+          <text class="marker-detail__meta" :x="selectedMarkerSummary.priceX" :y="selectedMarkerSummary.priceY">
+            注文価格 {{ selectedMarkerSummary.entryPriceText }}
+          </text>
+          <text class="marker-detail__meta" :class="`is-${selectedMarkerSummary.pnlTone}`"
+            :x="selectedMarkerSummary.pnlX" :y="selectedMarkerSummary.pnlY">
+            損益 {{ selectedMarkerSummary.pnlText }}
           </text>
         </g>
 
@@ -873,6 +1051,7 @@ function isSeriesDimmed(key: StockKey): boolean {
   justify-content: flex-end;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .shared-chart__legend {
@@ -1124,6 +1303,28 @@ function isSeriesDimmed(key: StockKey): boolean {
   pointer-events: none;
 }
 
+.order-marker.is-interactive {
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.order-marker.is-interactive,
+.order-marker.is-interactive *,
+.order-marker.is-interactive *:focus,
+.order-marker.is-interactive *:focus-visible {
+  outline: none;
+}
+
+.order-marker.is-interactive .order-marker__stem,
+.order-marker.is-interactive .order-marker__arrow,
+.order-marker.is-interactive .order-marker__point,
+.order-marker.is-interactive .order-marker__pending-ring-mover,
+.order-marker.is-interactive .order-marker__badge,
+.order-marker.is-interactive .order-marker__text {
+  pointer-events: none;
+}
+
 .order-marker__stem {
   stroke-width: 1.9;
   stroke-linecap: round;
@@ -1134,31 +1335,36 @@ function isSeriesDimmed(key: StockKey): boolean {
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.16));
 }
 
-.order-marker__pending-ring {
+.order-marker__pending-ring-mover {
   fill: none;
-  stroke-width: 1.8;
-  opacity: 0.78;
-  stroke-dasharray: 4 3;
-  animation: pending-close-pulse 1.4s ease-in-out infinite;
+  stroke-width: 2.5;
+  opacity: 0.94;
+  stroke-dasharray: 5 3.2;
+  filter: drop-shadow(0 0 16px rgba(255, 209, 102, 0.36));
 }
 
 .order-marker__point {
   stroke: rgba(0, 10, 26, 0.98);
-  stroke-width: 1.6;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
+  stroke-width: 2.15;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.22));
+}
+
+.order-marker__hitbox {
+  fill: rgba(255, 255, 255, 0.001);
+  pointer-events: all;
 }
 
 .order-marker__badge {
-  stroke-width: 1.1;
-  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.32));
+  stroke-width: 1.4;
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.36));
 }
 
 .order-marker__text {
   font-family: Inter, 'Segoe UI', sans-serif;
-  font-size: 5.8px;
+  font-size: 7.8px;
   font-weight: 900;
   text-anchor: middle;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
 }
 
 .order-marker.is-pending-close .order-marker__stem,
@@ -1171,39 +1377,67 @@ function isSeriesDimmed(key: StockKey): boolean {
   pointer-events: none;
 }
 
-.price-tag__connector {
-  stroke-width: 1.1;
-  opacity: 0.88;
+.marker-detail {
+  pointer-events: none;
 }
 
-.price-tag__box {
-  stroke-width: 1;
-  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.24));
+.marker-detail__connector {
+  stroke: rgba(223, 232, 255, 0.56);
+  stroke-width: 1.35;
+  stroke-dasharray: 4.2 2.8;
 }
 
-.price-tag__text {
+.marker-detail__box {
+  fill: rgba(4, 10, 22, 0.96);
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 1.15;
+  filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.38));
+}
+
+.marker-detail__label {
   font-family: Inter, 'Segoe UI', sans-serif;
-  font-size: 5.5px;
+  font-size: 9.8px;
   font-weight: 900;
   fill: #f4f8ff;
   letter-spacing: 0.01em;
 }
 
-@keyframes pending-close-pulse {
-  0% {
-    opacity: 0.88;
-    transform: scale(1);
-  }
+.marker-detail__meta {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 8.7px;
+  font-weight: 900;
+  fill: rgba(226, 235, 255, 0.92);
+  letter-spacing: 0.008em;
+}
 
-  50% {
-    opacity: 0.3;
-    transform: scale(1.18);
-  }
+.marker-detail__meta.is-positive {
+  fill: #8bf5b5;
+}
 
-  100% {
-    opacity: 0.88;
-    transform: scale(1);
-  }
+.marker-detail__meta.is-negative {
+  fill: #ff9aaa;
+}
+
+.marker-detail__meta.is-flat {
+  fill: #d7e4ff;
+}
+
+.price-tag__connector {
+  stroke-width: 1.4;
+  opacity: 0.96;
+}
+
+.price-tag__box {
+  stroke-width: 1.2;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.3));
+}
+
+.price-tag__text {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 7.9px;
+  font-weight: 900;
+  fill: #f4f8ff;
+  letter-spacing: 0;
 }
 
 @keyframes projection-drift {
@@ -1285,8 +1519,7 @@ function isSeriesDimmed(key: StockKey): boolean {
   .chart-commit__under,
   .chart-commit__main,
   .chart-commit__highlight,
-  .chart-commit__point,
-  .order-marker__pending-ring {
+  .chart-commit__point {
     animation: none;
   }
 }
