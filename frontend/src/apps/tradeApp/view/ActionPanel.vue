@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, reactive, watch } from 'vue'
 import type {
   CompanyAction,
@@ -20,6 +20,10 @@ import { resolveTradeImpactPattern } from '../lib/tradeImpact'
 
 const props = defineProps<{
   currentPlayer: PlayerState
+  playerNames: {
+    p1: string
+    p2: string
+  }
   draft: BattleActionDraft
   projection: BattleActionProjection
   pendingClose?: {
@@ -150,20 +154,17 @@ function submitTurn(): void {
 }
 
 function resolveGuideTitle(targetKey: StockKey): string {
-  if (targetKey === ownStockKey()) {
-    return form.tradeAction === 'buy' ? '自社を買う' : '自社を売る'
+  if (targetKey === 'market') {
+    return '\u5e02\u5834\u3092' + (form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b')
   }
 
-  if (targetKey === rivalStockKey()) {
-    return form.tradeAction === 'buy' ? '相手を買う' : '相手を売る'
-  }
-
-  return form.tradeAction === 'buy' ? '市場を買う' : '市場を売る'
+  const playerName = props.playerNames[targetKey]
+  return `${playerName}\u3092${form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b'}`
 }
 
 function resolveEffectLabel(effectKey: StockKey): string {
-  if (effectKey === 'market') return '市場'
-  return effectKey === ownStockKey() ? '自社' : '相手'
+  if (effectKey === 'market') return '\u5e02\u5834'
+  return props.playerNames[effectKey]
 }
 
 function resolveGuideTone(value: number): GuideTone {
@@ -179,8 +180,11 @@ function formatGuidePercent(value: number): string {
 }
 
 const tradeGuideItems = computed<TradeGuideItem[]>(() => {
-  const targets: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
-  const effectOrder: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
+  const playerTargets: [StockKey, StockKey] = ownStockKey() === 'p1'
+    ? ['p1', rivalStockKey()]
+    : [rivalStockKey(), 'p2']
+  const targets: StockKey[] = [...playerTargets, 'market']
+  const effectOrder: StockKey[] = [...playerTargets, 'market']
 
   return targets.map((targetKey) => {
     const pattern = resolveTradeImpactPattern(props.currentPlayer.id, targetKey, form.tradeAction)
@@ -199,40 +203,40 @@ const tradeGuideItems = computed<TradeGuideItem[]>(() => {
 
 const tradeSummaryTitle = computed(() => {
   if (isClosePending.value) {
-    return `${props.pendingClose?.stockName ?? ''}の${props.pendingClose?.side === 'buy' ? '買い' : '売り'}ポジションを決済`
+    return `${props.pendingClose?.stockName ?? ''}\u306e${props.pendingClose?.side === 'buy' ? '\u8cb7\u3044' : '\u58f2\u308a'}\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u6c7a\u6e08`
   }
 
-  return `${props.currentPlayer.name}のターン`
+  return `${props.currentPlayer.name}\u306e\u30bf\u30fc\u30f3`
 })
 
 const tradeHint = computed(() => {
   if (isClosePending.value) {
-    return `想定約定 ${props.pendingClose?.executionPriceText ?? ''} / 回収 ${props.pendingClose?.returnedCashText ?? ''} / 損益 ${props.pendingClose?.projectedPnlText ?? ''}`
+    return `\u60f3\u5b9a\u7d04\u5b9a ${props.pendingClose?.executionPriceText ?? ''} / \u56de\u53ce ${props.pendingClose?.returnedCashText ?? ''} / \u640d\u76ca ${props.pendingClose?.projectedPnlText ?? ''}`
   }
 
   return ''
 })
 
 const confirmButtonLabel = computed(() => {
-  if (isClosePending.value) return 'ポジション決済を確定'
-  if (actionKind.value === 'trade' && props.projection.isCashInsufficient) return '残高不足'
-  return '行動を決定'
+  if (isClosePending.value) return '\u30dd\u30b8\u30b7\u30e7\u30f3\u6c7a\u6e08\u3092\u78ba\u5b9a'
+  if (actionKind.value === 'trade' && props.projection.isCashInsufficient) return '\u6b8b\u9ad8\u4e0d\u8db3'
+  return '\u884c\u52d5\u3092\u6c7a\u5b9a'
 })
 
 const companySummaryTitle = computed(() => {
-  return isClosePending.value ? tradeSummaryTitle.value : 'この内容で追加操作を実行'
+  return isClosePending.value ? tradeSummaryTitle.value : '\u3053\u306e\u5185\u5bb9\u3067\u81ea\u793e\u884c\u52d5\u3092\u5b9f\u884c'
 })
 
 const companySummaryHint = computed(() => {
-  return isClosePending.value ? tradeHint.value : 'クールダウン中の操作は選べません。'
+  return isClosePending.value ? tradeHint.value : '\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u4e2d\u306e\u884c\u52d5\u306f\u9078\u3079\u307e\u305b\u3093\u3002'
 })
 
 const waitSummaryTitle = computed(() => {
-  return isClosePending.value ? tradeSummaryTitle.value : 'このターンは待機する'
+  return isClosePending.value ? tradeSummaryTitle.value : '\u3053\u306e\u30bf\u30fc\u30f3\u306f\u5f85\u6a5f\u3059\u308b'
 })
 
 const waitSummaryHint = computed(() => {
-  return isClosePending.value ? tradeHint.value : 'ポジションはそのままで、相手に手番を渡します。'
+  return isClosePending.value ? tradeHint.value : '\u30dd\u30b8\u30b7\u30e7\u30f3\u306f\u305d\u306e\u307e\u307e\u3067\u3001\u6b21\u306e\u624b\u756a\u306b\u5099\u3048\u307e\u3059\u3002'
 })
 
 watch(
@@ -259,13 +263,13 @@ watch(
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
           <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('trade')">
-            注文
+            売買
           </button>
           <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">
-            追加操作
+            自社行動
           </button>
           <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">
-            待つ
+            待機
           </button>
         </div>
       </article>
@@ -298,7 +302,7 @@ watch(
       </article>
 
       <article class="card mode-card mode-span">
-        <div class="card-title-row"><span class="step">3</span><span>方式 / 操作</span></div>
+        <div class="card-title-row"><span class="step">3</span><span>売買 / 取引</span></div>
         <div class="stack-group">
           <div class="segment segment-2">
             <button
@@ -331,7 +335,7 @@ watch(
 
       <article class="card amount-card amount-span">
         <div class="card-title-row amount-title-row">
-          <span><span class="step">4</span> 注文金額</span>
+          <span><span class="step">4</span> 注文額</span>
           <button type="button" class="mini-clear-button" @click="resetAmount">クリア</button>
         </div>
 
@@ -348,9 +352,9 @@ watch(
         </div>
 
         <div class="amount-box">
-          <button type="button" class="amount-step" @click="stepAmount(-1000)">−</button>
+          <button type="button" class="amount-step" @click="stepAmount(-1000)">-</button>
           <input v-model.number="form.quantity" type="number" min="0" step="1000" class="amount-input" />
-          <button type="button" class="amount-step" @click="stepAmount(1000)">＋</button>
+          <button type="button" class="amount-step" @click="stepAmount(1000)">+</button>
         </div>
       </article>
 
@@ -375,14 +379,14 @@ watch(
       <article class="card kind-card company-kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">注文</button>
-          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('company')">追加操作</button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待つ</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
+          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('company')">自社行動</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待機</button>
         </div>
       </article>
 
       <article class="card company-card company-actions-span">
-        <div class="card-title-row"><span class="step">2</span><span>追加操作</span></div>
+        <div class="card-title-row"><span class="step">2</span><span>自社行動</span></div>
         <div class="segment segment-3">
           <button
             v-for="action in companyActions"
@@ -419,9 +423,9 @@ watch(
       <article class="card kind-card wait-kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">注文</button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">追加操作</button>
-          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('wait')">待つ</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
+          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">自社行動</button>
+          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('wait')">待機</button>
         </div>
       </article>
 
@@ -1119,3 +1123,4 @@ watch(
   }
 }
 </style>
+

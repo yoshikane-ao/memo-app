@@ -88,6 +88,13 @@ function createPlayer(): PlayerState {
   }
 }
 
+function createPlayerNames() {
+  return {
+    p1: 'PLAYER 1',
+    p2: 'PLAYER 2',
+  }
+}
+
 function normalizedText(wrapper: ReturnType<typeof mount>): string {
   return wrapper.text().replace(/\s+/g, '')
 }
@@ -102,6 +109,7 @@ describe('ActionPanel', () => {
     const wrapper = mount(ActionPanel, {
       props: {
         currentPlayer,
+        playerNames: createPlayerNames(),
         draft,
         projection,
       },
@@ -111,8 +119,8 @@ describe('ActionPanel', () => {
     expect(wrapper.findAll('.trade-grid > .card')).toHaveLength(5)
     expect(text).toContain('1行動')
     expect(text).toContain('2対象レート')
-    expect(text).toContain('3方式/操作')
-    expect(text).toContain('4注文金額')
+    expect(text).toContain('3売買/取引')
+    expect(text).toContain('4注文額')
     expect(text).toContain('5確認')
     expect(text).toContain('PLAYER1のターン')
     expect(wrapper.find('.meta-pills').exists()).toBe(false)
@@ -130,6 +138,7 @@ describe('ActionPanel', () => {
     const wrapper = mount(ActionPanel, {
       props: {
         currentPlayer,
+        playerNames: createPlayerNames(),
         draft,
         projection,
         pendingClose: {
@@ -151,6 +160,36 @@ describe('ActionPanel', () => {
     expect(text).toContain('ポジション決済を確定')
   })
 
+  it('shows player1 and player2 target buttons in fixed left-to-center order and keeps stock selection aligned', async () => {
+    const currentPlayer = createPlayer()
+    currentPlayer.id = 'player2'
+    currentPlayer.name = 'PLAYER 2'
+    const draft = createDefaultBattleActionDraft()
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+
+    const wrapper = mount(ActionPanel, {
+      props: {
+        currentPlayer,
+        playerNames: createPlayerNames(),
+        draft,
+        projection,
+      },
+    })
+
+    const targetButtons = wrapper.findAll('.stock-choice-list .stock-choice')
+    const targetLabels = wrapper.findAll('.stock-choice-list .stock-choice-main').map((node) => node.text())
+
+    expect(targetLabels[0]).toBe('PLAYER 1を買う')
+    expect(targetLabels[1]).toBe('PLAYER 2を買う')
+
+    await targetButtons[0]?.trigger('click')
+    await targetButtons[1]?.trigger('click')
+
+    const updates = wrapper.emitted('update:draft') ?? []
+    expect(updates[0]?.[0]).toMatchObject({ stockKey: 'p1' })
+    expect(updates[1]?.[0]).toMatchObject({ stockKey: 'p2' })
+  })
+
   it('allows selecting sell even when a buy position remains open', async () => {
     const currentPlayer = createPlayer()
     currentPlayer.holdings.market = { quantity: 1, avgPrice: 10000 }
@@ -160,6 +199,7 @@ describe('ActionPanel', () => {
     const wrapper = mount(ActionPanel, {
       props: {
         currentPlayer,
+        playerNames: createPlayerNames(),
         draft,
         projection,
       },
@@ -189,6 +229,7 @@ describe('ActionPanel', () => {
     const wrapper = mount(ActionPanel, {
       props: {
         currentPlayer,
+        playerNames: createPlayerNames(),
         draft,
         projection,
       },
