@@ -7,6 +7,7 @@ type OrderMarker = {
   stockKey: StockKey
   playerId: PlayerId
   side: 'buy' | 'sell'
+  isPendingClose?: boolean
   executionPrice: number
   historyIndex: number
   turn: number
@@ -26,6 +27,7 @@ type ChartOrderMarkerViewModel = OrderMarker & {
   markerLabel: string
   accentColor: string
   badgeFill: string
+  badgeTextFill: string
   pointX: number
   pointY: number
   stemY1: number
@@ -246,9 +248,13 @@ function buildVisibleOrderMarkers(
       const laneKey = `${localIndex}-${marker.side}`
       const laneIndex = laneMap.get(laneKey) ?? 0
       laneMap.set(laneKey, laneIndex + 1)
+      const isPendingClose = marker.isPendingClose === true
 
-      const badgeWidth = 54
-      const badgeHeight = 14
+      const markerLabel = isPendingClose
+        ? `${sideLabelMap[marker.side]} 保留`
+        : sideLabelMap[marker.side]
+      const badgeWidth = isPendingClose ? 78 : 54
+      const badgeHeight = isPendingClose ? 16 : 14
       const offset = 18 + laneIndex * 14
       const badgeY = marker.side === 'buy'
         ? clamp(pointY + offset, padTop + 4, padTop + chartHeight - badgeHeight - 4)
@@ -263,9 +269,10 @@ function buildVisibleOrderMarkers(
       return {
         ...marker,
         playerLabel: playerLabelMap[marker.playerId],
-        markerLabel: sideLabelMap[marker.side],
-        accentColor: playerAccentMap[marker.playerId],
-        badgeFill: playerBadgeFillMap[marker.playerId],
+        markerLabel,
+        accentColor: isPendingClose ? '#ffd166' : playerAccentMap[marker.playerId],
+        badgeFill: isPendingClose ? 'rgba(77, 53, 6, 0.96)' : playerBadgeFillMap[marker.playerId],
+        badgeTextFill: isPendingClose ? '#fff3c3' : '#f4f8ff',
         pointX,
         pointY,
         stemY1,
@@ -464,17 +471,10 @@ function isSeriesDimmed(key: StockKey): boolean {
     </header>
 
     <div class="quote-pills">
-      <button
-        v-for="series in chart.series"
-        :key="series.key"
-        type="button"
-        class="quote-pill"
+      <button v-for="series in chart.series" :key="series.key" type="button" class="quote-pill"
         :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
-        :style="{ '--line-color': series.color }"
-        :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
-        :data-focus-toggle="series.key"
-        @click="toggleSeriesFocus(series.key)"
-      >
+        :style="{ '--line-color': series.color }" :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
+        :data-focus-toggle="series.key" @click="toggleSeriesFocus(series.key)">
         <span class="quote-dot" :style="{ background: series.color }"></span>
         <span class="quote-name">{{ series.label }}</span>
         <div class="quote-values">
@@ -489,17 +489,10 @@ function isSeriesDimmed(key: StockKey): boolean {
     <article class="shared-chart">
       <div class="shared-chart__head">
         <div class="shared-chart__legend">
-          <button
-            v-for="series in chart.series"
-            :key="`${series.key}-legend`"
-            type="button"
-            class="legend-chip"
+          <button v-for="series in chart.series" :key="`${series.key}-legend`" type="button" class="legend-chip"
             :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
-            :style="{ '--legend-color': series.color }"
-            :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
-            :data-legend-toggle="series.key"
-            @click="toggleSeriesFocus(series.key)"
-          >
+            :style="{ '--legend-color': series.color }" :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
+            :data-legend-toggle="series.key" @click="toggleSeriesFocus(series.key)">
             <span class="legend-chip__dot"></span>
             <span class="legend-chip__label">{{ series.label }}</span>
           </button>
@@ -509,131 +502,60 @@ function isSeriesDimmed(key: StockKey): boolean {
       <svg :viewBox="`0 0 ${viewWidth} ${viewHeight}`" preserveAspectRatio="none" class="chart-svg">
         <rect :x="padLeft" :y="padTop" :width="chartWidth" :height="chartHeight" class="plot-frame" />
 
-        <line
-          v-for="tick in chart.ticks"
-          :key="`tick-${tick}`"
-          class="grid-line"
-          :x1="padLeft"
-          :x2="viewWidth - padRight"
-          :y1="y(tick, chart)"
-          :y2="y(tick, chart)"
-        />
+        <line v-for="tick in chart.ticks" :key="`tick-${tick}`" class="grid-line" :x1="padLeft"
+          :x2="viewWidth - padRight" :y1="y(tick, chart)" :y2="y(tick, chart)" />
 
-        <g
-          v-for="series in chart.series"
-          :key="series.key"
-          class="chart-series"
+        <g v-for="series in chart.series" :key="series.key" class="chart-series"
           :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
-          :data-series="series.key"
-        >
+          :data-series="series.key">
           <path :d="buildPath(series)" class="line-under" :stroke="series.color" />
           <path :d="buildPath(series)" class="line-main" :stroke="series.color" />
           <path :d="buildPath(series)" class="line-highlight" :stroke="series.color" />
-          <circle
-            class="line-dot"
-            :cx="lastPoint(series).x"
-            :cy="lastPoint(series).y"
-            r="4.2"
-            :fill="series.color"
-          />
+          <circle class="line-dot" :cx="lastPoint(series).x" :cy="lastPoint(series).y" r="4.2" :fill="series.color" />
         </g>
 
-        <g
-          v-for="projection in chart.projections"
-          :key="`${projection.key}-projection`"
-          class="chart-projection"
+        <g v-for="projection in chart.projections" :key="`${projection.key}-projection`" class="chart-projection"
           :class="{ 'is-dimmed': isSeriesDimmed(projection.key), 'is-focused': isSeriesFocused(projection.key) }"
-          :data-series-projection="projection.key"
-        >
-          <path
-            class="chart-projection__path"
-            :d="projection.path"
-            :stroke="projection.color"
-          />
-          <circle
-            class="chart-projection__point"
-            :cx="projection.pointX"
-            :cy="projection.pointY"
-            r="4.2"
-            :fill="projection.color"
-          />
+          :data-series-projection="projection.key">
+          <path class="chart-projection__path" :d="projection.path" :stroke="projection.color" />
+          <circle class="chart-projection__point" :cx="projection.pointX" :cy="projection.pointY" r="4.2"
+            :fill="projection.color" />
         </g>
 
-        <g
-          v-for="marker in chart.orderMarkers"
-          :key="marker.id"
-          class="order-marker"
-          :class="[
-            `order-marker--${marker.playerId}`,
-            `order-marker--${marker.side}`,
-            { 'is-dimmed': isSeriesDimmed(marker.stockKey) },
-          ]"
-          :data-order-marker="marker.id"
-          :data-player-marker="marker.playerLabel"
-          :data-side="marker.side"
-        >
-          <line
-            class="order-marker__stem"
-            :x1="marker.pointX"
-            :x2="marker.pointX"
-            :y1="marker.stemY1"
-            :y2="marker.stemY2"
-            :stroke="marker.accentColor"
-          />
+        <g v-for="marker in chart.orderMarkers" :key="marker.id" class="order-marker" :class="[
+          `order-marker--${marker.playerId}`,
+          `order-marker--${marker.side}`,
+          { 'is-pending-close': marker.isPendingClose === true },
+          { 'is-dimmed': isSeriesDimmed(marker.stockKey) },
+        ]" :data-order-marker="marker.id" :data-player-marker="marker.playerLabel" :data-side="marker.side"
+          :data-pending-close="marker.isPendingClose === true ? 'true' : 'false'">
+          <line class="order-marker__stem" :x1="marker.pointX" :x2="marker.pointX" :y1="marker.stemY1"
+            :y2="marker.stemY2" :stroke="marker.accentColor" />
+          <circle v-if="marker.isPendingClose" class="order-marker__pending-ring" :cx="marker.pointX"
+            :cy="marker.pointY" r="8.4" :stroke="marker.accentColor" />
           <polygon class="order-marker__arrow" :points="marker.arrowPoints" :fill="marker.accentColor" />
-          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="4.4" :fill="marker.accentColor" />
-          <rect
-            class="order-marker__badge"
-            :x="marker.badgeX"
-            :y="marker.badgeY"
-            :width="marker.badgeWidth"
-            :height="marker.badgeHeight"
-            rx="6"
-            :fill="marker.badgeFill"
-            :stroke="marker.accentColor"
-          />
-          <text class="order-marker__text" :x="marker.textX" :y="marker.textY">
+          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="4.4"
+            :fill="marker.accentColor" />
+          <rect class="order-marker__badge" :x="marker.badgeX" :y="marker.badgeY" :width="marker.badgeWidth"
+            :height="marker.badgeHeight" rx="6" :fill="marker.badgeFill" :stroke="marker.accentColor" />
+          <text class="order-marker__text" :x="marker.textX" :y="marker.textY" :fill="marker.badgeTextFill">
             {{ marker.playerLabel }} {{ marker.markerLabel }}
           </text>
         </g>
 
-        <g
-          v-for="priceLabel in chart.priceLabels"
-          :key="`${priceLabel.key}-price-label`"
-          class="price-tag"
-          :class="{ 'is-dimmed': isSeriesDimmed(priceLabel.key) }"
-          :data-series-label="priceLabel.key"
-        >
-          <line
-            class="price-tag__connector"
-            :x1="priceLabel.connectorX1"
-            :y1="priceLabel.connectorY1"
-            :x2="priceLabel.connectorX2"
-            :y2="priceLabel.connectorY2"
-            :stroke="priceLabel.color"
-          />
-          <rect
-            class="price-tag__box"
-            :x="priceLabel.boxX"
-            :y="priceLabel.boxY"
-            :width="priceLabel.boxWidth"
-            :height="priceLabel.boxHeight"
-            rx="7"
-            :fill="priceLabel.boxFill"
-            :stroke="priceLabel.color"
-          />
+        <g v-for="priceLabel in chart.priceLabels" :key="`${priceLabel.key}-price-label`" class="price-tag"
+          :class="{ 'is-dimmed': isSeriesDimmed(priceLabel.key) }" :data-series-label="priceLabel.key">
+          <line class="price-tag__connector" :x1="priceLabel.connectorX1" :y1="priceLabel.connectorY1"
+            :x2="priceLabel.connectorX2" :y2="priceLabel.connectorY2" :stroke="priceLabel.color" />
+          <rect class="price-tag__box" :x="priceLabel.boxX" :y="priceLabel.boxY" :width="priceLabel.boxWidth"
+            :height="priceLabel.boxHeight" rx="7" :fill="priceLabel.boxFill" :stroke="priceLabel.color" />
           <text class="price-tag__text" :x="priceLabel.textX" :y="priceLabel.textY">
             {{ priceLabel.label }} {{ priceLabel.priceText }}
           </text>
         </g>
 
-        <text
-          v-for="tick in chart.ticks"
-          :key="`price-${tick}`"
-          class="price-label"
-          :x="padLeft - 4"
-          :y="y(tick, chart) + 2"
-        >
+        <text v-for="tick in chart.ticks" :key="`price-${tick}`" class="price-label" :x="padLeft - 4"
+          :y="y(tick, chart) + 2">
           {{ formatPrice(tick) }}
         </text>
       </svg>
@@ -965,6 +887,14 @@ function isSeriesDimmed(key: StockKey): boolean {
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.16));
 }
 
+.order-marker__pending-ring {
+  fill: none;
+  stroke-width: 1.8;
+  opacity: 0.78;
+  stroke-dasharray: 4 3;
+  animation: pending-close-pulse 1.4s ease-in-out infinite;
+}
+
 .order-marker__point {
   stroke: rgba(0, 10, 26, 0.98);
   stroke-width: 1.6;
@@ -980,9 +910,14 @@ function isSeriesDimmed(key: StockKey): boolean {
   font-family: Inter, 'Segoe UI', sans-serif;
   font-size: 5.8px;
   font-weight: 900;
-  fill: #f4f8ff;
   text-anchor: middle;
   letter-spacing: 0.02em;
+}
+
+.order-marker.is-pending-close .order-marker__stem,
+.order-marker.is-pending-close .order-marker__arrow,
+.order-marker.is-pending-close .order-marker__point {
+  filter: drop-shadow(0 0 14px rgba(255, 209, 102, 0.32));
 }
 
 .price-tag {
@@ -1005,6 +940,23 @@ function isSeriesDimmed(key: StockKey): boolean {
   font-weight: 900;
   fill: #f4f8ff;
   letter-spacing: 0.01em;
+}
+
+@keyframes pending-close-pulse {
+  0% {
+    opacity: 0.88;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.3;
+    transform: scale(1.18);
+  }
+
+  100% {
+    opacity: 0.88;
+    transform: scale(1);
+  }
 }
 
 @media (max-width: 960px) {
