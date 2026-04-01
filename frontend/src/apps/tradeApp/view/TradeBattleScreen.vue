@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import StockBoard from './StockBoard.vue'
 import PlayerPanel from './PlayerPanel.vue'
@@ -52,6 +52,7 @@ import {
     MIN_TRADE_ORDER_AMOUNT,
     resolvePriceAfterDelta,
 } from '../lib/tradeImpact'
+import { useTradeButtonSound } from '../composables/useTradeButtonSound'
 
 import '../css/style.css'
 
@@ -92,10 +93,18 @@ type ChartOrderMarker = {
     turn: number
 }
 
+type ResolvedChartAnimation = {
+    id: number
+    stocks: StockState[]
+    projectedPrices: Partial<Record<StockKey, number>>
+}
+
 const actionDraft = ref<BattleActionDraft>(createDefaultBattleActionDraft())
 const pendingClosePositionId = ref<string | null>(null)
 const lastClosedPositionTurn = ref<number | null>(null)
 const isGameOver = ref(false)
+const battleScreenRoot = ref<HTMLElement | null>(null)
+const resolvedChartAnimation = ref<ResolvedChartAnimation | null>(null)
 const stockHistoryPointIds = reactive<Record<StockKey, number[]>>({
     p1: [],
     p2: [],
@@ -109,6 +118,12 @@ const stockHistoryPointCounters = reactive<Record<StockKey, number>>({
 
 let logSequence = 1000
 let positionSequence = 0
+let resolvedChartAnimationSequence = 0
+let resolvedChartAnimationTimer: number | null = null
+
+const RESOLVED_CHART_ANIMATION_DURATION_MS = 760
+
+useTradeButtonSound(battleScreenRoot)
 
 function resetBook(book: Record<string, HoldingPosition>): void {
     Object.values(book).forEach((position) => {
@@ -263,6 +278,10 @@ watch(
     },
 )
 
+onBeforeUnmount(() => {
+    clearResolvedChartAnimationTimer()
+})
+
 const leftVictoryValue = computed(() => calculatePlayerVictoryValue(leftPlayer.value, state.stocks))
 const rightVictoryValue = computed(() => calculatePlayerVictoryValue(rightPlayer.value, state.stocks))
 const leftVictoryDiff = computed(() => leftVictoryValue.value - rightVictoryValue.value)
@@ -278,6 +297,62 @@ function createCurrentPriceMap(): Record<StockKey, number> {
         },
         { p1: 0, p2: 0, market: 0 },
     )
+}
+
+function cloneStocksSnapshot(stocks: StockState[]): StockState[] {
+    return stocks.map((stock) => ({
+        ...stock,
+        history: [...stock.history],
+    }))
+}
+
+function clearResolvedChartAnimationTimer(): void {
+    if (resolvedChartAnimationTimer == null || typeof window === 'undefined') {
+        return
+    }
+
+    window.clearTimeout(resolvedChartAnimationTimer)
+    resolvedChartAnimationTimer = null
+}
+
+function hasProjectedChartMovement(projectedPrices: Partial<Record<StockKey, number>> | null): projectedPrices is Partial<Record<StockKey, number>> {
+    if (!projectedPrices) {
+        return false
+    }
+
+    return (['market', 'p1', 'p2'] as StockKey[]).some((key) => {
+        const projectedPrice = projectedPrices[key]
+        if (projectedPrice == null) {
+            return false
+        }
+
+        return Math.round(projectedPrice) !== Math.round(getStock(key).currentPrice)
+    })
+}
+
+function queueResolvedChartAnimation(projectedPrices: Partial<Record<StockKey, number>> | null): void {
+    clearResolvedChartAnimationTimer()
+
+    if (!hasProjectedChartMovement(projectedPrices)) {
+        resolvedChartAnimation.value = null
+        return
+    }
+
+    resolvedChartAnimationSequence += 1
+    resolvedChartAnimation.value = {
+        id: resolvedChartAnimationSequence,
+        stocks: cloneStocksSnapshot(state.stocks),
+        projectedPrices: { ...projectedPrices },
+    }
+
+    if (typeof window === 'undefined') {
+        return
+    }
+
+    resolvedChartAnimationTimer = window.setTimeout(() => {
+        resolvedChartAnimation.value = null
+        resolvedChartAnimationTimer = null
+    }, RESOLVED_CHART_ANIMATION_DURATION_MS)
 }
 
 function moveProjectedPrice(
@@ -918,6 +993,7 @@ function handleConfirmTurn(): void {
     }
 
     if (pendingClosePreview.value) {
+        queueResolvedChartAnimation(pendingClosePreview.value.priceMap)
         executePendingClose(pendingClosePreview.value.positionId)
         return
     }
@@ -927,6 +1003,7 @@ function handleConfirmTurn(): void {
         return
     }
 
+    queueResolvedChartAnimation(projectedBoardPrices.value)
     handleTurn(payload)
     actionDraft.value = createDefaultBattleActionDraft()
 }
@@ -1013,7 +1090,7 @@ function handleTurn(payload: TurnActionWithWait): void {
 </script>
 
 <template>
-    <div class="battle-screen">
+    <div ref="battleScreenRoot" class="battle-screen">
         <div class="battle-topbar">
             <button type="button" class="menu-return-button" @click="goBackToMenu">
                 メニューへ戻る
@@ -1042,7 +1119,9 @@ function handleTurn(payload: TurnActionWithWait): void {
             :victory-diff="leftVictoryDiff" @close-position="handleClosePosition" />
 
         <StockBoard class="chart-panel" :stocks="state.stocks" :turn="displayTurn"
-            :projected-prices="projectedBoardPrices" :order-markers="activePositionMarkers" />
+            :projected-prices="projectedBoardPrices" :order-markers="activePositionMarkers"
+            :resolved-animation="resolvedChartAnimation"
+            :resolved-animation-duration-ms="RESOLVED_CHART_ANIMATION_DURATION_MS" />
 
         <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
             :projected-prices="projectedBoardPrices" :pending-close="pendingClosePreview"

@@ -18,6 +18,7 @@ import {
   buildTradeSessionSnapshot,
   type TradeSetupDraft,
 } from '../lib/tradeSetup'
+import { useTradeButtonSound } from '../composables/useTradeButtonSound'
 import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
 import { createGuestIdentity } from '../types/playerIdentity'
 import startBackgroundUrl from '../assets/start-screen-background.png'
@@ -33,6 +34,7 @@ type SelectedPlayerPayload = {
 const router = useRouter()
 const gameStore = useTradeGameStore()
 const profileStore = useTradeProfileStore()
+const startPageRoot = ref<HTMLElement | null>(null)
 
 const firstPlayer = ref<FirstPlayer>('random')
 const startingCashMode = ref<StartingCashMode>('same')
@@ -82,6 +84,8 @@ const resolvedPlayer2Cash = computed(() => {
 
 void resolvedPlayer1Cash
 void resolvedPlayer2Cash
+
+useTradeButtonSound(startPageRoot)
 
 onMounted(() => {
   profileStore.seedIfEmpty()
@@ -263,7 +267,7 @@ void persistSelectedIdentities
 </script>
 
 <template>
-  <main class="trade-start-page">
+  <main ref="startPageRoot" class="trade-start-page">
     <section class="hero-layout">
       <div class="hero-stage">
         <div class="hero-stage__visual-shell">
