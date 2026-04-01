@@ -94,9 +94,17 @@ const props = defineProps<{
   turn: number
   projectedPrices?: Partial<Record<StockKey, number>> | null
   orderMarkers?: OrderMarker[]
+  resolvedAnimation?: {
+    id: number
+    stocks: StockState[]
+    projectedPrices: Partial<Record<StockKey, number>>
+  } | null
+  resolvedAnimationDurationMs?: number
 }>()
 
 const focusedSeriesKey = ref<StockKey | null>(null)
+const commitAnimationDurationMs = computed(() => props.resolvedAnimationDurationMs ?? 760)
+const isCommitAnimationActive = computed(() => props.resolvedAnimation != null)
 
 const viewWidth = 860
 const viewHeight = 254
@@ -254,14 +262,16 @@ function resolveChartRange(
 }
 
 function buildSharedSeries(): ChartSeries[] {
-  const maxHistoryLength = props.stocks.reduce(
+  const sourceStocks = props.resolvedAnimation?.stocks ?? props.stocks
+  const sourceProjectedPrices = props.resolvedAnimation?.projectedPrices ?? props.projectedPrices
+  const maxHistoryLength = sourceStocks.reduce(
     (max, stock) => Math.max(max, stock.history.length, 1),
     1,
   )
   const visibleCount = Math.min(maxVisiblePoints, maxHistoryLength)
 
   return chartOrder.map((key) => {
-    const stock = props.stocks.find((item) => item.key === key)
+    const stock = sourceStocks.find((item) => item.key === key)
     if (!stock) {
       throw new Error(`Stock not found: ${key}`)
     }
@@ -275,7 +285,7 @@ function buildSharedSeries(): ChartSeries[] {
       visibleHistory,
       visibleStartIndex: Math.max(0, stock.history.length - visibleHistory.length),
       offset: Math.max(0, visibleCount - visibleHistory.length),
-      projectedPrice: props.projectedPrices?.[key] ?? null,
+      projectedPrice: sourceProjectedPrices?.[key] ?? null,
     }
   })
 }
@@ -520,8 +530,8 @@ function buildPath(series: ChartSeries): string {
     .join(' ')
 }
 
-function buildSeriesAnimationKey(series: ChartSeries): string {
-  return `${series.key}-${series.visibleHistory.join('-')}-${chart.value.chartMin}-${chart.value.chartMax}-${chart.value.plotCount}`
+function buildCommitAnimationKey(projection: ChartProjectionViewModel): string {
+  return `${props.resolvedAnimation?.id ?? 'idle'}-${projection.key}-${projection.path}-${projection.pointX}-${projection.pointY}`
 }
 
 function buildProjectionAnimationKey(projection: ChartProjectionViewModel): string {
@@ -576,7 +586,8 @@ function isSeriesDimmed(key: StockKey): boolean {
       </button>
     </div>
 
-    <article class="shared-chart" :data-preview-zoom="chart.isPreviewZoomed ? 'true' : 'false'">
+    <article class="shared-chart" :data-preview-zoom="chart.isPreviewZoomed ? 'true' : 'false'"
+      :data-commit-animation="isCommitAnimationActive ? 'true' : 'false'">
       <div class="shared-chart__backdrop" :style="{ '--chart-backdrop-image': `url(${chartBackdrop})` }"
         data-chart-backdrop aria-hidden="true"></div>
       <div class="shared-chart__head">
@@ -592,7 +603,8 @@ function isSeriesDimmed(key: StockKey): boolean {
         </div>
       </div>
 
-      <svg :viewBox="`0 0 ${viewWidth} ${viewHeight}`" preserveAspectRatio="none" class="chart-svg">
+      <svg :viewBox="`0 0 ${viewWidth} ${viewHeight}`" preserveAspectRatio="none" class="chart-svg"
+        :style="{ '--chart-commit-duration': `${commitAnimationDurationMs}ms` }">
         <rect :x="padLeft" :y="padTop" :width="chartWidth" :height="chartHeight" class="plot-frame" />
 
         <line v-for="tick in chart.ticks" :key="`tick-${tick}`" class="grid-line" :x1="padLeft"
@@ -601,14 +613,10 @@ function isSeriesDimmed(key: StockKey): boolean {
         <g v-for="series in chart.series" :key="series.key" class="chart-series"
           :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
           :data-series="series.key">
-          <path :key="`${buildSeriesAnimationKey(series)}-under`" :d="buildPath(series)" pathLength="100"
-            class="line-under" :stroke="series.color" />
-          <path :key="`${buildSeriesAnimationKey(series)}-main`" :d="buildPath(series)" pathLength="100"
-            class="line-main" :stroke="series.color" />
-          <path :key="`${buildSeriesAnimationKey(series)}-highlight`" :d="buildPath(series)" pathLength="100"
-            class="line-highlight" :stroke="series.color" />
-          <circle :key="`${buildSeriesAnimationKey(series)}-point`" class="line-dot" :cx="lastPoint(series).x"
-            :cy="lastPoint(series).y" r="4.2" :fill="series.color" />
+          <path :d="buildPath(series)" class="line-under" :stroke="series.color" />
+          <path :d="buildPath(series)" class="line-main" :stroke="series.color" />
+          <path :d="buildPath(series)" class="line-highlight" :stroke="series.color" />
+          <circle class="line-dot" :cx="lastPoint(series).x" :cy="lastPoint(series).y" r="4.2" :fill="series.color" />
         </g>
 
         <g v-for="projection in chart.projections" :key="buildProjectionAnimationKey(projection)"
@@ -629,6 +637,17 @@ function isSeriesDimmed(key: StockKey): boolean {
           <circle class="chart-projection__point" :cx="projection.pointX" :cy="projection.pointY"
             :r="projection.pointRadius"
             :fill="projection.color" />
+        </g>
+
+        <g v-if="isCommitAnimationActive" v-for="projection in chart.projections"
+          :key="buildCommitAnimationKey(projection)" class="chart-commit"
+          :class="{ 'is-dimmed': isSeriesDimmed(projection.key), 'is-focused': isSeriesFocused(projection.key) }"
+          :data-commit-line="projection.key">
+          <path class="chart-commit__under" :d="projection.path" :stroke="projection.color" pathLength="100" />
+          <path class="chart-commit__main" :d="projection.path" :stroke="projection.color" pathLength="100" />
+          <path class="chart-commit__highlight" :d="projection.path" :stroke="projection.color" pathLength="100" />
+          <circle class="chart-commit__point" :cx="projection.pointX" :cy="projection.pointY"
+            :r="projection.pointRadius" :fill="projection.color" />
         </g>
 
         <g v-for="marker in chart.orderMarkers" :key="marker.id" class="order-marker" :class="[
@@ -977,9 +996,6 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.22;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: chart-line-draw 0.72s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-main {
@@ -988,9 +1004,6 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 12px rgba(90, 144, 255, 0.18));
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: chart-line-draw 0.84s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-highlight {
@@ -999,18 +1012,12 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.2;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: chart-line-draw 0.92s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-dot {
   stroke: rgba(0, 10, 26, 0.98);
   stroke-width: 1.6;
-  transform-box: fill-box;
-  transform-origin: center;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
-  animation: chart-dot-in 0.34s ease-out 0.58s both;
 }
 
 .chart-projection {
@@ -1023,11 +1030,8 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linejoin: round;
   filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.14));
   transition: stroke-width 0.18s ease, opacity 0.18s ease;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation:
-    projection-path-draw 0.82s cubic-bezier(0.22, 0.82, 0.24, 1) both,
-    projection-drift 1.25s ease-in-out 0.82s infinite;
+  stroke-dasharray: 8 5;
+  animation: projection-drift 1.25s ease-in-out infinite;
 }
 
 .chart-projection__halo {
@@ -1040,7 +1044,7 @@ function isSeriesDimmed(key: StockKey): boolean {
 .chart-projection__ripple {
   fill: none;
   stroke-width: 1.5;
-  opacity: var(--projection-ripple-opacity, 0.5);
+  opacity: calc(var(--projection-ripple-opacity, 0.5) * 0.54);
   transform-box: fill-box;
   transform-origin: center;
   animation: projection-ripple var(--projection-ripple-duration, 1.05s) ease-out infinite;
@@ -1064,6 +1068,56 @@ function isSeriesDimmed(key: StockKey): boolean {
 .chart-projection.is-focused .chart-projection__point,
 .chart-projection.is-focused .chart-projection__ripple {
   opacity: 0.9;
+}
+
+.chart-commit {
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.chart-commit.is-dimmed {
+  opacity: 0.2;
+}
+
+.chart-commit__under,
+.chart-commit__main,
+.chart-commit__highlight {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: chart-commit-draw var(--chart-commit-duration, 760ms) linear both;
+}
+
+.chart-commit__under {
+  stroke-width: 6.4;
+  opacity: 0.24;
+}
+
+.chart-commit__main {
+  stroke-width: 3.2;
+  filter: drop-shadow(0 0 12px rgba(90, 144, 255, 0.18));
+}
+
+.chart-commit__highlight {
+  stroke-width: 0.95;
+  opacity: 0.2;
+}
+
+.chart-commit__point {
+  stroke: rgba(0, 10, 26, 0.98);
+  stroke-width: 1.6;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.22));
+  animation: chart-commit-point-in 0.22s ease-out calc(var(--chart-commit-duration, 760ms) - 120ms) both;
+}
+
+.chart-commit.is-focused .chart-commit__main {
+  stroke-width: 4.2;
+}
+
+.chart-commit.is-focused .chart-commit__under {
+  opacity: 0.3;
 }
 
 .order-marker {
@@ -1163,45 +1217,6 @@ function isSeriesDimmed(key: StockKey): boolean {
   }
 }
 
-@keyframes chart-line-draw {
-  0% {
-    stroke-dashoffset: 100;
-  }
-
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes chart-dot-in {
-  0% {
-    opacity: 0;
-    transform: scale(0.72);
-  }
-
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes projection-path-draw {
-  0% {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-  }
-
-  74% {
-    stroke-dasharray: 100;
-    stroke-dashoffset: 0;
-  }
-
-  100% {
-    stroke-dasharray: 8 5;
-    stroke-dashoffset: 0;
-  }
-}
-
 @keyframes projection-halo-pulse {
   0%,
   100% {
@@ -1240,15 +1255,37 @@ function isSeriesDimmed(key: StockKey): boolean {
   }
 }
 
+@keyframes chart-commit-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-commit-point-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .line-under,
-  .line-main,
-  .line-highlight,
-  .line-dot,
   .chart-projection__path,
   .chart-projection__halo,
   .chart-projection__point,
   .chart-projection__ripple,
+  .chart-commit__under,
+  .chart-commit__main,
+  .chart-commit__highlight,
+  .chart-commit__point,
   .order-marker__pending-ring {
     animation: none;
   }

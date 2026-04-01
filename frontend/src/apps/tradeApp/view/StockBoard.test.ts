@@ -52,6 +52,29 @@ function createProjectedPrices() {
   }
 }
 
+function createCommittedStocks(): StockState[] {
+  return [
+    {
+      ...createStocks()[0],
+      currentPrice: 1015000,
+      previousPrice: 1010000,
+      history: [1000000, 1020000, 998000, 1010000, 1015000],
+    },
+    {
+      ...createStocks()[1],
+      currentPrice: 1055000,
+      previousPrice: 1040000,
+      history: [1000000, 1020000, 998000, 1040000, 1055000],
+    },
+    {
+      ...createStocks()[2],
+      currentPrice: 986000,
+      previousPrice: 993000,
+      history: [1000000, 970000, 999000, 993000, 986000],
+    },
+  ]
+}
+
 describe('StockBoard', () => {
   it('renders one shared chart with restored top labels, active markers, and price tags', () => {
     const wrapper = mount(StockBoard, {
@@ -85,9 +108,11 @@ describe('StockBoard', () => {
 
     const quoteNames = wrapper.findAll('.quote-name').map((node) => node.text())
     const legendNames = wrapper.findAll('.legend-chip__label').map((node) => node.text())
+    const chartSvgStyle = wrapper.find('.chart-svg').attributes('style')
 
     expect(wrapper.findAll('.chart-svg')).toHaveLength(1)
     expect(wrapper.find('.shared-chart').attributes('data-preview-zoom')).toBe('true')
+    expect(chartSvgStyle).toContain('--chart-commit-duration')
     expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(true)
     expect(wrapper.findAll('[data-series]')).toHaveLength(3)
     expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2)
@@ -104,14 +129,35 @@ describe('StockBoard', () => {
     expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring').exists()).toBe(true)
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe('P2')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(true)
-    expect(wrapper.find('[data-series="market"] .line-main').attributes('pathLength')).toBe('100')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).toContain('L')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).not.toContain('C')
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('pathLength')).toBe('100')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__halo').exists()).toBe(true)
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__ripple').exists()).toBe(true)
     expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(true)
+    expect(wrapper.find('[data-commit-line="market"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('P1 買い 保留')
+  })
+
+  it('renders commit overlay along the projected line only while resolved animation is active', () => {
+    const wrapper = mount(StockBoard, {
+      props: {
+        stocks: createCommittedStocks(),
+        turn: 3,
+        projectedPrices: null,
+        resolvedAnimation: {
+          id: 9,
+          stocks: createStocks(),
+          projectedPrices: createProjectedPrices(),
+        },
+        resolvedAnimationDurationMs: 760,
+      },
+    })
+
+    expect(wrapper.find('.shared-chart').attributes('data-commit-animation')).toBe('true')
+    expect(wrapper.find('.chart-svg').attributes('style')).toContain('--chart-commit-duration: 760ms')
+    expect(wrapper.find('[data-commit-line="market"] .chart-commit__main').attributes('pathLength')).toBe('100')
+    expect(wrapper.find('[data-commit-line="p1"]').exists()).toBe(true)
+    expect(wrapper.find('[data-series-label="market"]').text()).toBe('1,010,000円')
   })
 
   it('dims other series, markers, price tags, and projections when a focus target is selected', async () => {
