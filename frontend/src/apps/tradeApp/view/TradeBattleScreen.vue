@@ -268,6 +268,7 @@ const rightVictoryValue = computed(() => calculatePlayerVictoryValue(rightPlayer
 const leftVictoryDiff = computed(() => leftVictoryValue.value - rightVictoryValue.value)
 const rightVictoryDiff = computed(() => rightVictoryValue.value - leftVictoryValue.value)
 const displayTurn = computed(() => Math.min(state.turn, MAX_TURNS))
+const turnAnnouncementKey = computed(() => `${displayTurn.value}-${state.currentPlayer}`)
 
 function createCurrentPriceMap(): Record<StockKey, number> {
     return state.stocks.reduce<Record<StockKey, number>>(
@@ -1018,6 +1019,17 @@ function handleTurn(payload: TurnActionWithWait): void {
                 メニューへ戻る
             </button>
 
+            <div class="turn-announce-slot">
+                <Transition name="turn-announce" mode="out-in">
+                    <div v-if="!isGameOver" :key="turnAnnouncementKey" class="turn-announce" :class="state.currentPlayer"
+                        data-turn-announce>
+                        <span class="turn-announce__label">NOW PLAYING</span>
+                        <strong class="turn-announce__name">{{ activePlayer.name }}</strong>
+                        <span class="turn-announce__meta">のターン</span>
+                    </div>
+                </Transition>
+            </div>
+
             <div class="battle-status">
                 <span class="turn-badge">TURN {{ displayTurn }} / {{ MAX_TURNS }}</span>
                 <span v-if="isGameOver" class="finish-badge">終了</span>
@@ -1107,10 +1119,103 @@ function handleTurn(payload: TurnActionWithWait): void {
     min-height: 0;
 }
 
+.turn-announce-slot {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+}
+
+.turn-announce {
+    position: relative;
+    min-width: min(320px, 100%);
+    max-width: 100%;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(122, 171, 255, 0.3);
+    background: linear-gradient(180deg, rgba(11, 22, 44, 0.94), rgba(6, 14, 30, 0.96));
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.turn-announce::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.turn-announce.player1 {
+    border-color: rgba(124, 180, 255, 0.36);
+    box-shadow:
+        inset 0 0 0 1px rgba(99, 163, 255, 0.14),
+        0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.turn-announce.player1::before {
+    background: linear-gradient(118deg, transparent 16%, rgba(125, 184, 255, 0.34) 48%, transparent 80%);
+    animation: turn-announce-sweep-blue 780ms ease-out both;
+}
+
+.turn-announce.player2 {
+    border-color: rgba(255, 150, 171, 0.34);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 110, 138, 0.14),
+        0 14px 30px rgba(0, 0, 0, 0.24);
+}
+
+.turn-announce.player2::before {
+    background: linear-gradient(118deg, transparent 16%, rgba(255, 150, 171, 0.34) 48%, transparent 80%);
+    animation: turn-announce-sweep-red 780ms ease-out both;
+}
+
+.turn-announce__label {
+    color: rgba(214, 228, 255, 0.68);
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+}
+
+.turn-announce__name {
+    color: #f7fbff;
+    font-size: 11px;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.turn-announce__meta {
+    color: rgba(224, 236, 255, 0.82);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.turn-announce-enter-active,
+.turn-announce-leave-active {
+    transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.turn-announce-enter-from,
+.turn-announce-leave-to {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.98);
+}
+
 .battle-status {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .turn-badge,
@@ -1249,6 +1354,38 @@ function handleTurn(payload: TurnActionWithWait): void {
     font-weight: 800;
 }
 
+@keyframes turn-announce-sweep-blue {
+    0% {
+        transform: translateX(-122%);
+        opacity: 0;
+    }
+
+    24% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(112%);
+        opacity: 0;
+    }
+}
+
+@keyframes turn-announce-sweep-red {
+    0% {
+        transform: translateX(-122%);
+        opacity: 0;
+    }
+
+    24% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateX(112%);
+        opacity: 0;
+    }
+}
+
 @media (min-width: 1700px) {
     .battle-screen {
         grid-template-columns: minmax(224px, 0.98fr) minmax(0, 5.4fr) minmax(224px, 0.98fr);
@@ -1289,6 +1426,10 @@ function handleTurn(payload: TurnActionWithWait): void {
         width: 100%;
         max-width: none;
     }
+
+    .turn-announce {
+        min-width: 0;
+    }
 }
 
 @media (max-width: 760px) {
@@ -1306,6 +1447,12 @@ function handleTurn(payload: TurnActionWithWait): void {
 
     .battle-topbar {
         flex-wrap: wrap;
+    }
+
+    .turn-announce-slot {
+        order: 3;
+        width: 100%;
+        justify-content: flex-start;
     }
 
     .battle-status,

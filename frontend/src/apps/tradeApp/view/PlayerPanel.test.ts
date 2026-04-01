@@ -121,6 +121,7 @@ describe('PlayerPanel', () => {
 
     const text = normalizedText(wrapper)
 
+    expect(text).toContain('総資産')
     expect(text).toContain('決済保留中')
     expect(text).toContain('決済損益')
     expect(text).toContain(formatSignedCurrency(0).replace(/\s+/g, ''))
@@ -128,6 +129,7 @@ describe('PlayerPanel', () => {
     expect(text).not.toContain('行動後価格')
     expect(text).not.toContain('決済価格')
     expect(text).not.toContain(formatSignedCurrency(-500).replace(/\s+/g, ''))
+    expect(wrapper.find('[data-turn-flag]').exists()).toBe(true)
   })
 
   it('ignores pending close projected pnl and keeps the current pnl for sell positions', () => {
@@ -210,5 +212,6 @@ describe('PlayerPanel', () => {
     expect(text).toContain('行動後')
     expect(text).not.toContain('行動後価格')
     expect(text).toContain('-5,000円')
+    expect(wrapper.find('[data-turn-flag]').exists()).toBe(false)
   })
 })

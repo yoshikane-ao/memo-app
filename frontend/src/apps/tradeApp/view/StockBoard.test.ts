@@ -8,53 +8,57 @@ function createStocks(): StockState[] {
     {
       key: 'market',
       name: 'マーケット',
-      basePrice: 10000,
-      currentPrice: 10010,
-      previousPrice: 9980,
+      basePrice: 1000000,
+      currentPrice: 1010000,
+      previousPrice: 998000,
       bubbleUpper: 0,
       bubbleLower: 0,
-      history: [10000, 10020, 9980, 10010],
+      history: [1000000, 1020000, 998000, 1010000],
       shortInterest: 0,
       correlationNote: '',
     },
     {
       key: 'p1',
       name: 'Player1会社',
-      basePrice: 10000,
-      currentPrice: 10040,
-      previousPrice: 9980,
+      basePrice: 1000000,
+      currentPrice: 1040000,
+      previousPrice: 998000,
       bubbleUpper: 0,
       bubbleLower: 0,
-      history: [10000, 10020, 9980, 10040],
+      history: [1000000, 1020000, 998000, 1040000],
       shortInterest: 0,
       correlationNote: '',
     },
     {
       key: 'p2',
       name: 'Player2会社',
-      basePrice: 10000,
-      currentPrice: 9930,
-      previousPrice: 9990,
+      basePrice: 1000000,
+      currentPrice: 993000,
+      previousPrice: 999000,
       bubbleUpper: 0,
       bubbleLower: 0,
-      history: [10000, 9970, 9990, 9930],
+      history: [1000000, 970000, 999000, 993000],
       shortInterest: 0,
       correlationNote: '',
     },
   ]
 }
 
+function createProjectedPrices() {
+  return {
+    market: 1015000,
+    p1: 1055000,
+    p2: 986000,
+  }
+}
+
 describe('StockBoard', () => {
-  it('renders all rate lines on one shared chart with active position markers, edge labels, and projected guides', () => {
+  it('renders one shared chart with restored top labels, active markers, and price tags', () => {
     const wrapper = mount(StockBoard, {
       props: {
         stocks: createStocks(),
         turn: 3,
-        projectedPrices: {
-          market: 9900,
-          p1: 10100,
-          p2: 10080,
-        },
+        projectedPrices: createProjectedPrices(),
         orderMarkers: [
           {
             id: 'marker-1',
@@ -62,7 +66,7 @@ describe('StockBoard', () => {
             playerId: 'player1',
             side: 'buy',
             isPendingClose: true,
-            executionPrice: 10040,
+            executionPrice: 1040000,
             historyIndex: 3,
             turn: 2,
           },
@@ -71,7 +75,7 @@ describe('StockBoard', () => {
             stockKey: 'p2',
             playerId: 'player2',
             side: 'sell',
-            executionPrice: 9930,
+            executionPrice: 993000,
             historyIndex: 3,
             turn: 3,
           },
@@ -79,34 +83,43 @@ describe('StockBoard', () => {
       },
     })
 
+    const quoteNames = wrapper.findAll('.quote-name').map((node) => node.text())
+    const legendNames = wrapper.findAll('.legend-chip__label').map((node) => node.text())
+
     expect(wrapper.findAll('.chart-svg')).toHaveLength(1)
+    expect(wrapper.find('.shared-chart').attributes('data-preview-zoom')).toBe('true')
+    expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(true)
     expect(wrapper.findAll('[data-series]')).toHaveLength(3)
     expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2)
     expect(wrapper.findAll('[data-series-label]')).toHaveLength(3)
     expect(wrapper.findAll('[data-series-projection]')).toHaveLength(3)
+    expect(wrapper.find('.board-note').exists()).toBe(false)
+    expect(quoteNames).toEqual(['マーケット', 'Player1', 'Player2'])
+    expect(legendNames).toEqual(['マーケット', 'Player1', 'Player2'])
+    expect(wrapper.find('[data-series-label="market"]').text()).toBe('1,010,000円')
+    expect(wrapper.find('[data-series-label="p1"]').text()).toBe('1,040,000円')
+    expect(wrapper.findAll('.price-label').map((node) => node.text())).toEqual(['1,050,000', '1,000,000'])
     expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-player-marker')).toBe('P1')
-    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-side')).toBe('buy')
-    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-pending-close')).toBe('true')
     expect(wrapper.find('[data-order-marker="marker-1"]').classes()).toContain('is-pending-close')
     expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring').exists()).toBe(true)
     expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe('P2')
-    expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-side')).toBe('sell')
-    expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-pending-close')).toBe('false')
     expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(true)
+    expect(wrapper.find('[data-series="market"] .line-main').attributes('pathLength')).toBe('100')
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).toContain('L')
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).not.toContain('C')
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('pathLength')).toBe('100')
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__halo').exists()).toBe(true)
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__ripple').exists()).toBe(true)
     expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(true)
     expect(wrapper.text()).toContain('P1 買い 保留')
   })
 
-  it('dims other series, pending markers, and projected guides when a focus target is selected', async () => {
+  it('dims other series, markers, price tags, and projections when a focus target is selected', async () => {
     const wrapper = mount(StockBoard, {
       props: {
         stocks: createStocks(),
         turn: 3,
-        projectedPrices: {
-          market: 9900,
-          p1: 10100,
-          p2: 10080,
-        },
+        projectedPrices: createProjectedPrices(),
         orderMarkers: [
           {
             id: 'marker-1',
@@ -114,7 +127,7 @@ describe('StockBoard', () => {
             playerId: 'player1',
             side: 'buy',
             isPendingClose: true,
-            executionPrice: 10040,
+            executionPrice: 1040000,
             historyIndex: 3,
             turn: 2,
           },
@@ -123,7 +136,7 @@ describe('StockBoard', () => {
             stockKey: 'p2',
             playerId: 'player2',
             side: 'sell',
-            executionPrice: 9930,
+            executionPrice: 993000,
             historyIndex: 3,
             turn: 3,
           },

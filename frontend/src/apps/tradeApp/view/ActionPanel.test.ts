@@ -88,8 +88,12 @@ function createPlayer(): PlayerState {
   }
 }
 
+function normalizedText(wrapper: ReturnType<typeof mount>): string {
+  return wrapper.text().replace(/\s+/g, '')
+}
+
 describe('ActionPanel', () => {
-  it('renders all trade input blocks and helper information', () => {
+  it('renders all trade input blocks and the current turn summary without stock meta pills', () => {
     const currentPlayer = createPlayer()
     const draft = createDefaultBattleActionDraft()
     draft.quantity = 10000
@@ -102,16 +106,20 @@ describe('ActionPanel', () => {
         projection,
       },
     })
-    const normalizedText = wrapper.text().replace(/\s+/g, '')
+    const text = normalizedText(wrapper)
 
     expect(wrapper.findAll('.trade-grid > .card')).toHaveLength(5)
-    expect(normalizedText).toContain('1行動')
-    expect(normalizedText).toContain('2対象レート')
-    expect(normalizedText).toContain('3方式/操作')
-    expect(normalizedText).toContain('4注文金額')
-    expect(normalizedText).toContain('5確認')
-    expect(normalizedText).toContain('現在10,000円')
-    expect(normalizedText).toContain('注文額10,000円')
+    expect(text).toContain('1行動')
+    expect(text).toContain('2対象レート')
+    expect(text).toContain('3方式/操作')
+    expect(text).toContain('4注文金額')
+    expect(text).toContain('5確認')
+    expect(text).toContain('PLAYER1のターン')
+    expect(wrapper.find('.meta-pills').exists()).toBe(false)
+    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false)
+    expect(wrapper.find('.trade-summary .summary-banner-sub').exists()).toBe(false)
+    expect(wrapper.find('[data-turn-strip]').exists()).toBe(true)
+    expect(wrapper.find('.action-panel').attributes('data-current-player')).toBe('player1')
   })
 
   it('renders pending close confirmation summary', () => {
@@ -133,13 +141,14 @@ describe('ActionPanel', () => {
         },
       },
     })
-    const normalizedText = wrapper.text().replace(/\s+/g, '')
 
-    expect(normalizedText).toContain('マーケットの買いポジションを決済')
-    expect(normalizedText).toContain('想定約定9,500円')
-    expect(normalizedText).toContain('回収10,500円')
-    expect(normalizedText).toContain('損益+500円')
-    expect(normalizedText).toContain('ポジション決済を確定')
+    const text = normalizedText(wrapper)
+
+    expect(text).toContain('マーケットの買いポジションを決済')
+    expect(text).toContain('想定約定9,500円')
+    expect(text).toContain('回収10,500円')
+    expect(text).toContain('損益+500円')
+    expect(text).toContain('ポジション決済を確定')
   })
 
   it('allows selecting sell even when a buy position remains open', async () => {
@@ -168,5 +177,25 @@ describe('ActionPanel', () => {
     const updates = wrapper.emitted('update:draft') ?? []
     expect(updates.length).toBeGreaterThan(0)
     expect(updates.at(-1)?.[0]).toMatchObject({ tradeAction: 'sell' })
+  })
+
+  it('shows insufficient balance on the confirm button when the order exceeds cash', () => {
+    const currentPlayer = createPlayer()
+    currentPlayer.cash = 5000
+    const draft = createDefaultBattleActionDraft()
+    draft.quantity = 10000
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+
+    const wrapper = mount(ActionPanel, {
+      props: {
+        currentPlayer,
+        draft,
+        projection,
+      },
+    })
+
+    expect(wrapper.find('.trade-grid .confirm-button').text()).toBe('残高不足')
+    expect(wrapper.find('.trade-grid .confirm-button').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false)
   })
 })

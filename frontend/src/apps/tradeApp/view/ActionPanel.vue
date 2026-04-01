@@ -16,7 +16,7 @@ import type {
   BattleActionDraft,
   BattleActionProjection,
 } from '../lib/tradeBattle'
-import { MIN_TRADE_ORDER_AMOUNT, resolveTradeImpactPattern } from '../lib/tradeImpact'
+import { resolveTradeImpactPattern } from '../lib/tradeImpact'
 
 const props = defineProps<{
   currentPlayer: PlayerState
@@ -178,14 +178,6 @@ function formatGuidePercent(value: number): string {
   return `${percent > 0 ? '+' : ''}${percent}%`
 }
 
-function formatPositionAmount(value: number): string {
-  const normalized = Math.round(value * 100) / 100
-  return normalized.toLocaleString('ja-JP', {
-    minimumFractionDigits: normalized % 1 === 0 ? 0 : 2,
-    maximumFractionDigits: 2,
-  })
-}
-
 const tradeGuideItems = computed<TradeGuideItem[]>(() => {
   const targets: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
   const effectOrder: StockKey[] = [ownStockKey(), rivalStockKey(), 'market']
@@ -210,20 +202,7 @@ const tradeSummaryTitle = computed(() => {
     return `${props.pendingClose?.stockName ?? ''}の${props.pendingClose?.side === 'buy' ? '買い' : '売り'}ポジションを決済`
   }
 
-  if (form.tradeAction === 'buy') return 'この内容で買いを実行'
-  return 'この内容で売りを実行'
-})
-
-const selectedPriceText = computed(() => {
-  return `${Math.round(props.projection.selectedPrice).toLocaleString('ja-JP')}円`
-})
-
-const selectedHoldingText = computed(() => {
-  return `${formatPositionAmount(props.projection.selectedHoldingQuantity)}口`
-})
-
-const selectedShortText = computed(() => {
-  return `${formatPositionAmount(props.projection.selectedShortQuantity)}口`
+  return `${props.currentPlayer.name}のターン`
 })
 
 const tradeHint = computed(() => {
@@ -231,27 +210,13 @@ const tradeHint = computed(() => {
     return `想定約定 ${props.pendingClose?.executionPriceText ?? ''} / 回収 ${props.pendingClose?.returnedCashText ?? ''} / 損益 ${props.pendingClose?.projectedPnlText ?? ''}`
   }
 
-  if (props.projection.orderAmount <= 0) {
-    return '注文額を入力すると着地価格と損益が反映されます。'
-  }
-
-  if (props.projection.orderAmount < MIN_TRADE_ORDER_AMOUNT) {
-    return `最低注文額は ${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です。`
-  }
-
-  if (props.projection.isCashInsufficient) {
-    return `資金不足です。必要 ${props.projection.requiredCashAmount.toLocaleString('ja-JP')}円 / 所持 ${props.projection.availableCash.toLocaleString('ja-JP')}円`
-  }
-
-  if (!canSubmitTrade.value) {
-    return '反対方向のポジションが残っています。先に決済してください。'
-  }
-
-  return `注文額 ${props.projection.orderAmount.toLocaleString('ja-JP')}円`
+  return ''
 })
 
 const confirmButtonLabel = computed(() => {
-  return isClosePending.value ? 'ポジション決済を確定' : '行動を決定'
+  if (isClosePending.value) return 'ポジション決済を確定'
+  if (actionKind.value === 'trade' && props.projection.isCashInsufficient) return '残高不足'
+  return '行動を決定'
 })
 
 const companySummaryTitle = computed(() => {
@@ -281,7 +246,14 @@ watch(
 </script>
 
 <template>
-  <section class="action-panel" :class="[`mode-${actionKind}`, { 'is-close-pending': isClosePending }]">
+  <section class="action-panel" :class="[currentPlayer.id, `mode-${actionKind}`, { 'is-close-pending': isClosePending }]"
+    :data-current-player="currentPlayer.id">
+    <div :key="currentPlayer.id" class="turn-strip" :class="currentPlayer.id" data-turn-strip>
+      <span class="turn-strip__label">ACTIVE</span>
+      <strong class="turn-strip__name">{{ currentPlayer.name }}</strong>
+      <span class="turn-strip__meta">が行動中</span>
+    </div>
+
     <div class="panel-grid trade-grid" v-if="actionKind === 'trade'">
       <article class="card kind-card kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
@@ -322,11 +294,6 @@ watch(
               </span>
             </span>
           </button>
-        </div>
-        <div class="meta-pills">
-          <span class="meta-pill">現在 {{ selectedPriceText }}</span>
-          <span class="meta-pill">買い {{ selectedHoldingText }}</span>
-          <span class="meta-pill">売り {{ selectedShortText }}</span>
         </div>
       </article>
 
@@ -385,14 +352,13 @@ watch(
           <input v-model.number="form.quantity" type="number" min="0" step="1000" class="amount-input" />
           <button type="button" class="amount-step" @click="stepAmount(1000)">＋</button>
         </div>
-        <div class="helper-line">{{ props.projection.executionEstimateText }}</div>
       </article>
 
       <article class="card summary-card summary-span">
         <div class="card-title-row"><span class="step">5</span><span>確認</span></div>
         <div class="summary-banner">
           <div class="summary-banner-title">{{ tradeSummaryTitle }}</div>
-          <span class="summary-banner-sub">{{ tradeHint }}</span>
+          <span v-if="tradeHint" class="summary-banner-sub">{{ tradeHint }}</span>
         </div>
         <button
           type="button"
@@ -480,6 +446,8 @@ watch(
 
 <style scoped>
 .action-panel {
+  position: relative;
+  isolation: isolate;
   height: auto;
   min-height: 0;
   min-width: 0;
@@ -491,6 +459,125 @@ watch(
     radial-gradient(circle at top, rgba(78, 131, 255, 0.05), transparent 45%);
   padding: 8px 9px 9px;
   overflow: visible;
+  display: grid;
+  gap: 8px;
+}
+
+.action-panel::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.action-panel.player1::before {
+  background: linear-gradient(
+    110deg,
+    transparent 10%,
+    rgba(99, 163, 255, 0.18) 42%,
+    rgba(99, 163, 255, 0.06) 55%,
+    transparent 76%
+  );
+  animation: action-panel-turn-sweep-blue 760ms cubic-bezier(0.22, 0.74, 0.24, 1) both;
+}
+
+.action-panel.player2::before {
+  background: linear-gradient(
+    110deg,
+    transparent 10%,
+    rgba(255, 110, 138, 0.18) 42%,
+    rgba(255, 110, 138, 0.06) 55%,
+    transparent 76%
+  );
+  animation: action-panel-turn-sweep-red 760ms cubic-bezier(0.22, 0.74, 0.24, 1) both;
+}
+
+.turn-strip {
+  position: relative;
+  min-width: 0;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(132, 168, 240, 0.18);
+  background: linear-gradient(180deg, rgba(11, 23, 47, 0.95), rgba(8, 16, 33, 0.96));
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.turn-strip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.turn-strip.player1 {
+  border-color: rgba(124, 180, 255, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(99, 163, 255, 0.14),
+    0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.turn-strip.player1::after {
+  background: linear-gradient(
+    118deg,
+    transparent 18%,
+    rgba(125, 184, 255, 0.3) 48%,
+    transparent 78%
+  );
+  animation: turn-strip-sweep-blue 720ms ease-out both;
+}
+
+.turn-strip.player2 {
+  border-color: rgba(255, 146, 170, 0.34);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 110, 138, 0.14),
+    0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.turn-strip.player2::after {
+  background: linear-gradient(
+    118deg,
+    transparent 18%,
+    rgba(255, 150, 171, 0.3) 48%,
+    transparent 78%
+  );
+  animation: turn-strip-sweep-red 720ms ease-out both;
+}
+
+.turn-strip__label {
+  color: rgba(217, 231, 255, 0.72);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+}
+
+.turn-strip__name {
+  color: #f7fbff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.turn-strip__meta {
+  color: rgba(217, 231, 255, 0.82);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.turn-strip,
+.panel-grid {
+  position: relative;
+  z-index: 1;
 }
 
 .panel-grid {
@@ -578,6 +665,14 @@ watch(
     linear-gradient(180deg, rgba(11, 24, 48, 0.98), rgba(6, 15, 31, 0.95)),
     radial-gradient(circle at top, rgba(78, 131, 255, 0.1), transparent 50%);
   grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.action-panel.player1 .summary-card {
+  box-shadow: inset 0 0 0 1px rgba(99, 163, 255, 0.12);
+}
+
+.action-panel.player2 .summary-card {
+  box-shadow: inset 0 0 0 1px rgba(255, 110, 138, 0.12);
 }
 
 .card-title-row {
@@ -855,9 +950,83 @@ watch(
   font-size: 10px;
 }
 
+.action-panel.player1 .confirm-button:not(:disabled) {
+  box-shadow: 0 0 24px rgba(93, 146, 255, 0.18);
+}
+
+.action-panel.player2 .confirm-button:not(:disabled) {
+  background: linear-gradient(180deg, rgba(255, 134, 156, 0.92), rgba(215, 72, 108, 0.94));
+  border-color: rgba(255, 168, 187, 0.52);
+  box-shadow: 0 0 24px rgba(255, 110, 138, 0.18);
+}
+
 .action-panel.is-close-pending .panel-grid > .card:not(.summary-card) {
   opacity: 0.52;
   pointer-events: none;
+}
+
+@keyframes action-panel-turn-sweep-blue {
+  0% {
+    transform: translateX(-116%);
+    opacity: 0;
+  }
+
+  26% {
+    opacity: 0.95;
+  }
+
+  100% {
+    transform: translateX(108%);
+    opacity: 0;
+  }
+}
+
+@keyframes action-panel-turn-sweep-red {
+  0% {
+    transform: translateX(-116%);
+    opacity: 0;
+  }
+
+  26% {
+    opacity: 0.95;
+  }
+
+  100% {
+    transform: translateX(108%);
+    opacity: 0;
+  }
+}
+
+@keyframes turn-strip-sweep-blue {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  28% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(112%);
+    opacity: 0;
+  }
+}
+
+@keyframes turn-strip-sweep-red {
+  0% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  28% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(112%);
+    opacity: 0;
+  }
 }
 
 @container (max-width: 1120px) {
