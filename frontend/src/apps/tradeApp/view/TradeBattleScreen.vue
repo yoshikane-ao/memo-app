@@ -38,7 +38,9 @@ import {
     buildBattleActionProjection,
     buildBattleConfirmedAction,
     createDefaultBattleActionDraft,
+    isBattleTurnComplete,
     resolveNextBattlePlayer,
+    resolveTurnLeadPlayer,
     type BattleActionDraft,
 } from '../lib/tradeBattle'
 import {
@@ -60,7 +62,7 @@ const startSettings = computed(() => sessionSnapshot.value?.settings ?? null)
 
 const state = reactive(createInitialGameState())
 
-const DEFAULT_STARTING_CASH = 12000
+const DEFAULT_STARTING_CASH = 100000
 const STARTING_COMPANY_FUNDS = 3000
 const MAX_TURNS = 10
 
@@ -91,9 +93,18 @@ type ChartOrderMarker = {
 
 const actionDraft = ref<BattleActionDraft>(createDefaultBattleActionDraft())
 const pendingClosePositionId = ref<string | null>(null)
-const recentOrderMarkers = ref<ChartOrderMarker[]>([])
 const lastClosedPositionTurn = ref<number | null>(null)
 const isGameOver = ref(false)
+const stockHistoryPointIds = reactive<Record<StockKey, number[]>>({
+    p1: [],
+    p2: [],
+    market: [],
+})
+const stockHistoryPointCounters = reactive<Record<StockKey, number>>({
+    p1: 0,
+    p2: 0,
+    market: 0,
+})
 
 let logSequence = 1000
 let positionSequence = 0
@@ -127,12 +138,12 @@ function syncPlayerBooksFromPositions(player: PlayerState): void {
         slot.avgPrice = nextQuantity > 0 ? totalCost / nextQuantity : 0
     })
 
-    ; (['p1', 'p2', 'market'] as StockKey[]).forEach((key) => {
-        player.holdings[key].quantity = holdings[key].quantity
-        player.holdings[key].avgPrice = holdings[key].avgPrice
-        player.shorts[key].quantity = shorts[key].quantity
-        player.shorts[key].avgPrice = shorts[key].avgPrice
-    })
+        ; (['p1', 'p2', 'market'] as StockKey[]).forEach((key) => {
+            player.holdings[key].quantity = holdings[key].quantity
+            player.holdings[key].avgPrice = holdings[key].avgPrice
+            player.shorts[key].quantity = shorts[key].quantity
+            player.shorts[key].avgPrice = shorts[key].avgPrice
+        })
 }
 
 function normalizePositionUnits(value: number): number {
@@ -180,6 +191,8 @@ function resetStocksForBattleStart(): void {
         stock.bubbleLower = 0
         stock.history = [startingPrice]
         stock.shortInterest = 0
+        stockHistoryPointCounters[stock.key] = 1
+        stockHistoryPointIds[stock.key] = [1]
     })
 }
 
@@ -192,14 +205,11 @@ function normalizePlayersForBattleStart(): void {
     player2.name = settings?.player2Name ?? 'PLAYER 2'
 
     state.turn = 1
-    state.currentPlayer = sessionSnapshot.value?.resolvedFirstPlayer === 'p2'
-        ? 'player2'
-        : 'player1'
+    state.currentPlayer = resolveTurnLeadPlayer(state.turn)
 
     state.logs = []
     logSequence = 1000
     positionSequence = 0
-    recentOrderMarkers.value = []
     isGameOver.value = false
     resetStocksForBattleStart()
 
@@ -317,10 +327,9 @@ const pendingClosePreview = computed<PendingClosePreview | null>(() => {
     }
 
     const priceMap = createCurrentPriceMap()
+    const executionPrice = priceMap[position.stockKey]
     const closeAction = position.side === 'buy' ? 'sell' : 'buy'
     applyProjectedTradeEffectToPriceMap(priceMap, player.id, position.stockKey, closeAction, position.orderAmount)
-
-    const executionPrice = priceMap[position.stockKey]
 
     return {
         positionId: position.id,
@@ -416,6 +425,33 @@ const pendingCloseSummary = computed(() => {
     }
 })
 
+const activePositionMarkers = computed<ChartOrderMarker[]>(() =>
+    state.players.flatMap((player) =>
+        player.positions.flatMap((position) => {
+            if (position.entryHistoryPointId == null) {
+                return []
+            }
+
+            const historyIndex = stockHistoryPointIds[position.stockKey].findIndex(
+                (pointId) => pointId === position.entryHistoryPointId,
+            )
+            if (historyIndex < 0) {
+                return []
+            }
+
+            return [{
+                id: `position-marker-${position.id}`,
+                stockKey: position.stockKey,
+                playerId: player.id,
+                side: position.side,
+                executionPrice: position.entryPrice,
+                historyIndex,
+                turn: position.openedTurn,
+            }]
+        }),
+    ),
+)
+
 function getPlayer(playerId: PlayerId): PlayerState {
     const player = state.players.find((item) => item.id === playerId)
     if (!player) {
@@ -453,21 +489,12 @@ function pushLog(
     })
 }
 
-function pushOrderMarker(marker: Omit<ChartOrderMarker, 'id'>): void {
-    recentOrderMarkers.value = [
-        ...recentOrderMarkers.value,
-        {
-            id: `order-marker-${marker.turn}-${marker.playerId}-${marker.stockKey}-${recentOrderMarkers.value.length + 1}`,
-            ...marker,
-        },
-    ].slice(-12)
-}
-
 function createTradePosition(
     stockKey: StockKey,
     side: TradePositionEntry['side'],
     quantity: number,
     entryPrice: number,
+    entryHistoryPointId: number,
     orderAmount: number,
 ): TradePositionEntry {
     positionSequence += 1
@@ -478,6 +505,7 @@ function createTradePosition(
         side,
         quantity: normalizePositionUnits(quantity),
         entryPrice,
+        entryHistoryPointId,
         orderAmount,
         openedTurn: state.turn,
     }
@@ -489,9 +517,10 @@ function appendTradePosition(
     side: TradePositionEntry['side'],
     quantity: number,
     entryPrice: number,
+    entryHistoryPointId: number,
     orderAmount: number,
 ): void {
-    player.positions.push(createTradePosition(stockKey, side, quantity, entryPrice, orderAmount))
+    player.positions.push(createTradePosition(stockKey, side, quantity, entryPrice, entryHistoryPointId, orderAmount))
     syncPlayerBooksFromPositions(player)
 }
 
@@ -501,6 +530,7 @@ type ConsumedPositionEntry = {
     side: TradePositionEntry['side']
     quantity: number
     entryPrice: number
+    entryHistoryPointId?: number
     orderAmount: number
 }
 
@@ -522,6 +552,7 @@ function extractTradePositionById(
         side: targetPosition.side,
         quantity: targetPosition.quantity,
         entryPrice: targetPosition.entryPrice,
+        entryHistoryPointId: targetPosition.entryHistoryPointId,
         orderAmount: targetPosition.orderAmount,
     }
 }
@@ -530,23 +561,21 @@ function closeOpenPosition(
     player: PlayerState,
     positionId: string,
     logs: LogEntry[],
-): Omit<ChartOrderMarker, 'id'> | null {
+): boolean {
     const position = player.positions.find((item) => item.id === positionId)
     if (!position) {
         pushLog(logs, 'system', 'ポジション不足', `${player.name}が決済しようとしたポジションが見つかりません。`, 'warn')
-        return null
+        return false
     }
 
     const stock = getStock(position.stockKey)
     const closeAction = position.side === 'buy' ? 'sell' : 'buy'
-    applyTradePriceEffect(player.id, position.stockKey, closeAction, position.orderAmount, logs)
-    const executionPrice = getStock(position.stockKey).currentPrice
-    const historyIndex = Math.max(0, getStock(position.stockKey).history.length - 1)
+    const executionPrice = stock.currentPrice
     const settled = extractTradePositionById(player, positionId)
 
     if (!settled) {
         pushLog(logs, 'system', 'ポジション不足', `${player.name}の${stock.name}ポジションを決済できませんでした。`, 'warn')
-        return null
+        return false
     }
 
     if (settled.side === 'buy') {
@@ -561,14 +590,8 @@ function closeOpenPosition(
             `${player.name}が${stock.name}の買いポジションを決済。回収 ${formatCurrency(returnedCash)} / 損益 ${formatSignedCurrency(pnl)}`,
             pnl >= 0 ? 'up' : 'warn',
         )
-        return {
-            stockKey: settled.stockKey,
-            playerId: player.id,
-            side: closeAction,
-            executionPrice,
-            historyIndex,
-            turn: state.turn,
-        }
+        applyTradePriceEffect(player.id, settled.stockKey, closeAction, settled.orderAmount, logs)
+        return true
     }
 
     const realized = calculateTradePositionPnL(settled, executionPrice)
@@ -583,14 +606,8 @@ function closeOpenPosition(
         `${player.name}が${stock.name}の売りポジションを決済。回収 ${formatCurrency(returnedCash)} / 損益 ${formatSignedCurrency(realized)}`,
         realized >= 0 ? 'up' : 'warn',
     )
-    return {
-        stockKey: settled.stockKey,
-        playerId: player.id,
-        side: closeAction,
-        executionPrice,
-        historyIndex,
-        turn: state.turn,
-    }
+    applyTradePriceEffect(player.id, settled.stockKey, closeAction, settled.orderAmount, logs)
+    return true
 }
 
 function moveStockPrice(stockKey: StockKey, rawDelta: number, _logs: LogEntry[]): number {
@@ -607,6 +624,14 @@ function moveStockPrice(stockKey: StockKey, rawDelta: number, _logs: LogEntry[])
     stock.previousPrice = before
     stock.currentPrice = resolved.nextPrice
     stock.history = [...stock.history.slice(-(12 - resolved.historyTrail.length)), ...resolved.historyTrail]
+    const nextHistoryPointIds = resolved.historyTrail.map(() => {
+        stockHistoryPointCounters[stockKey] += 1
+        return stockHistoryPointCounters[stockKey]
+    })
+    stockHistoryPointIds[stockKey] = [
+        ...stockHistoryPointIds[stockKey].slice(-(12 - nextHistoryPointIds.length)),
+        ...nextHistoryPointIds,
+    ]
     return resolved.nextPrice - before
 }
 
@@ -676,7 +701,7 @@ function applyPlayerOrder(
     player: PlayerState,
     payload: TurnActionPayload,
     logs: LogEntry[],
-): Omit<ChartOrderMarker, 'id'> | null {
+): void {
     const stock = getStock(payload.stockKey)
     const openPrice = stock.currentPrice
     const orderAmount = Math.max(0, Math.floor(payload.quantity))
@@ -694,7 +719,7 @@ function applyPlayerOrder(
             shortageMessage,
             'warn',
         )
-        return null
+        return
     }
 
     if ((payload.tradeAction === 'buy' || payload.tradeAction === 'sell') && player.cash < requiredCash) {
@@ -705,29 +730,7 @@ function applyPlayerOrder(
             `${player.name}は${stock.name}の注文に必要な現金が不足しています。`,
             'warn',
         )
-        return null
-    }
-
-    if (payload.tradeAction === 'buy' && (player.shorts[payload.stockKey]?.quantity ?? 0) > 0) {
-        pushLog(
-            logs,
-            'system',
-            '決済優先',
-            `${player.name}は${stock.name}に売りポジションを持っています。先にポジション決済で閉じてください。`,
-            'warn',
-        )
-        return null
-    }
-
-    if (payload.tradeAction === 'sell' && (player.holdings[payload.stockKey]?.quantity ?? 0) > 0) {
-        pushLog(
-            logs,
-            'system',
-            '決済優先',
-            `${player.name}は${stock.name}に買いポジションを持っています。先にポジション決済で閉じてください。`,
-            'warn',
-        )
-        return null
+        return
     }
 
     const executedAmount = orderAmount
@@ -735,16 +738,15 @@ function applyPlayerOrder(
     if (payload.tradeMode === 'speculation') {
         if (payload.tradeAction !== 'buy' && payload.tradeAction !== 'sell') {
             pushLog(logs, 'system', '短期ルール', '短期では買いか売りのみ選べます。', 'warn')
-            return null
+            return
         }
 
         applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, executedAmount, logs)
         const executionPrice = getStock(payload.stockKey).currentPrice
-        const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
         const executedUnits = resolveOrderQuantity(executionPrice, orderAmount)
         if (executedUnits <= 0) {
             pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を建てられません。`, 'warn')
-            return null
+            return
         }
 
         player.cash -= requiredCash
@@ -759,26 +761,12 @@ function applyPlayerOrder(
 
         if (payload.tradeAction === 'buy') {
             pushLog(logs, 'player', '短期', `${player.name}が${stock.name}を買いで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'up')
-            return {
-                stockKey: payload.stockKey,
-                playerId: player.id,
-                side: payload.tradeAction,
-                executionPrice,
-                historyIndex,
-                turn: state.turn,
-            }
+            return
         }
 
         stock.shortInterest += executedUnits
         pushLog(logs, 'player', '短期', `${player.name}が${stock.name}を売りで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'down')
-        return {
-            stockKey: payload.stockKey,
-            playerId: player.id,
-            side: payload.tradeAction,
-            executionPrice,
-            historyIndex,
-            turn: state.turn,
-        }
+        return
     }
 
     switch (payload.tradeAction) {
@@ -786,54 +774,42 @@ function applyPlayerOrder(
             const cost = requiredCash
             applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, cost, logs)
             const executionPrice = getStock(payload.stockKey).currentPrice
-            const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
+            const entryHistoryPointId =
+                stockHistoryPointIds[payload.stockKey][stockHistoryPointIds[payload.stockKey].length - 1]
+                ?? stockHistoryPointCounters[payload.stockKey]
             const executedUnits = resolveOrderQuantity(executionPrice, cost)
             if (executedUnits <= 0) {
                 pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を建てられません。`, 'warn')
-                return null
+                return
             }
 
             player.cash -= cost
-            appendTradePosition(player, payload.stockKey, 'buy', executedUnits, executionPrice, cost)
+            appendTradePosition(player, payload.stockKey, 'buy', executedUnits, executionPrice, entryHistoryPointId, cost)
 
             pushLog(logs, 'player', '買い', `${player.name}が${stock.name}を ${formatCurrency(cost)} で買い。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'up')
-            return {
-                stockKey: payload.stockKey,
-                playerId: player.id,
-                side: payload.tradeAction,
-                executionPrice,
-                historyIndex,
-                turn: state.turn,
-            }
+            return
         }
 
         case 'sell': {
             applyTradePriceEffect(player.id, payload.stockKey, payload.tradeAction, requiredCash, logs)
             const executionPrice = getStock(payload.stockKey).currentPrice
-            const historyIndex = Math.max(0, getStock(payload.stockKey).history.length - 1)
+            const entryHistoryPointId =
+                stockHistoryPointIds[payload.stockKey][stockHistoryPointIds[payload.stockKey].length - 1]
+                ?? stockHistoryPointCounters[payload.stockKey]
             const executedUnits = resolveOrderQuantity(executionPrice, requiredCash)
             if (executedUnits <= 0) {
                 pushLog(logs, 'system', '注文額不足', `${player.name}の注文額 ${formatCurrency(orderAmount)} では ${stock.name} を売りで建てられません。`, 'warn')
-                return null
+                return
             }
 
             player.cash -= requiredCash
-            appendTradePosition(player, payload.stockKey, 'sell', executedUnits, executionPrice, requiredCash)
+            appendTradePosition(player, payload.stockKey, 'sell', executedUnits, executionPrice, entryHistoryPointId, requiredCash)
             stock.shortInterest += executedUnits
 
             pushLog(logs, 'player', '売り', `${player.name}が${stock.name}を ${formatCurrency(requiredCash)} で売り。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`, 'down')
-            return {
-                stockKey: payload.stockKey,
-                playerId: player.id,
-                side: payload.tradeAction,
-                executionPrice,
-                historyIndex,
-                turn: state.turn,
-            }
+            return
         }
     }
-
-    return null
 }
 
 function applyCompanyAction(
@@ -902,12 +878,19 @@ function reduceCooldowns(player: PlayerState): void {
 }
 
 function advanceTurn(): boolean {
+    const completedTurn = isBattleTurnComplete(state.currentPlayer, state.turn)
+    const nextPlayer = resolveNextBattlePlayer(state.currentPlayer, state.turn)
+
+    if (!completedTurn) {
+        state.currentPlayer = nextPlayer
+        return true
+    }
+
     if (state.turn >= MAX_TURNS) {
         isGameOver.value = true
         return false
     }
 
-    const nextPlayer = resolveNextBattlePlayer(state.currentPlayer, state.turn)
     state.turn += 1
     state.currentPlayer = nextPlayer
 
@@ -959,15 +942,14 @@ function executePendingClose(positionId: string): void {
     settleSpeculation(player, logs)
     recalculateDynamicLines()
 
-    const closeMarker = closeOpenPosition(player, positionId, logs)
-    if (!closeMarker) {
+    const didClose = closeOpenPosition(player, positionId, logs)
+    if (!didClose) {
         pendingClosePositionId.value = null
         state.logs.unshift(...logs.reverse())
         state.logs = state.logs.slice(0, 36)
         return
     }
 
-    pushOrderMarker(closeMarker)
     lastClosedPositionTurn.value = state.turn
     reduceCooldowns(player)
     recalculateDynamicLines()
@@ -1013,10 +995,7 @@ function handleTurn(payload: TurnActionWithWait): void {
     } else if (payload.companyAction !== NO_COMPANY_ACTION) {
         applyCompanyAction(player, payload.companyAction, logs)
     } else {
-        const orderMarker = applyPlayerOrder(player, payload, logs)
-        if (orderMarker) {
-            pushOrderMarker(orderMarker)
-        }
+        applyPlayerOrder(player, payload, logs)
     }
 
     reduceCooldowns(getPlayer('player1'))
@@ -1043,18 +1022,18 @@ function handleTurn(payload: TurnActionWithWait): void {
             </div>
         </div>
 
-        <PlayerPanel class="left-panel" :player="leftPlayer" :stocks="state.stocks" :projected-prices="projectedBoardPrices"
-            :pending-close="pendingClosePreview"
-            :is-active="!isGameOver && state.currentPlayer === 'player1'" :victory-value="leftVictoryValue" :victory-diff="leftVictoryDiff"
-            @close-position="handleClosePosition" />
+        <PlayerPanel class="left-panel" :player="leftPlayer" :stocks="state.stocks"
+            :projected-prices="projectedBoardPrices" :pending-close="pendingClosePreview"
+            :is-active="!isGameOver && state.currentPlayer === 'player1'" :victory-value="leftVictoryValue"
+            :victory-diff="leftVictoryDiff" @close-position="handleClosePosition" />
 
         <StockBoard class="chart-panel" :stocks="state.stocks" :turn="displayTurn"
-            :projected-prices="projectedBoardPrices" :order-markers="recentOrderMarkers" />
+            :projected-prices="projectedBoardPrices" :order-markers="activePositionMarkers" />
 
-        <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks" :projected-prices="projectedBoardPrices"
-            :pending-close="pendingClosePreview"
-            :is-active="!isGameOver && state.currentPlayer === 'player2'" :victory-value="rightVictoryValue" :victory-diff="rightVictoryDiff"
-            @close-position="handleClosePosition" />
+        <PlayerPanel class="right-panel" :player="rightPlayer" :stocks="state.stocks"
+            :projected-prices="projectedBoardPrices" :pending-close="pendingClosePreview"
+            :is-active="!isGameOver && state.currentPlayer === 'player2'" :victory-value="rightVictoryValue"
+            :victory-diff="rightVictoryDiff" @close-position="handleClosePosition" />
 
         <ActionPanel v-if="!isGameOver" class="action-panel-slot" :current-player="activePlayer" :draft="actionDraft"
             :projection="actionProjection" :pending-close="pendingCloseSummary" @update:draft="handleDraftChange"
@@ -1334,5 +1313,3 @@ function handleTurn(payload: TurnActionWithWait): void {
     }
 }
 </style>
-
-

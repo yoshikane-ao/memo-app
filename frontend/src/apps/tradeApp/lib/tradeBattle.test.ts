@@ -9,8 +9,10 @@ import {
 import {
   buildBattleActionProjection,
   createDefaultBattleActionDraft,
+  isBattleTurnComplete,
   resolveEffectiveTradeAction,
   resolveNextBattlePlayer,
+  resolveTurnLeadPlayer,
 } from './tradeBattle'
 import {
   calculateTradeImpactAmounts,
@@ -190,6 +192,44 @@ describe('buildBattleActionProjection', () => {
     expect(projection.estimatedShares).toBeCloseTo(0.5, 4)
   })
 
+  it('keeps a 5000 yen buy move on million-yen charts at exactly 5000 yen', () => {
+    const highPriceStocks = createStocks().map((stock) => ({
+      ...stock,
+      basePrice: 1000000,
+      currentPrice: 1000000,
+      previousPrice: 1000000,
+      history: [1000000],
+    }))
+
+    const draft = createDefaultBattleActionDraft()
+    draft.stockKey = 'market'
+    draft.tradeAction = 'buy'
+    draft.quantity = 5000
+
+    const projection = buildBattleActionProjection(createPlayer(), highPriceStocks, draft)
+
+    expect(projection.projectedExecutionPrice).toBe(1005000)
+  })
+
+  it('keeps a 5000 yen sell move on million-yen charts at exactly 5000 yen', () => {
+    const highPriceStocks = createStocks().map((stock) => ({
+      ...stock,
+      basePrice: 1000000,
+      currentPrice: 1005000,
+      previousPrice: 1005000,
+      history: [1005000],
+    }))
+
+    const draft = createDefaultBattleActionDraft()
+    draft.stockKey = 'market'
+    draft.tradeAction = 'sell'
+    draft.quantity = 5000
+
+    const projection = buildBattleActionProjection(createPlayer(), highPriceStocks, draft)
+
+    expect(projection.projectedExecutionPrice).toBe(1000000)
+  })
+
   it('uses the exact player1 self-buy pattern', () => {
     const draft = createDefaultBattleActionDraft()
     draft.stockKey = 'p1'
@@ -270,7 +310,7 @@ describe('buildBattleActionProjection', () => {
     expect(marketPreview?.level).toBe('strong-down')
   })
 
-  it('blocks buy while a short position exists on the same chart', () => {
+  it('allows buy while a short position exists on the same chart if cash is sufficient', () => {
     const player = createPlayer()
     player.shorts.market = { quantity: 1, avgPrice: 10000 }
 
@@ -282,10 +322,11 @@ describe('buildBattleActionProjection', () => {
     const projection = buildBattleActionProjection(player, createStocks(), draft)
 
     expect(projection.selectedShortQuantity).toBeGreaterThan(0)
-    expect(projection.canSubmitTrade).toBe(false)
+    expect(projection.isCashInsufficient).toBe(false)
+    expect(projection.canSubmitTrade).toBe(true)
   })
 
-  it('blocks sell while a buy position exists on the same chart', () => {
+  it('allows sell while a buy position exists on the same chart if cash is sufficient', () => {
     const player = createPlayer()
     player.holdings.market = { quantity: 1, avgPrice: 10000 }
 
@@ -297,7 +338,8 @@ describe('buildBattleActionProjection', () => {
     const projection = buildBattleActionProjection(player, createStocks(), draft)
 
     expect(projection.selectedHoldingQuantity).toBeGreaterThan(0)
-    expect(projection.canSubmitTrade).toBe(false)
+    expect(projection.isCashInsufficient).toBe(false)
+    expect(projection.canSubmitTrade).toBe(true)
   })
 
   it('allows an order below the current chart price and still moves by the full order amount', () => {
@@ -375,18 +417,29 @@ describe('buildBattleActionProjection', () => {
     expect(projection.canSubmitTrade).toBe(false)
   })
 
-  it('uses the snake-style turn order for player1 first', () => {
-    expect(resolveNextBattlePlayer('player1', 1)).toBe('player2')
-    expect(resolveNextBattlePlayer('player2', 2)).toBe('player2')
-    expect(resolveNextBattlePlayer('player2', 3)).toBe('player1')
-    expect(resolveNextBattlePlayer('player1', 4)).toBe('player1')
-    expect(resolveNextBattlePlayer('player1', 5)).toBe('player2')
+  it('starts odd turns with player1 and even turns with player2', () => {
+    expect(resolveTurnLeadPlayer(1)).toBe('player1')
+    expect(resolveTurnLeadPlayer(2)).toBe('player2')
+    expect(resolveTurnLeadPlayer(3)).toBe('player1')
+    expect(resolveTurnLeadPlayer(4)).toBe('player2')
   })
 
-  it('uses the mirrored snake-style turn order for player2 first', () => {
-    expect(resolveNextBattlePlayer('player2', 1)).toBe('player1')
+  it('switches to the other player after the first action of a turn', () => {
+    expect(resolveNextBattlePlayer('player1', 1)).toBe('player2')
+    expect(resolveNextBattlePlayer('player2', 2)).toBe('player1')
+  })
+
+  it('moves to the next turn starter after the second action of a turn', () => {
+    expect(resolveNextBattlePlayer('player2', 1)).toBe('player2')
     expect(resolveNextBattlePlayer('player1', 2)).toBe('player1')
-    expect(resolveNextBattlePlayer('player1', 3)).toBe('player2')
-    expect(resolveNextBattlePlayer('player2', 4)).toBe('player2')
+    expect(resolveNextBattlePlayer('player2', 3)).toBe('player2')
+    expect(resolveNextBattlePlayer('player1', 4)).toBe('player1')
+  })
+
+  it('treats the second player action as the end of the turn', () => {
+    expect(isBattleTurnComplete('player1', 1)).toBe(false)
+    expect(isBattleTurnComplete('player2', 1)).toBe(true)
+    expect(isBattleTurnComplete('player2', 2)).toBe(false)
+    expect(isBattleTurnComplete('player1', 2)).toBe(true)
   })
 })

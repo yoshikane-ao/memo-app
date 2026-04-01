@@ -35,7 +35,6 @@ const buyLabel = '\u8cb7\u3044'
 const sellLabel = '\u58f2\u308a'
 const pnlLabel = '\u640d\u76ca'
 const projectedPnlLabel = '\u884c\u52d5\u5f8c'
-const projectedPriceLabel = '\u884c\u52d5\u5f8c\u4fa1\u683c'
 const pendingCloseLabel = '\u6c7a\u6e08\u4fdd\u7559\u4e2d'
 const releasePendingCloseLabel = '\u4fdd\u7559\u89e3\u9664'
 
@@ -61,22 +60,19 @@ const positionRows = computed(() => {
   return [...props.player.positions].reverse().map((position) => {
     const currentPrice = currentPriceMap[position.stockKey] ?? 0
     const isPendingClose = props.pendingClose?.positionId === position.id
-    const projectedPrice = isPendingClose
-      ? props.pendingClose?.executionPrice ?? currentPrice
-      : props.projectedPrices?.[position.stockKey] ?? currentPrice
+    const projectedPrice = props.projectedPrices?.[position.stockKey] ?? currentPrice
+    const currentPnl = calculatePositionPnl(position, currentPrice)
 
     return {
       id: position.id,
       targetLabel: resolveTargetLabel(position.stockKey),
       orderAmountText: formatCurrency(position.orderAmount),
       directionText: position.side === 'buy' ? buyLabel : sellLabel,
-      projectedPriceText: formatCurrency(projectedPrice),
-      pnl: calculatePositionPnl(position, currentPrice),
+      pnl: currentPnl,
       projectedPnl: isPendingClose
-        ? props.pendingClose?.realizedPnl ?? calculatePositionPnl(position, projectedPrice)
+        ? currentPnl
         : calculatePositionPnl(position, projectedPrice),
       projectedPnlLabel: isPendingClose ? '\u6c7a\u6e08\u640d\u76ca' : projectedPnlLabel,
-      projectedPriceLabel: isPendingClose ? '\u6c7a\u6e08\u4fa1\u683c' : projectedPriceLabel,
       isPendingClose,
       closeButtonLabel: isPendingClose ? releasePendingCloseLabel : closePositionLabel,
     }
@@ -145,13 +141,6 @@ const positionRows = computed(() => {
                 }"
               >
                 {{ formatSignedCurrency(row.pnl) }}
-              </strong>
-            </div>
-
-            <div class="position-stat">
-              <span class="position-stat-label">{{ row.projectedPriceLabel }}</span>
-              <strong class="position-stat-value flat">
-                {{ row.projectedPriceText }}
               </strong>
             </div>
 

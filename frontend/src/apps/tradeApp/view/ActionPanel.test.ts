@@ -141,4 +141,32 @@ describe('ActionPanel', () => {
     expect(normalizedText).toContain('損益+500円')
     expect(normalizedText).toContain('ポジション決済を確定')
   })
+
+  it('allows selecting sell even when a buy position remains open', async () => {
+    const currentPlayer = createPlayer()
+    currentPlayer.holdings.market = { quantity: 1, avgPrice: 10000 }
+    const draft = createDefaultBattleActionDraft()
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+
+    const wrapper = mount(ActionPanel, {
+      props: {
+        currentPlayer,
+        draft,
+        projection,
+      },
+    })
+
+    const tradeActionSegments = wrapper.findAll('.mode-card .segment.segment-2')
+    const tradeActionButtons = tradeActionSegments[1]?.findAll('button') ?? []
+    const sellButton = tradeActionButtons[1]
+
+    expect(sellButton).toBeDefined()
+    expect(sellButton?.attributes('disabled')).toBeUndefined()
+
+    await sellButton?.trigger('click')
+
+    const updates = wrapper.emitted('update:draft') ?? []
+    expect(updates.length).toBeGreaterThan(0)
+    expect(updates.at(-1)?.[0]).toMatchObject({ tradeAction: 'sell' })
+  })
 })
