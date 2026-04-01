@@ -26,7 +26,7 @@ const emit = defineEmits<{
 }>()
 
 const cashLabel = '\u73fe\u91d1'
-const victoryValueLabel = '\u52dd\u8ca0\u5024'
+const victoryValueLabel = '\u7dcf\u8cc7\u7523'
 const positionsLabel = '\u6ce8\u6587\u30dd\u30b8\u30b7\u30e7\u30f3'
 const noPositionsLabel = '\u30dd\u30b8\u30b7\u30e7\u30f3\u306a\u3057'
 const closePositionLabel = '\u30dd\u30b8\u30b7\u30e7\u30f3\u6c7a\u6e08'
@@ -83,7 +83,10 @@ const positionRows = computed(() => {
 <template>
   <aside class="player-panel" :class="[player.id, { active: isActive }]">
     <header class="panel-head">
-      <strong class="player-name">{{ player.name }}</strong>
+      <div class="player-head-copy">
+        <strong class="player-name">{{ player.name }}</strong>
+        <span v-if="isActive" class="turn-flag" data-turn-flag>手番</span>
+      </div>
       <div class="turn-dot" :class="{ active: isActive }"></div>
     </header>
 
@@ -208,6 +211,15 @@ const positionRows = computed(() => {
   pointer-events: none;
 }
 
+.player-panel::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .player-panel.player2::before {
   background: radial-gradient(circle, rgba(255, 102, 122, 0.16), transparent 68%);
 }
@@ -224,6 +236,28 @@ const positionRows = computed(() => {
   box-shadow:
     inset 0 0 24px rgba(83, 128, 255, 0.08),
     0 18px 42px rgba(0, 0, 0, 0.34);
+}
+
+.player-panel.player1.active::after {
+  background: linear-gradient(
+    108deg,
+    transparent 10%,
+    rgba(99, 163, 255, 0.24) 42%,
+    rgba(99, 163, 255, 0.08) 56%,
+    transparent 76%
+  );
+  animation: player-panel-turn-sweep-blue 820ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+
+.player-panel.player2.active::after {
+  background: linear-gradient(
+    108deg,
+    transparent 10%,
+    rgba(255, 110, 138, 0.24) 42%,
+    rgba(255, 110, 138, 0.08) 56%,
+    transparent 76%
+  );
+  animation: player-panel-turn-sweep-red 820ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
 }
 
 .player-panel.player1.active {
@@ -248,6 +282,13 @@ const positionRows = computed(() => {
   gap: 8px;
 }
 
+.player-head-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .player-name {
   color: #f7fbff;
   font-size: 11px;
@@ -257,6 +298,34 @@ const positionRows = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.turn-flag {
+  height: 18px;
+  padding: 0 8px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  animation: turn-flag-pop 460ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.player-panel.player1 .turn-flag {
+  border: 1px solid rgba(124, 180, 255, 0.45);
+  background: linear-gradient(180deg, rgba(22, 49, 95, 0.95), rgba(9, 23, 49, 0.96));
+  color: #dceaff;
+  box-shadow: 0 0 18px rgba(99, 163, 255, 0.18);
+}
+
+.player-panel.player2 .turn-flag {
+  border: 1px solid rgba(255, 146, 170, 0.45);
+  background: linear-gradient(180deg, rgba(72, 20, 34, 0.95), rgba(43, 11, 22, 0.96));
+  color: #ffe2e8;
+  box-shadow: 0 0 18px rgba(255, 110, 138, 0.16);
 }
 
 .turn-dot {
@@ -271,6 +340,7 @@ const positionRows = computed(() => {
 .turn-dot.active {
   background: #63a3ff;
   box-shadow: 0 0 12px rgba(99, 163, 255, 0.56);
+  animation: active-turn-dot-pulse 1.35s ease-in-out infinite;
 }
 
 .player-panel.player2 .turn-dot.active {
@@ -485,6 +555,63 @@ const positionRows = computed(() => {
 .position-close:disabled {
   opacity: 0.42;
   cursor: default;
+}
+
+@keyframes player-panel-turn-sweep-blue {
+  0% {
+    transform: translateX(-118%);
+    opacity: 0;
+  }
+
+  24% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateX(112%);
+    opacity: 0;
+  }
+}
+
+@keyframes player-panel-turn-sweep-red {
+  0% {
+    transform: translateX(-118%);
+    opacity: 0;
+  }
+
+  24% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateX(112%);
+    opacity: 0;
+  }
+}
+
+@keyframes turn-flag-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.92);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes active-turn-dot-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+
+  50% {
+    transform: scale(1.18);
+    filter: brightness(1.12);
+  }
 }
 
 @media (max-width: 1200px) {

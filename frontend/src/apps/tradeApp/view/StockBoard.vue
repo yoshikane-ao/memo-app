@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { PlayerId, StockKey, StockState } from '../api/types/game'
+import chartBackdrop from '../assets/trade-chart-background.png'
 
 type OrderMarker = {
   id: string
@@ -43,7 +44,6 @@ type ChartOrderMarkerViewModel = OrderMarker & {
 
 type ChartPriceLabelViewModel = {
   key: StockKey
-  label: string
   priceText: string
   color: string
   boxFill: string
@@ -67,6 +67,13 @@ type ChartProjectionViewModel = {
   path: string
   pointX: number
   pointY: number
+  pointRadius: number
+  pathStrokeWidth: number
+  pathOpacity: number
+  haloRadius: number
+  rippleRadius: number
+  effectOpacity: number
+  intensity: number
 }
 
 type SharedChartViewModel = {
@@ -76,6 +83,7 @@ type SharedChartViewModel = {
   ticks: number[]
   chartMin: number
   chartMax: number
+  isPreviewZoomed: boolean
   orderMarkers: ChartOrderMarkerViewModel[]
   projections: ChartProjectionViewModel[]
   priceLabels: ChartPriceLabelViewModel[]
@@ -99,9 +107,13 @@ const padLeft = 42
 const chartWidth = viewWidth - padLeft - padRight
 const chartHeight = viewHeight - padTop - padBottom
 const maxVisiblePoints = 8
-const labelBoxHeight = 18
-const labelBoxInset = 10
-const labelBoxWidth = padRight - labelBoxInset - 8
+const labelBoxHeight = 16
+const labelBoxInset = 34
+const labelBoxWidth = 80
+const chartTickStep = 50000
+const previewZoomTargetRatio = 0.42
+const previewZoomMinRange = 60000
+const previewRecentPointCount = 3
 
 const chartOrder: StockKey[] = ['market', 'p1', 'p2']
 
@@ -141,16 +153,6 @@ function formatPrice(value: number): string {
   return new Intl.NumberFormat('ja-JP').format(Math.round(value))
 }
 
-function niceStep(rawStep: number): number {
-  const power = Math.pow(10, Math.floor(Math.log10(Math.max(rawStep, 1))))
-  const normalized = rawStep / power
-
-  if (normalized <= 1) return power
-  if (normalized <= 2) return 2 * power
-  if (normalized <= 5) return 5 * power
-  return 10 * power
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
@@ -166,14 +168,89 @@ function y(value: number, chart: Pick<SharedChartViewModel, 'chartMin' | 'chartM
 }
 
 function buildTicks(chartMin: number, chartMax: number, step: number): number[] {
+  const firstTick = Math.floor(chartMax / step) * step
+  const lastTick = Math.ceil(chartMin / step) * step
   const ticks: number[] = []
-  for (let value = chartMax; value >= chartMin; value -= step) {
+  for (let value = firstTick; value >= lastTick; value -= step) {
     ticks.push(value)
   }
-  if (ticks[ticks.length - 1] !== chartMin) {
-    ticks.push(chartMin)
+  if (ticks.length === 0) {
+    ticks.push(Math.round(((chartMin + chartMax) / 2) / step) * step)
   }
   return ticks
+}
+
+function resolveChartRange(
+  series: ChartSeries[],
+  hasProjectedMove: boolean,
+): Pick<SharedChartViewModel, 'chartMin' | 'chartMax' | 'ticks' | 'isPreviewZoomed'> {
+  const allValues = series.flatMap((item) => (
+    item.projectedPrice != null
+      ? [...item.visibleHistory, item.projectedPrice]
+      : item.visibleHistory
+  ))
+  const allMin = Math.min(...allValues)
+  const allMax = Math.max(...allValues)
+  const allRange = Math.max(chartTickStep, allMax - allMin)
+  const basePadding = Math.max(chartTickStep * 0.2, allRange * 0.18)
+  const baseMin = allMin - basePadding
+  const baseMax = allMax + basePadding
+
+  if (!hasProjectedMove) {
+    return {
+      chartMin: baseMin,
+      chartMax: baseMax,
+      ticks: buildTicks(baseMin, baseMax, chartTickStep),
+      isPreviewZoomed: false,
+    }
+  }
+
+  const movingSeries = series.filter((item) => (
+    item.projectedPrice != null
+    && Math.round(item.projectedPrice) !== Math.round(item.currentPrice)
+  ))
+  if (movingSeries.length === 0) {
+    return {
+      chartMin: baseMin,
+      chartMax: baseMax,
+      ticks: buildTicks(baseMin, baseMax, chartTickStep),
+      isPreviewZoomed: false,
+    }
+  }
+
+  const currentValues = movingSeries.map((item) => item.visibleHistory[item.visibleHistory.length - 1] ?? item.currentPrice)
+  const projectedValues = movingSeries.map((item) => item.projectedPrice as number)
+  const recentValues = movingSeries.flatMap((item) => item.visibleHistory.slice(-previewRecentPointCount))
+  const maxProjectedDelta = Math.max(
+    ...movingSeries.map((item) => Math.abs((item.projectedPrice as number) - (item.visibleHistory[item.visibleHistory.length - 1] ?? item.currentPrice))),
+  )
+  const desiredRange = Math.max(previewZoomMinRange, maxProjectedDelta / previewZoomTargetRatio)
+  const focusMin = Math.min(...currentValues, ...projectedValues)
+  const focusMax = Math.max(...currentValues, ...projectedValues)
+  const focusCenter = (focusMin + focusMax) / 2
+  let zoomMin = focusCenter - desiredRange / 2
+  let zoomMax = focusCenter + desiredRange / 2
+  const recentMin = Math.min(...recentValues)
+  const recentMax = Math.max(...recentValues)
+  const zoomPadding = Math.max(5000, desiredRange * 0.08)
+  zoomMin = Math.min(zoomMin, recentMin - zoomPadding)
+  zoomMax = Math.max(zoomMax, recentMax + zoomPadding)
+
+  if (zoomMax - zoomMin >= baseMax - baseMin) {
+    return {
+      chartMin: baseMin,
+      chartMax: baseMax,
+      ticks: buildTicks(baseMin, baseMax, chartTickStep),
+      isPreviewZoomed: false,
+    }
+  }
+
+  return {
+    chartMin: zoomMin,
+    chartMax: zoomMax,
+    ticks: buildTicks(zoomMin, zoomMax, chartTickStep),
+    isPreviewZoomed: true,
+  }
 }
 
 function buildSharedSeries(): ChartSeries[] {
@@ -308,6 +385,14 @@ function buildProjectionSegments(
       x: x(projectedIndex, sharedChart.plotCount),
       y: y(series.projectedPrice, sharedChart),
     }
+    const moveAmount = Math.abs(projectedValue - currentValue)
+    const intensity = clamp(Math.sqrt(moveAmount / chartTickStep), 0.72, 1.9)
+    const pointRadius = 4.6 + intensity * 0.75
+    const pathStrokeWidth = 2.3 + intensity * 0.55
+    const pathOpacity = clamp(0.42 + intensity * 0.12, 0.42, 0.72)
+    const haloRadius = pointRadius + 3 + intensity * 1.8
+    const rippleRadius = haloRadius + 5 + intensity * 2.4
+    const effectOpacity = clamp(0.36 + intensity * 0.16, 0.36, 0.72)
 
     return [{
       key: series.key,
@@ -315,6 +400,13 @@ function buildProjectionSegments(
       path: `M ${currentPoint.x} ${currentPoint.y} L ${projectedPoint.x} ${projectedPoint.y}`,
       pointX: projectedPoint.x,
       pointY: projectedPoint.y,
+      pointRadius,
+      pathStrokeWidth,
+      pathOpacity,
+      haloRadius,
+      rippleRadius,
+      effectOpacity,
+      intensity,
     }]
   })
 }
@@ -325,7 +417,7 @@ function buildPriceLabels(
   const labelX = viewWidth - padRight + labelBoxInset
   const minCenterY = padTop + labelBoxHeight / 2 + 4
   const maxCenterY = padTop + chartHeight - labelBoxHeight / 2 - 4
-  const minGap = labelBoxHeight + 6
+  const minGap = labelBoxHeight + 5
 
   const anchors = sharedChart.series
     .map((series) => {
@@ -366,7 +458,6 @@ function buildPriceLabels(
 
     return {
       key: anchor.series.key,
-      label: anchor.series.label,
       priceText: `${formatPrice(anchor.point.value)}円`,
       color: anchor.series.color,
       boxFill: 'rgba(8, 18, 36, 0.94)',
@@ -374,14 +465,14 @@ function buildPriceLabels(
       pointY: anchor.point.y,
       connectorX1: anchor.point.x + 8,
       connectorY1: anchor.point.y,
-      connectorX2: labelX - 6,
+      connectorX2: labelX - 4,
       connectorY2: centerY,
       boxX: labelX,
       boxY,
       boxWidth: labelBoxWidth,
       boxHeight: labelBoxHeight,
-      textX: labelX + 8,
-      textY: centerY + 2.2,
+      textX: labelX + 6,
+      textY: centerY + 1.8,
     }
   })
 }
@@ -393,17 +484,7 @@ const chart = computed<SharedChartViewModel>(() => {
     item.projectedPrice != null && Math.round(item.projectedPrice) !== Math.round(item.currentPrice)
   ))
   const plotCount = visibleCount + (hasProjectedMove ? 1 : 0)
-  const values = series.flatMap((item) => item.visibleHistory)
-  const projectedValues = series
-    .map((item) => item.projectedPrice)
-    .filter((value): value is number => value != null)
-  const min = Math.min(...values, ...projectedValues)
-  const max = Math.max(...values, ...projectedValues)
-  const spread = Math.max(100, max - min)
-  const step = niceStep(spread / 4)
-  const chartMin = Math.floor((min - step * 0.35) / step) * step
-  const chartMax = Math.ceil((max + step * 0.35) / step) * step
-  const ticks = buildTicks(chartMin, chartMax, step)
+  const { chartMin, chartMax, ticks, isPreviewZoomed } = resolveChartRange(series, hasProjectedMove)
 
   const baseChart = {
     series,
@@ -412,6 +493,7 @@ const chart = computed<SharedChartViewModel>(() => {
     ticks,
     chartMin,
     chartMax,
+    isPreviewZoomed,
     orderMarkers: [] as ChartOrderMarkerViewModel[],
     projections: [] as ChartProjectionViewModel[],
     priceLabels: [] as ChartPriceLabelViewModel[],
@@ -436,6 +518,14 @@ function buildPath(series: ChartSeries): string {
       return `${index === 0 ? 'M' : 'L'} ${x(plotIndex, chart.value.plotCount)} ${y(value, chart.value)}`
     })
     .join(' ')
+}
+
+function buildSeriesAnimationKey(series: ChartSeries): string {
+  return `${series.key}-${series.visibleHistory.join('-')}-${chart.value.chartMin}-${chart.value.chartMax}-${chart.value.plotCount}`
+}
+
+function buildProjectionAnimationKey(projection: ChartProjectionViewModel): string {
+  return `${projection.key}-${projection.path}-${projection.pointX}-${projection.pointY}`
 }
 
 function lastPoint(series: ChartSeries): { x: number; y: number } {
@@ -465,7 +555,6 @@ function isSeriesDimmed(key: StockKey): boolean {
     <header class="board-head">
       <div class="title-copy">
         <div class="board-title">価格ボード</div>
-        <div class="board-note">マーケット / Player1 / Player2 を同一チャートで比較</div>
       </div>
       <div class="turn-chip">T{{ turn }}</div>
     </header>
@@ -474,6 +563,7 @@ function isSeriesDimmed(key: StockKey): boolean {
       <button v-for="series in chart.series" :key="series.key" type="button" class="quote-pill"
         :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
         :style="{ '--line-color': series.color }" :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
+        :aria-label="`${series.label} ${formatPrice(series.currentPrice)}円`" :title="series.label"
         :data-focus-toggle="series.key" @click="toggleSeriesFocus(series.key)">
         <span class="quote-dot" :style="{ background: series.color }"></span>
         <span class="quote-name">{{ series.label }}</span>
@@ -486,13 +576,16 @@ function isSeriesDimmed(key: StockKey): boolean {
       </button>
     </div>
 
-    <article class="shared-chart">
+    <article class="shared-chart" :data-preview-zoom="chart.isPreviewZoomed ? 'true' : 'false'">
+      <div class="shared-chart__backdrop" :style="{ '--chart-backdrop-image': `url(${chartBackdrop})` }"
+        data-chart-backdrop aria-hidden="true"></div>
       <div class="shared-chart__head">
         <div class="shared-chart__legend">
           <button v-for="series in chart.series" :key="`${series.key}-legend`" type="button" class="legend-chip"
             :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
             :style="{ '--legend-color': series.color }" :aria-pressed="isSeriesFocused(series.key) ? 'true' : 'false'"
-            :data-legend-toggle="series.key" @click="toggleSeriesFocus(series.key)">
+            :aria-label="series.label" :title="series.label" :data-legend-toggle="series.key"
+            @click="toggleSeriesFocus(series.key)">
             <span class="legend-chip__dot"></span>
             <span class="legend-chip__label">{{ series.label }}</span>
           </button>
@@ -508,17 +601,33 @@ function isSeriesDimmed(key: StockKey): boolean {
         <g v-for="series in chart.series" :key="series.key" class="chart-series"
           :class="{ 'is-focused': isSeriesFocused(series.key), 'is-dimmed': isSeriesDimmed(series.key) }"
           :data-series="series.key">
-          <path :d="buildPath(series)" class="line-under" :stroke="series.color" />
-          <path :d="buildPath(series)" class="line-main" :stroke="series.color" />
-          <path :d="buildPath(series)" class="line-highlight" :stroke="series.color" />
-          <circle class="line-dot" :cx="lastPoint(series).x" :cy="lastPoint(series).y" r="4.2" :fill="series.color" />
+          <path :key="`${buildSeriesAnimationKey(series)}-under`" :d="buildPath(series)" pathLength="100"
+            class="line-under" :stroke="series.color" />
+          <path :key="`${buildSeriesAnimationKey(series)}-main`" :d="buildPath(series)" pathLength="100"
+            class="line-main" :stroke="series.color" />
+          <path :key="`${buildSeriesAnimationKey(series)}-highlight`" :d="buildPath(series)" pathLength="100"
+            class="line-highlight" :stroke="series.color" />
+          <circle :key="`${buildSeriesAnimationKey(series)}-point`" class="line-dot" :cx="lastPoint(series).x"
+            :cy="lastPoint(series).y" r="4.2" :fill="series.color" />
         </g>
 
-        <g v-for="projection in chart.projections" :key="`${projection.key}-projection`" class="chart-projection"
+        <g v-for="projection in chart.projections" :key="buildProjectionAnimationKey(projection)"
+          class="chart-projection"
           :class="{ 'is-dimmed': isSeriesDimmed(projection.key), 'is-focused': isSeriesFocused(projection.key) }"
           :data-series-projection="projection.key">
-          <path class="chart-projection__path" :d="projection.path" :stroke="projection.color" />
-          <circle class="chart-projection__point" :cx="projection.pointX" :cy="projection.pointY" r="4.2"
+          <path class="chart-projection__path" :d="projection.path" :stroke="projection.color"
+            :stroke-width="projection.pathStrokeWidth" :opacity="projection.pathOpacity" pathLength="100" />
+          <circle class="chart-projection__halo" :cx="projection.pointX" :cy="projection.pointY"
+            :r="projection.haloRadius" :fill="projection.color" :opacity="projection.effectOpacity * 0.22" />
+          <circle class="chart-projection__ripple" :cx="projection.pointX" :cy="projection.pointY"
+            :r="projection.rippleRadius" :stroke="projection.color"
+            :style="{
+              '--projection-ripple-scale': `${1 + projection.intensity * 0.32}`,
+              '--projection-ripple-opacity': `${projection.effectOpacity}`,
+              '--projection-ripple-duration': `${Math.max(0.84, 1.2 - projection.intensity * 0.12)}s`,
+            }" />
+          <circle class="chart-projection__point" :cx="projection.pointX" :cy="projection.pointY"
+            :r="projection.pointRadius"
             :fill="projection.color" />
         </g>
 
@@ -550,7 +659,7 @@ function isSeriesDimmed(key: StockKey): boolean {
           <rect class="price-tag__box" :x="priceLabel.boxX" :y="priceLabel.boxY" :width="priceLabel.boxWidth"
             :height="priceLabel.boxHeight" rx="7" :fill="priceLabel.boxFill" :stroke="priceLabel.color" />
           <text class="price-tag__text" :x="priceLabel.textX" :y="priceLabel.textY">
-            {{ priceLabel.label }} {{ priceLabel.priceText }}
+            {{ priceLabel.priceText }}
           </text>
         </g>
 
@@ -604,12 +713,6 @@ function isSeriesDimmed(key: StockKey): boolean {
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 0.1em;
-}
-
-.board-note {
-  color: rgba(201, 216, 255, 0.72);
-  font-size: 8px;
-  line-height: 1.15;
 }
 
 .turn-chip {
@@ -675,6 +778,8 @@ function isSeriesDimmed(key: StockKey): boolean {
 
 .quote-name {
   color: #c4d7fb;
+  font-size: 7px;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -683,6 +788,7 @@ function isSeriesDimmed(key: StockKey): boolean {
   align-items: baseline;
   gap: 4px;
   min-width: 0;
+  margin-left: auto;
 }
 
 .quote-pill strong {
@@ -700,6 +806,8 @@ function isSeriesDimmed(key: StockKey): boolean {
 }
 
 .shared-chart {
+  position: relative;
+  isolation: isolate;
   min-height: 0;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -711,9 +819,37 @@ function isSeriesDimmed(key: StockKey): boolean {
   grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
   overflow: hidden;
+  transition:
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease;
+}
+
+.shared-chart[data-preview-zoom='true'] {
+  border-color: rgba(123, 168, 255, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(111, 143, 255, 0.08),
+    0 14px 28px rgba(0, 0, 0, 0.18);
+}
+
+.shared-chart__backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.17;
+  background:
+    linear-gradient(180deg, rgba(3, 9, 24, 0.28) 0%, rgba(3, 9, 24, 0.54) 100%),
+    radial-gradient(circle at center, rgba(8, 17, 38, 0.1), rgba(3, 8, 21, 0.4) 72%),
+    var(--chart-backdrop-image) center / cover no-repeat;
+  filter: saturate(0.9) brightness(0.9);
+  transform: scale(1.02);
+  transform-origin: center;
 }
 
 .shared-chart__head {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -768,7 +904,16 @@ function isSeriesDimmed(key: StockKey): boolean {
   box-shadow: 0 0 12px color-mix(in srgb, var(--legend-color) 72%, transparent);
 }
 
+.legend-chip__label {
+  color: #dfe8ff;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 .chart-svg {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100%;
   display: block;
@@ -778,11 +923,22 @@ function isSeriesDimmed(key: StockKey): boolean {
   fill: rgba(255, 255, 255, 0.01);
   stroke: rgba(255, 255, 255, 0.05);
   stroke-width: 1;
+  transition: stroke 0.2s ease, fill 0.2s ease;
+}
+
+.shared-chart[data-preview-zoom='true'] .plot-frame {
+  fill: rgba(111, 143, 255, 0.024);
+  stroke: rgba(146, 176, 255, 0.12);
 }
 
 .grid-line {
   stroke: rgba(255, 255, 255, 0.05);
   stroke-width: 1;
+  transition: stroke 0.2s ease, opacity 0.2s ease;
+}
+
+.shared-chart[data-preview-zoom='true'] .grid-line {
+  stroke: rgba(149, 177, 255, 0.08);
 }
 
 .price-label {
@@ -821,6 +977,9 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.22;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: chart-line-draw 0.72s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-main {
@@ -829,6 +988,9 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   filter: drop-shadow(0 0 12px rgba(90, 144, 255, 0.18));
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: chart-line-draw 0.84s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-highlight {
@@ -837,12 +999,18 @@ function isSeriesDimmed(key: StockKey): boolean {
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.2;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: chart-line-draw 0.92s cubic-bezier(0.22, 0.82, 0.24, 1) both;
 }
 
 .line-dot {
   stroke: rgba(0, 10, 26, 0.98);
   stroke-width: 1.6;
+  transform-box: fill-box;
+  transform-origin: center;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.18));
+  animation: chart-dot-in 0.34s ease-out 0.58s both;
 }
 
 .chart-projection {
@@ -851,26 +1019,51 @@ function isSeriesDimmed(key: StockKey): boolean {
 
 .chart-projection__path {
   fill: none;
-  stroke-width: 2.4;
   stroke-linecap: round;
-  stroke-dasharray: 5 4;
-  opacity: 0.42;
-  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.12));
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.14));
+  transition: stroke-width 0.18s ease, opacity 0.18s ease;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation:
+    projection-path-draw 0.82s cubic-bezier(0.22, 0.82, 0.24, 1) both,
+    projection-drift 1.25s ease-in-out 0.82s infinite;
+}
+
+.chart-projection__halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: blur(1.5px);
+  animation: projection-halo-pulse 0.95s ease-in-out infinite;
+}
+
+.chart-projection__ripple {
+  fill: none;
+  stroke-width: 1.5;
+  opacity: var(--projection-ripple-opacity, 0.5);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: projection-ripple var(--projection-ripple-duration, 1.05s) ease-out infinite;
 }
 
 .chart-projection__point {
   stroke: rgba(0, 10, 26, 0.72);
   stroke-width: 1.2;
-  opacity: 0.3;
+  opacity: 0.42;
+  transform-box: fill-box;
+  transform-origin: center;
+  filter: drop-shadow(0 0 14px rgba(255, 255, 255, 0.26));
+  animation: projection-point-pulse 0.88s ease-in-out infinite;
 }
 
 .chart-projection.is-focused .chart-projection__path {
-  stroke-width: 2.9;
-  opacity: 0.58;
+  opacity: 0.84;
 }
 
-.chart-projection.is-focused .chart-projection__point {
-  opacity: 0.46;
+.chart-projection.is-focused .chart-projection__halo,
+.chart-projection.is-focused .chart-projection__point,
+.chart-projection.is-focused .chart-projection__ripple {
+  opacity: 0.9;
 }
 
 .order-marker {
@@ -925,18 +1118,18 @@ function isSeriesDimmed(key: StockKey): boolean {
 }
 
 .price-tag__connector {
-  stroke-width: 1.4;
+  stroke-width: 1.1;
   opacity: 0.88;
 }
 
 .price-tag__box {
-  stroke-width: 1.2;
-  filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.28));
+  stroke-width: 1;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.24));
 }
 
 .price-tag__text {
   font-family: Inter, 'Segoe UI', sans-serif;
-  font-size: 5.9px;
+  font-size: 5.5px;
   font-weight: 900;
   fill: #f4f8ff;
   letter-spacing: 0.01em;
@@ -956,6 +1149,108 @@ function isSeriesDimmed(key: StockKey): boolean {
   100% {
     opacity: 0.88;
     transform: scale(1);
+  }
+}
+
+@keyframes projection-drift {
+  0%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+
+  50% {
+    stroke-dashoffset: -5;
+  }
+}
+
+@keyframes chart-line-draw {
+  0% {
+    stroke-dashoffset: 100;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes chart-dot-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes projection-path-draw {
+  0% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+  }
+
+  74% {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    stroke-dasharray: 8 5;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes projection-halo-pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+    transform: scale(0.94);
+  }
+
+  50% {
+    opacity: 0.48;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes projection-point-pulse {
+  0%,
+  100% {
+    opacity: 0.52;
+    transform: scale(0.96);
+  }
+
+  50% {
+    opacity: 0.92;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes projection-ripple {
+  0% {
+    opacity: calc(var(--projection-ripple-opacity, 0.5) * 0.64);
+    transform: scale(0.8);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(var(--projection-ripple-scale, 1.32));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .line-under,
+  .line-main,
+  .line-highlight,
+  .line-dot,
+  .chart-projection__path,
+  .chart-projection__halo,
+  .chart-projection__point,
+  .chart-projection__ripple,
+  .order-marker__pending-ring {
+    animation: none;
   }
 }
 
