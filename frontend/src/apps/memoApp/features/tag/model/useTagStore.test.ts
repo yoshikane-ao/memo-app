@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchTagList } from "../api/tag.repository";
+import { fetchTagList } from "../infrastructure/tag.repository";
 import type { TagItem } from "./tag.types";
 import { useTagStore } from "./useTagStore";
 import { activateTestPinia } from "../../../../../test/pinia";
 
-vi.mock("../api/tag.repository", () => ({
+vi.mock("../infrastructure/tag.repository", () => ({
   fetchTagList: vi.fn(),
 }));
 

@@ -16,7 +16,7 @@
 }
 
 .memo-app-page .memo-row:focus-within {
-  background: var(--memo-bg-input);
+  background: rgba(28, 28, 30, 0.48);
   box-shadow: inset 0 0 0 1px var(--memo-border-focus);
 }
 
@@ -37,15 +37,20 @@
 }
 
 .memo-app-page .sortable-item {
+  position: relative;
   display: flex;
   align-items: flex-start;
   transition: opacity var(--memo-transition);
 }
 
+.memo-app-page .sortable-item:has(.tag-popup) {
+  z-index: 10;
+}
+
 .memo-app-page .sortable-item.is-keyboard-reordering {
-  background: rgba(108, 140, 255, 0.06);
-  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.22);
-  border-radius: var(--memo-radius);
+  background: rgba(10, 132, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.22);
+  border-radius: var(--memo-radius-sm);
 }
 
 .memo-app-page .sortable-item.dragging {
@@ -77,14 +82,14 @@
 .memo-app-page .drag-handle:focus-visible {
   outline: none;
   color: var(--memo-accent);
-  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.35);
-  border-radius: var(--memo-radius);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.35);
+  border-radius: var(--memo-radius-sm);
 }
 
 .memo-app-page .drag-handle.is-keyboard-reordering {
-  background: rgba(108, 140, 255, 0.16);
-  color: #d6e2ff;
-  border-radius: var(--memo-radius);
+  background: rgba(10, 132, 255, 0.16);
+  color: #64b5ff;
+  border-radius: var(--memo-radius-sm);
 }
 
 .memo-app-page .item-content {
@@ -93,34 +98,32 @@
 }
 
 .memo-app-page .memo-empty {
-  padding: 24px 12px;
+  padding: 32px 12px;
   color: var(--memo-text-muted);
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   text-align: center;
 }
 
 .memo-app-page .update-btn {
-  background: rgba(66, 133, 244, 0.24);
-  border: 1px solid rgba(66, 133, 244, 0.58);
-  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.12);
-  color: #d9e7ff;
+  background: var(--memo-accent-soft);
+  border: none;
+  color: var(--memo-accent-hover);
 }
 
 .memo-app-page .update-btn:hover:not(:disabled) {
-  background: rgba(66, 133, 244, 0.34);
-  border-color: rgba(108, 166, 255, 0.9);
+  background: rgba(10, 132, 255, 0.22);
   color: #fff;
 }
 
 .memo-app-page .delete-btn {
-  background: rgba(145, 43, 43, 0.15);
-  border: 1px solid rgba(244, 66, 66, 0.4);
-  color: #f88a8a;
+  background: rgba(255, 69, 58, 0.1);
+  border: none;
+  color: #ff6961;
 }
 
 .memo-app-page .delete-btn:hover:not(:disabled) {
-  background: rgba(244, 66, 66, 0.25);
-  border-color: rgba(244, 66, 66, 0.8);
+  background: rgba(255, 69, 58, 0.2);
+  color: var(--memo-danger);
 }
 
 .memo-app-page .delete-btn,
@@ -128,23 +131,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
   cursor: pointer;
   font-family: var(--memo-font-sans);
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 500;
-  letter-spacing: 0.5px;
+  letter-spacing: -0.01em;
   transition: all var(--memo-transition);
   white-space: nowrap;
 }
 
 .memo-app-page .custom-button.update-btn:disabled {
   opacity: 1;
-  background: rgba(66, 133, 244, 0.12);
-  border: 1px solid rgba(66, 133, 244, 0.24);
+  background: rgba(10, 132, 255, 0.08);
+  border: none;
   box-shadow: none;
-  color: #7e93b5;
+  color: rgba(10, 132, 255, 0.3);
   cursor: not-allowed;
 }
 

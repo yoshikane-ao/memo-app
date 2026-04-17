@@ -1,26 +1,75 @@
 .memo-app-page .memo-register-wrapper {
-  margin-bottom: 16px;
-  padding: 12px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
+  position: relative;
+  margin-bottom: 20px;
+  padding: 16px;
+  border: none;
+  border-radius: var(--memo-radius-lg);
   background: var(--memo-bg-surface);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow: var(--memo-shadow-md), inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  transition: box-shadow var(--memo-transition);
+}
+
+.memo-app-page .memo-register-wrapper:has(.tag-popup) {
+  z-index: 100;
+}
+
+.memo-app-page .memo-register-wrapper:focus-within {
+  box-shadow: var(--memo-shadow-lg), inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
 }
 
 .memo-app-page .register-row {
   display: flex;
-  align-items: stretch;
-  margin-bottom: 8px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
+  flex-direction: row;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  border: none;
+  border-radius: 0;
+}
+
+.memo-app-page .register-row > .title-cell {
+  flex: 0 0 auto;
+  border-bottom: none;
+  border-right: 1px solid var(--memo-border);
+}
+
+.memo-app-page .register-row > .content-cell {
+  flex: 1;
+  min-width: 0;
 }
 
 .memo-app-page .register-bottom-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--memo-border);
 }
 
 .memo-app-page .register-bottom-row .tag-dropdown-wrapper {
   position: relative;
+}
+
+.memo-app-page .register-tag-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.memo-app-page .register-keep-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--memo-text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.memo-app-page .register-keep-tags input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--memo-accent);
 }

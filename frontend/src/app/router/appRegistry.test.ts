@@ -11,21 +11,33 @@ describe("appRegistry", () => {
     expect(buildMenuAppPath("workspace", "memo")).toBe("/menu/workspace/memo");
   });
 
-  it("groups menu apps by section and exposes the memo path", () => {
-    expect(menuAppRegistry).toHaveLength(1);
+  it("groups menu apps by section and exposes app paths", () => {
+    expect(menuAppRegistry).toHaveLength(4);
     expect(menuSectionGroups).toEqual([
       expect.objectContaining({
         section: {
           slug: "workspace",
-          label: "作業スペース",
-          description: "記録や整理に使うアプリを、ここからまとめて開けます。",
+          label: "ワークスペース",
+          description: "作成したアプリをここから開けます。",
         },
-        apps: [
+        apps: expect.arrayContaining([
           expect.objectContaining({
             id: "memo",
             path: "/menu/workspace/memo",
           }),
-        ],
+          expect.objectContaining({
+            id: "quiz",
+            path: "/menu/workspace/quiz",
+          }),
+          expect.objectContaining({
+            id: "trade",
+            path: "/menu/workspace/trade",
+          }),
+          expect.objectContaining({
+            id: "test",
+            path: "/menu/workspace/test",
+          }),
+        ]),
       }),
     ]);
   });

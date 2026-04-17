@@ -1,29 +1,36 @@
 .memo-app-page .title-cell {
   flex: 0 0 auto;
   display: flex;
-  border-right: 1px solid var(--memo-border);
+  border-right: none;
+  border-bottom: 1px solid var(--memo-border);
 }
 
 .memo-app-page .title-input {
-  width: 180px;
-  min-width: 80px;
-  max-width: 500px;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
   resize: none;
   overflow: hidden;
-  padding: 8px 10px;
+  padding: 8px 4px;
   border: none;
   background: transparent;
   color: var(--memo-text-primary);
   font-family: var(--memo-font-sans);
-  font-size: 0.875rem;
+  font-size: 1.05rem;
   font-weight: 600;
   line-height: 1.4;
+  letter-spacing: -0.01em;
   white-space: nowrap;
 }
 
 .memo-app-page .title-input:focus {
   outline: none;
   background: transparent;
+}
+
+.memo-app-page .title-input::placeholder {
+  color: var(--memo-text-muted);
+  font-weight: 500;
 }
 
 .memo-app-page .content-cell {
@@ -35,20 +42,25 @@
 
 .memo-app-page .content-input {
   width: 100%;
-  min-height: 32px;
+  min-height: 48px;
   resize: none;
   overflow: hidden;
-  padding: 8px 10px;
+  padding: 10px 4px;
   border: none;
   background: transparent;
   color: var(--memo-text-secondary);
   font-family: var(--memo-font-sans);
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  letter-spacing: -0.005em;
 }
 
 .memo-app-page .content-input:focus {
   outline: none;
   background: transparent;
   color: var(--memo-text-primary);
+}
+
+.memo-app-page .content-input::placeholder {
+  color: var(--memo-text-muted);
 }

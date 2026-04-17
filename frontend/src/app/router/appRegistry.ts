@@ -1,5 +1,8 @@
 import type { RouteRecordRaw } from "vue-router";
-import { memoAppDefinition, quizAppDefinition, tradeAppDefinition } from "../../apps/memoApp";
+import { memoAppDefinition } from "../../apps/memoApp";
+import { quizAppDefinition } from "../../apps/quiz-app";
+import { testAppDefinition } from "../../apps/testApp";
+import { tradeAppDefinition } from "../../apps/tradeApp";
 import type { MenuAppDefinition, MenuAppEntry, MenuSectionGroup } from "./menuApp.types";
 
 export const menuHomePath = "/menu";
@@ -11,6 +14,7 @@ const appDefinitions: MenuAppDefinition[] = [
   memoAppDefinition,
   quizAppDefinition,
   tradeAppDefinition,
+  testAppDefinition,
 ];
 
 export const menuAppRegistry: MenuAppEntry[] = appDefinitions.map(({ entry }) => entry);

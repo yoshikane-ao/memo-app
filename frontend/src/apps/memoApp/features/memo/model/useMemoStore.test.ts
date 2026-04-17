@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fetchMemoList } from "../api/memo.repository";
+import { fetchMemoList } from "../infrastructure/memo.repository";
 import type { Memo, TagSummary } from "./memo.types";
 import { useMemoStore } from "./useMemoStore";
 import { activateTestPinia } from "../../../../../test/pinia";
 
-vi.mock("../api/memo.repository", () => ({
+vi.mock("../infrastructure/memo.repository", () => ({
   fetchMemoList: vi.fn(),
 }));
 

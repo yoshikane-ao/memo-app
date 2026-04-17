@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { fetchTagList } from "../api/tag.repository";
-import type { TagItem } from "./tag.types";
+import { fetchTagList } from "../infrastructure/tag.repository";
+import type { TagItem } from "../types";
 
 const FETCH_ERROR = "Failed to fetch tags.";
 

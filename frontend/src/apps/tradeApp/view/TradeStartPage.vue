@@ -282,8 +282,8 @@ void persistSelectedIdentities
             <section class="hero-panel" aria-label="蟇ｾ謌ｦ譚｡莉ｶ">
               <div class="hero-panel__inner hero-panel__inner--blue">
                 <header class="hero-panel__head">
-                  <p class="hero-panel__eyebrow">蟇ｾ謌ｦ譚｡莉ｶ</p>
-                  <h2>蛻晄悄雉・肇</h2>
+                  <p class="hero-panel__eyebrow">設定を変更</p>
+                  <h2>設定</h2>
                 </header>
                 <StartingCashSection :cash-mode="startingCashMode" :shared-cash="sharedStartingCash"
                   :player1-cash="player1StartingCash" :player2-cash="player2StartingCash"

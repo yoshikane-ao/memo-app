@@ -50,7 +50,7 @@ vi.mock("../../../shared/history/useHistoryManager", () => ({
   }),
 }));
 
-vi.mock("../features/view/model/useMemoViewStore", () => ({
+vi.mock("../features/view", () => ({
   useMemoViewStore: () => ({
     get currentScope() {
       return viewStoreState.currentScope;

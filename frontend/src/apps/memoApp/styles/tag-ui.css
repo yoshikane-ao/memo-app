@@ -3,56 +3,64 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
-  min-height: 22px;
-  padding: 0 10px 8px;
+  gap: 6px;
+  min-height: 24px;
+  padding: 0 4px 8px;
 }
 
 .memo-app-page .tag-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 3px 10px;
+  border-radius: 980px;
   background: var(--memo-tag-bg);
   color: var(--memo-tag-color);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.01em;
+  transition: all var(--memo-transition);
+}
+
+.memo-app-page .tag-chip:hover {
+  background: rgba(191, 90, 242, 0.22);
 }
 
 .memo-app-page .tag-remove-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  min-width: 14px;
-  height: 14px;
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
   padding: 0;
   border: none;
+  border-radius: 50%;
   background: none;
   color: var(--memo-tag-color);
   cursor: pointer;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  font-weight: 600;
   line-height: 1;
-  opacity: 0.75;
-  transition: opacity var(--memo-transition), color var(--memo-transition);
+  opacity: 0.6;
+  transition: all var(--memo-transition);
 }
 
 .memo-app-page .tag-remove-btn:hover {
+  background: rgba(255, 69, 58, 0.2);
   color: var(--memo-danger);
   opacity: 1;
 }
 
 .memo-app-page .tag-add-btn {
-  padding: 1px 8px;
-  border: 1px dashed var(--memo-text-muted);
-  border-radius: 10px;
+  padding: 3px 12px;
+  border: 1.5px dashed var(--memo-text-muted);
+  border-radius: 980px;
   background: transparent;
   color: var(--memo-text-muted);
   cursor: pointer;
-  font-size: 0.68rem;
+  font-size: 0.75rem;
+  font-weight: 500;
   transition: all var(--memo-transition);
 }
 
@@ -60,6 +68,10 @@
   border-color: var(--memo-accent);
   background: var(--memo-accent-soft);
   color: var(--memo-accent);
+}
+
+.memo-app-page .tag-add-btn:active {
+  transform: scale(0.96);
 }
 
 .memo-app-page .tag-dropdown-wrapper {
@@ -71,80 +83,89 @@
 .memo-app-page .tag-selection-field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .memo-app-page .selected-tags-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  padding-bottom: 6px;
+  gap: 6px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--memo-border);
 }
 
 .memo-app-page .tag-popup {
   position: absolute;
-  top: calc(100% + 4px);
+  top: calc(100% + 6px);
   left: 0;
   z-index: 200;
   width: 320px;
-  padding: 10px;
-  border: 1px solid var(--memo-border);
+  padding: 12px;
+  border: none;
   border-radius: var(--memo-radius);
-  background: var(--memo-bg-surface);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  background: var(--memo-bg-surface-solid);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  box-shadow: var(--memo-shadow-lg), inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
 }
 
 .memo-app-page .tag-popup-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-bottom: 10px;
+  padding: 3px;
+  border-radius: var(--memo-radius-sm);
+  background: rgba(28, 28, 30, 0.48);
 }
 
 .memo-app-page .tag-popup-tab {
   padding: 6px 10px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
-  background: var(--memo-bg-input);
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   color: var(--memo-text-secondary);
   cursor: pointer;
   font-family: var(--memo-font-sans);
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
   transition: all var(--memo-transition);
 }
 
 .memo-app-page .tag-popup-tab:hover {
-  border-color: var(--memo-accent);
   color: var(--memo-text-primary);
 }
 
 .memo-app-page .tag-popup-tab.is-active {
-  border-color: rgba(108, 140, 255, 0.45);
-  background: var(--memo-accent-soft);
-  color: #bdd0ff;
+  background: rgba(84, 84, 88, 0.36);
+  color: var(--memo-text-primary);
+  font-weight: 600;
+  box-shadow: var(--memo-shadow-sm);
 }
 
 .memo-app-page .tag-popup-input {
   width: 100%;
-  margin-bottom: 8px;
-  padding: 6px 10px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
-  background: var(--memo-bg-input);
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: var(--memo-radius-sm);
+  background: rgba(28, 28, 30, 0.64);
   color: var(--memo-text-primary);
   font-family: var(--memo-font-sans);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .memo-app-page .tag-popup-input:focus {
   outline: none;
-  border-color: var(--memo-border-focus);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.24);
+}
+
+.memo-app-page .tag-popup-input::placeholder {
+  color: var(--memo-text-muted);
 }
 
 .memo-app-page .tag-popup-list {
-  max-height: 180px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
@@ -152,8 +173,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-radius: var(--memo-radius);
-  transition: background 0.1s;
+  border-radius: var(--memo-radius-sm);
+  transition: background 0.15s;
 }
 
 .memo-app-page .tag-popup-item:hover {
@@ -165,28 +186,28 @@
 }
 
 .memo-app-page .tag-popup-item.is-active {
-  background: rgba(108, 140, 255, 0.08);
-  box-shadow: inset 0 0 0 1px rgba(108, 140, 255, 0.45);
+  background: rgba(10, 132, 255, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.3);
 }
 
 .memo-app-page .tag-popup-item.is-active .tag-popup-select-btn {
-  color: #eef3ff;
+  color: var(--memo-text-primary);
 }
 
 .memo-app-page .tag-popup-item.is-selected .tag-popup-select-btn {
-  color: #8cacff;
+  color: var(--memo-accent);
   font-weight: 600;
 }
 
 .memo-app-page .tag-popup-select-btn {
   flex: 1;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: none;
   background: none;
-  color: #ccc;
+  color: var(--memo-text-secondary);
   cursor: pointer;
   font-family: var(--memo-font-sans);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   text-align: left;
 }
 
@@ -197,59 +218,60 @@
 
 .memo-app-page .tag-popup-select-btn:hover,
 .memo-app-page .tag-popup-select-btn.is-active-control {
-  color: #fff;
+  color: var(--memo-text-primary);
 }
 
 .memo-app-page .tag-popup-indicator {
-  margin-right: 4px;
+  margin-right: 6px;
   color: var(--memo-accent);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .memo-app-page .tag-popup-danger-btn {
-  padding: 2px 6px;
-  border: 1px solid rgba(232, 85, 85, 0.3);
-  border-radius: 3px;
-  background: rgba(232, 85, 85, 0.15);
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 69, 58, 0.12);
   color: var(--memo-danger);
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   line-height: 1;
   transition: all var(--memo-transition);
 }
 
 .memo-app-page .tag-popup-danger-btn.is-active-control,
 .memo-app-page .tag-popup-danger-btn:hover {
-  border-color: var(--memo-danger);
   background: var(--memo-danger);
   color: #fff;
 }
 
 .memo-app-page .tag-popup-danger-btn.is-active-control {
-  box-shadow: 0 0 0 1px rgba(232, 85, 85, 0.25);
+  box-shadow: 0 0 0 2px rgba(255, 69, 58, 0.2);
 }
 
 .memo-app-page .tag-popup-close-btn {
   width: 100%;
-  margin-top: 8px;
-  padding: 5px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
-  background: transparent;
+  margin-top: 10px;
+  padding: 7px;
+  border: none;
+  border-radius: var(--memo-radius-sm);
+  background: rgba(84, 84, 88, 0.18);
   color: var(--memo-text-secondary);
   cursor: pointer;
   font-family: var(--memo-font-sans);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all var(--memo-transition);
 }
 
 .memo-app-page .tag-popup-close-btn:hover {
-  background: var(--memo-bg-hover);
-  color: #ccc;
+  background: rgba(84, 84, 88, 0.32);
+  color: var(--memo-text-primary);
 }
 
 .memo-app-page .tag-register-container {
-  margin-top: 8px;
-  padding-top: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
   border-top: 1px solid var(--memo-border);
 }
 
@@ -257,11 +279,12 @@
   width: 100%;
   padding: 8px 12px;
   border: none;
-  border-radius: var(--memo-radius);
+  border-radius: var(--memo-radius-sm);
   background: none;
   color: var(--memo-accent);
   cursor: pointer;
   font-size: 0.85rem;
+  font-weight: 500;
   text-align: left;
   transition: background var(--memo-transition);
 }
@@ -272,7 +295,7 @@
 
 .memo-app-page .plus-icon {
   margin-right: 8px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .memo-app-page .memo-source-list {
@@ -288,29 +311,34 @@
   flex-direction: column;
   gap: 6px;
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--memo-border);
-  border-radius: var(--memo-radius);
-  background: var(--memo-bg-input);
+  padding: 12px;
+  border: none;
+  border-radius: var(--memo-radius-sm);
+  background: rgba(28, 28, 30, 0.48);
   color: var(--memo-text-primary);
   cursor: pointer;
   text-align: left;
-  transition: border-color var(--memo-transition), background var(--memo-transition);
+  transition: all var(--memo-transition);
 }
 
 .memo-app-page .memo-source-item:hover {
-  border-color: var(--memo-accent);
-  background: rgba(108, 140, 255, 0.06);
+  background: rgba(58, 58, 62, 0.48);
+  transform: scale(1.01);
+}
+
+.memo-app-page .memo-source-item:active {
+  transform: scale(0.99);
 }
 
 .memo-app-page .memo-source-title {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .memo-app-page .memo-source-preview {
   color: var(--memo-text-secondary);
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   line-height: 1.4;
 }
 
@@ -323,5 +351,5 @@
 .memo-app-page .memo-source-empty-tags,
 .memo-app-page .memo-source-empty {
   color: var(--memo-text-muted);
-  font-size: 0.74rem;
+  font-size: 0.78rem;
 }

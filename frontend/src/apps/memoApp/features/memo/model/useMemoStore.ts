@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
-import { fetchMemoList } from "../api/memo.repository";
+import { fetchMemoList } from "../infrastructure/memo.repository";
 import { getApiErrorMessage } from "../../../../../shared/api/apiError";
 import type { Memo, MemoCollectionScope, TagSummary } from "./memo.types";
 

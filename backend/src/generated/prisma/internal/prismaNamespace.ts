@@ -389,6 +389,7 @@ export const ModelName = {
   Tags: 'Tags',
   memo_tags: 'memo_tags',
   Quizs: 'Quizs',
+  quizChoice: 'quizChoice',
   quizTag: 'quizTag',
   quizTagsRelations: 'quizTagsRelations',
   quizSet: 'quizSet'
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "memos" | "memoHistories" | "tags" | "memo_tags" | "quizs" | "quizTag" | "quizTagsRelations" | "quizSet"
+    modelProps: "memos" | "memoHistories" | "tags" | "memo_tags" | "quizs" | "quizChoice" | "quizTag" | "quizTagsRelations" | "quizSet"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -781,6 +782,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    quizChoice: {
+      payload: Prisma.$quizChoicePayload<ExtArgs>
+      fields: Prisma.quizChoiceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.quizChoiceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.quizChoiceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        findFirst: {
+          args: Prisma.quizChoiceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.quizChoiceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        findMany: {
+          args: Prisma.quizChoiceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>[]
+        }
+        create: {
+          args: Prisma.quizChoiceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        createMany: {
+          args: Prisma.quizChoiceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.quizChoiceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>[]
+        }
+        delete: {
+          args: Prisma.quizChoiceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        update: {
+          args: Prisma.quizChoiceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        deleteMany: {
+          args: Prisma.quizChoiceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.quizChoiceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.quizChoiceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>[]
+        }
+        upsert: {
+          args: Prisma.quizChoiceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$quizChoicePayload>
+        }
+        aggregate: {
+          args: Prisma.QuizChoiceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateQuizChoice>
+        }
+        groupBy: {
+          args: Prisma.quizChoiceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuizChoiceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.quizChoiceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.QuizChoiceCountAggregateOutputType> | number
+        }
+      }
+    }
     quizTag: {
       payload: Prisma.$quizTagPayload<ExtArgs>
       fields: Prisma.quizTagFieldRefs
@@ -1088,11 +1163,24 @@ export const QuizsScalarFieldEnum = {
   id: 'id',
   word: 'word',
   mean: 'mean',
+  questionText: 'questionText',
+  hint: 'hint',
+  groupName: 'groupName',
+  isFavorite: 'isFavorite',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type QuizsScalarFieldEnum = (typeof QuizsScalarFieldEnum)[keyof typeof QuizsScalarFieldEnum]
+
+
+export const QuizChoiceScalarFieldEnum = {
+  id: 'id',
+  quiz_id: 'quiz_id',
+  choiceText: 'choiceText'
+} as const
+
+export type QuizChoiceScalarFieldEnum = (typeof QuizChoiceScalarFieldEnum)[keyof typeof QuizChoiceScalarFieldEnum]
 
 
 export const QuizTagScalarFieldEnum = {
@@ -1190,6 +1278,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'DateTime[]'
  */
 export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DateTime[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 
@@ -1306,6 +1401,7 @@ export type GlobalOmitConfig = {
   tags?: Prisma.TagsOmit
   memo_tags?: Prisma.memo_tagsOmit
   quizs?: Prisma.QuizsOmit
+  quizChoice?: Prisma.quizChoiceOmit
   quizTag?: Prisma.quizTagOmit
   quizTagsRelations?: Prisma.quizTagsRelationsOmit
   quizSet?: Prisma.quizSetOmit

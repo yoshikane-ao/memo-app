@@ -16,6 +16,18 @@ describe("MenuHomePage", () => {
           path: "/menu/workspace/memo",
           component: { template: "<div />" },
         },
+        {
+          path: "/menu/workspace/quiz",
+          component: { template: "<div />" },
+        },
+        {
+          path: "/menu/workspace/trade",
+          component: { template: "<div />" },
+        },
+        {
+          path: "/menu/workspace/test",
+          component: { template: "<div />" },
+        },
       ],
     });
 

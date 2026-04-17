@@ -6,7 +6,43 @@ on:
       - main
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Validate backend
+        working-directory: backend
+        run: |
+          npm run check:architecture
+          npm run test:api
+          npm run build
+
+      - name: Validate frontend
+        working-directory: frontend
+        run: |
+          npm run check:architecture
+          npm run test:unit
+          npm run test:e2e
+          npm run build
+
   deploy:
+    needs: validate
     runs-on: ubuntu-latest
 
     steps:
