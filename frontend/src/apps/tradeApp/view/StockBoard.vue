@@ -774,15 +774,13 @@ onBeforeUnmount(() => {
           <circle class="chart-projection__halo" :cx="projection.pointX" :cy="projection.pointY"
             :r="projection.haloRadius" :fill="projection.color" :opacity="projection.effectOpacity * 0.22" />
           <circle class="chart-projection__ripple" :cx="projection.pointX" :cy="projection.pointY"
-            :r="projection.rippleRadius" :stroke="projection.color"
-            :style="{
+            :r="projection.rippleRadius" :stroke="projection.color" :style="{
               '--projection-ripple-scale': `${1 + projection.intensity * 0.32}`,
               '--projection-ripple-opacity': `${projection.effectOpacity}`,
               '--projection-ripple-duration': `${Math.max(0.84, 1.2 - projection.intensity * 0.12)}s`,
             }" />
           <circle class="chart-projection__point" :cx="projection.pointX" :cy="projection.pointY"
-            :r="projection.pointRadius"
-            :fill="projection.color" />
+            :r="projection.pointRadius" :fill="projection.color" />
         </g>
 
         <g v-if="isCommitAnimationActive" v-for="projection in chart.projections"
@@ -804,8 +802,8 @@ onBeforeUnmount(() => {
           { 'is-dimmed': isSeriesDimmed(marker.stockKey) },
         ]" :data-order-marker="marker.id" :data-player-marker="marker.playerLabel" :data-side="marker.side"
           :data-pending-close="marker.isPendingClose === true ? 'true' : 'false'"
-          :data-marker-clickable="marker.isInteractive ? 'true' : 'false'"
-          focusable="false" @click="handleOrderMarkerClick(marker)">
+          :data-marker-clickable="marker.isInteractive ? 'true' : 'false'" focusable="false"
+          @click="handleOrderMarkerClick(marker)">
           <line class="order-marker__stem" :x1="marker.pointX" :x2="marker.pointX" :y1="marker.stemY1"
             :y2="marker.stemY2" :stroke="marker.accentColor" focusable="false" />
           <circle v-if="marker.isPendingClose" class="order-marker__pending-ring-mover" :cx="marker.pointX"
@@ -815,23 +813,23 @@ onBeforeUnmount(() => {
             <animate attributeName="cy" :values="`${marker.pointY};${marker.currentPointY};${marker.pointY}`"
               dur="1.45s" repeatCount="indefinite" />
           </circle>
-          <polygon class="order-marker__arrow" :points="marker.arrowPoints" :fill="marker.accentColor" focusable="false" />
-          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="6.1"
-            :fill="marker.accentColor" focusable="false" />
-          <rect v-if="marker.isInteractive" class="order-marker__hitbox" :x="marker.badgeX - 3"
-            :y="marker.badgeY - 3" :width="marker.badgeWidth + 6" :height="marker.badgeHeight + 6" rx="8"
-            focusable="false" @click.stop="handleOrderMarkerClick(marker)" />
+          <polygon class="order-marker__arrow" :points="marker.arrowPoints" :fill="marker.accentColor"
+            focusable="false" />
+          <circle class="order-marker__point" :cx="marker.pointX" :cy="marker.pointY" r="6.1" :fill="marker.accentColor"
+            focusable="false" />
+          <rect v-if="marker.isInteractive" class="order-marker__hitbox" :x="marker.badgeX - 3" :y="marker.badgeY - 3"
+            :width="marker.badgeWidth + 6" :height="marker.badgeHeight + 6" rx="8" focusable="false"
+            @click.stop="handleOrderMarkerClick(marker)" />
           <rect class="order-marker__badge" :x="marker.badgeX" :y="marker.badgeY" :width="marker.badgeWidth"
-            :height="marker.badgeHeight" rx="6" :fill="marker.badgeFill" :stroke="marker.accentColor"
-            focusable="false" @click.stop="handleOrderMarkerClick(marker)" />
+            :height="marker.badgeHeight" rx="6" :fill="marker.badgeFill" :stroke="marker.accentColor" focusable="false"
+            @click.stop="handleOrderMarkerClick(marker)" />
           <text class="order-marker__text" :x="marker.textX" :y="marker.textY" :fill="marker.badgeTextFill"
             focusable="false" @click.stop="handleOrderMarkerClick(marker)">
             {{ marker.playerLabel }} {{ marker.markerLabel }}
           </text>
         </g>
 
-        <g v-if="selectedMarkerSummary" class="marker-detail"
-          :data-selected-marker-summary="selectedMarkerSummary.id">
+        <g v-if="selectedMarkerSummary" class="marker-detail" :data-selected-marker-summary="selectedMarkerSummary.id">
           <line class="marker-detail__connector" :x1="selectedMarkerSummary.connectorX1"
             :y1="selectedMarkerSummary.connectorY1" :x2="selectedMarkerSummary.connectorX2"
             :y2="selectedMarkerSummary.connectorY2" />
@@ -1032,9 +1030,8 @@ onBeforeUnmount(() => {
 .shared-chart__backdrop {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
-  opacity: 0.17;
   background:
     linear-gradient(180deg, rgba(3, 9, 24, 0.28) 0%, rgba(3, 9, 24, 0.54) 100%),
     radial-gradient(circle at center, rgba(8, 17, 38, 0.1), rgba(3, 8, 21, 0.4) 72%),
@@ -1122,6 +1119,7 @@ onBeforeUnmount(() => {
   stroke: rgba(255, 255, 255, 0.05);
   stroke-width: 1;
   transition: stroke 0.2s ease, fill 0.2s ease;
+  opacity: 0.1;
 }
 
 .shared-chart[data-preview-zoom='true'] .plot-frame {
@@ -1441,6 +1439,7 @@ onBeforeUnmount(() => {
 }
 
 @keyframes projection-drift {
+
   0%,
   100% {
     stroke-dashoffset: 0;
@@ -1452,6 +1451,7 @@ onBeforeUnmount(() => {
 }
 
 @keyframes projection-halo-pulse {
+
   0%,
   100% {
     opacity: 0.2;
@@ -1465,6 +1465,7 @@ onBeforeUnmount(() => {
 }
 
 @keyframes projection-point-pulse {
+
   0%,
   100% {
     opacity: 0.52;
@@ -1512,6 +1513,7 @@ onBeforeUnmount(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .chart-projection__path,
   .chart-projection__halo,
   .chart-projection__point,

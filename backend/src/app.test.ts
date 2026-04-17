@@ -1,14 +1,15 @@
-jest.mock("./memoApp/memos/memosRouter", () => {
+jest.mock("./features/memo", () => {
   const { Router } = jest.requireActual<typeof import("express")>("express");
   return {
     memosRouter: Router(),
+    tagsRouter: Router(),
   };
 });
 
-jest.mock("./memoApp/tags/tagsRouter", () => {
+jest.mock("./features/quiz", () => {
   const { Router } = jest.requireActual<typeof import("express")>("express");
   return {
-    tagsRouter: Router(),
+    quizRouter: Router(),
   };
 });
 

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "jest",
     "test:api": "jest --config jest.config.cjs --runInBand",
+    "check:architecture": "node ../tooling/check-architecture.mjs backend",
     "test:watch": "jest --watch",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "node ./node_modules/typescript/bin/tsc",

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "check:architecture": "node ../tooling/check-architecture.mjs frontend",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "test:e2e": "npm run build && playwright test",
@@ -16,9 +17,12 @@
     "dev:frontend": "cd frontend && npm run dev"
   },
   "dependencies": {
+    "@lucide/vue": "^1.7.0",
+    "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.13.6",
     "cors": "^2.8.6",
     "pinia": "^3.0.4",
+    "tailwindcss": "^4.2.2",
     "vue": "^3.5.30",
     "vue-router": "^4.6.4"
   },

@@ -139,6 +139,13 @@ export function calculateTradePositionSettlementCash(
   return Math.round(position.orderAmount + calculateTradePositionPnL(position, currentPrice))
 }
 
+export function calculateTradePositionCloseImpactAmount(
+  position: PositionPnLInput,
+  currentPrice: number,
+): number {
+  return Math.abs(calculateTradePositionPnL(position, currentPrice))
+}
+
 export function formatCurrency(value: number): string {
   return `${Math.round(value).toLocaleString('ja-JP')}円`
 }

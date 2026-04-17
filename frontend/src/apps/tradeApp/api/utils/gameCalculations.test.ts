@@ -8,6 +8,7 @@ import {
 } from '../types/game'
 import {
   calculateManagementEvaluation,
+  calculateTradePositionCloseImpactAmount,
   calculatePlayerSnapshot,
   calculatePlayerVictoryValue,
   calculateTradePositionPnL,
@@ -205,5 +206,25 @@ describe('calculatePlayerSnapshot', () => {
 
     expect(pnl).toBe(-20000)
     expect(settlement).toBe(-10000)
+  })
+
+  it('uses the absolute realized pnl as the close impact amount', () => {
+    expect(calculateTradePositionCloseImpactAmount(
+      {
+        side: 'buy',
+        entryPrice: 1000,
+        orderAmount: 1000,
+      },
+      101000,
+    )).toBe(100000)
+
+    expect(calculateTradePositionCloseImpactAmount(
+      {
+        side: 'sell',
+        entryPrice: 1000,
+        orderAmount: 1000,
+      },
+      21000,
+    )).toBe(20000)
   })
 })

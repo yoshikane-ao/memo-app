@@ -65,6 +65,11 @@ export type memo_tags = Prisma.memo_tagsModel
  */
 export type Quizs = Prisma.QuizsModel
 /**
+ * Model quizChoice
+ * 
+ */
+export type quizChoice = Prisma.quizChoiceModel
+/**
  * Model quizTag
  * 
  */

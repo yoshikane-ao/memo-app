@@ -56,6 +56,7 @@ export const ModelName = {
   Tags: 'Tags',
   memo_tags: 'memo_tags',
   Quizs: 'Quizs',
+  quizChoice: 'quizChoice',
   quizTag: 'quizTag',
   quizTagsRelations: 'quizTagsRelations',
   quizSet: 'quizSet'
@@ -123,11 +124,24 @@ export const QuizsScalarFieldEnum = {
   id: 'id',
   word: 'word',
   mean: 'mean',
+  questionText: 'questionText',
+  hint: 'hint',
+  groupName: 'groupName',
+  isFavorite: 'isFavorite',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type QuizsScalarFieldEnum = (typeof QuizsScalarFieldEnum)[keyof typeof QuizsScalarFieldEnum]
+
+
+export const QuizChoiceScalarFieldEnum = {
+  id: 'id',
+  quiz_id: 'quiz_id',
+  choiceText: 'choiceText'
+} as const
+
+export type QuizChoiceScalarFieldEnum = (typeof QuizChoiceScalarFieldEnum)[keyof typeof QuizChoiceScalarFieldEnum]
 
 
 export const QuizTagScalarFieldEnum = {

@@ -1,9 +1,12 @@
 # Architecture Overview
 
+See [ARCHITECTURE_RULES.md](./ARCHITECTURE_RULES.md) for the active guardrails and reference-scope rules.
+
 ## Top Level
 
 ```text
 memo-app/
+|- .github/
 |- backend/
 |- docs/
 |- frontend/
@@ -12,217 +15,119 @@ memo-app/
 `- README.md
 ```
 
-- `backend` is the active API service.
-- `docs` holds project documentation that is useful to keep out of the runtime roots.
-- `frontend` is the active Vue application.
-- `tooling` holds shared project configuration such as base TypeScript settings.
-- `docker-compose.yml` wires `db`, `api`, and `web`.
-- There is no active root npm package. Runtime entry points live in `backend` and `frontend`.
+- `backend` contains the active API service.
+- `frontend` contains the active Vue application.
+- `docs` holds architecture and project documentation.
+- `tooling` holds shared project scripts such as architecture checks.
+- `.github/workflows/deploy.yml` now runs validation before deployment.
 
 ## Active Runtime Structure
 
 ### Backend
 
 ```text
-backend/
-|- prisma/
-|  |- schema.prisma
-|  `- migrations/
-`- src/
-   |- app.ts
-   |- server.ts
-   |- config.ts
-   |- db.ts
-   |- memoApp/
-   `- test/
+backend/src/
+|- app.ts
+|- server.ts
+|- config.ts
+|- db.ts
+|- features/
+|  |- memo/
+|  |  |- application/
+|  |  |- infrastructure/
+|  |  |- presentation/http/
+|  |  `- index.ts
+|  `- quiz/
+|- shared/
+|- test/
+`- types/
 ```
 
-- `src/app.ts` builds the Express app and mounts `/health`, `/memos`, and `/tags`.
-- `src/server.ts` starts the HTTP server.
-- `src/config.ts` is the backend runtime configuration source.
-- `src/db.ts` owns the Prisma client.
-- `src/memoApp/shared/requestValidation.ts` provides schema-style body, params, and query parsing.
-- `src/memoApp/memos` contains the memo feature routes:
-  - `list`
-  - `register`
-  - `update`
-  - `delete`
-  - `restore`
-  - `purge`
-  - `search`
-  - `sort`
-  - `layout`
-- `src/memoApp/tags` contains the active tag feature routes and restore/link helpers.
-- `src/memoApp/shared/syncSerialSequence.ts` keeps explicit ID restores safe after undo/redo restores.
-- `src/test` contains lightweight backend test utilities.
+- `app.ts` mounts `/health`, `/memos`, `/tags`, and `/quiz`.
+- `features/memo` is the backend reference feature.
+- `features/quiz` is also part of the backend reference scope.
+- `features/memo/index.ts` composes repositories, use cases, and routers.
+- `features/memo/application` owns framework-agnostic ports and use-case factories.
+- `features/memo/infrastructure` owns Prisma-backed repositories.
+- `features/memo/presentation/http` owns request parsing and Express routing only.
+- `features/quiz/index.ts` now composes repositories, use cases, and routers through the same boundary pattern.
+- `features/quiz/application` owns framework-agnostic ports and use-case factories.
+- `features/quiz/infrastructure` owns Prisma-backed repositories.
+- `features/quiz/presentation/http` owns request parsing and Express routing only.
+- Legacy `src/memoApp` and `src/tradeApp` trees were removed.
 
 ### Frontend
 
 ```text
 frontend/src/
-|- app/
-|  `- router/
+|- app/router/
 |- apps/
-|  `- memoApp/
-|- main.ts
-|- App.vue
+|  |- memoApp/
+|  |  |- features/
+|  |  |  |- memo/
+|  |  |  |- tag/
+|  |  |  `- view/
+|  |  |- pages/
+|  |  |- styles/
+|  |  |- routes.ts
+|  |  `- index.ts
+|  |- quiz-app/
+|  |- testApp/
+|  `- tradeApp/
 |- layouts/
-|- pages/
-|  `- menu/
+|- pages/menu/
 |- shared/
-|- test/
-`- styles/
+|- styles/
+`- test/
 ```
 
-- `main.ts` creates the Vue app, Pinia, and router.
-- `app/router/index.ts` owns the top-level router and document title handling.
-- `app/router/appRegistry.ts` aggregates app definitions into menu cards and `/menu/{section}/{app}` routes.
-- `app/router/menuApp.types.ts` defines the shared menu app contract.
-- `/` redirects to `/menu`.
-- `apps/memoApp` is the memo app boundary.
-  - `index.ts` is the memo app public entry point.
-  - `routes.ts` owns memo app metadata and route creation.
-  - `pages` contains memo app page composition and page setup helpers.
-  - `features/memo` contains memo UI, store, repository, and command logic.
-  - `features/tag` contains tag UI, store, repository, and tag selection/editing flows.
-  - `styles/index.css` is the memo app-local stylesheet entry point.
-  - `styles/theme.css`, `chrome.css`, `memo-fields.css`, `memo-composer.css`, `memo-list.css`, and `tag-ui.css` split memo styles by responsibility.
-- `layouts/MenuLayout.vue` is the shared shell for all menu-based routes.
-- `pages/menu/MenuHomePage.vue` renders the launcher page.
-- `styles/menu-theme.css` holds shared menu tokens and keyframes.
-- `layouts/menu-shell.css` holds the menu shell styles owned by `MenuLayout.vue`.
-- `pages/menu/menu-home.css` holds launcher-specific menu styles owned by `MenuHomePage.vue`.
-- `apps/memoApp/pages/MemoPage.vue` is the memo app screen composition root.
-- `apps/memoApp/pages/MemoTrashPage.vue` is the memo trash screen composition root.
-- `apps/memoApp/pages/useMemoPageSetup.ts` owns initial page loading and shortcut setup.
-- `apps/memoApp/pages/useMemoListView.ts` owns local keyword/filter/sort projection for the memo list.
-- `shared` contains reusable primitives:
-  - API client
-  - API error normalization
-  - history manager
-  - copy shortcuts
-  - feedback banner
-  - keyboard helpers
-  - base UI elements
-- `test` contains frontend test-only helpers such as Pinia activation utilities.
-- `e2e` contains the browser smoke test and a lightweight static test server.
-- `../tooling/tsconfig/base.json` provides shared TypeScript defaults for frontend and backend builds.
+- `app/router` owns the top-level menu router and app registry.
+- `apps/memoApp` is the frontend reference app boundary.
+- `apps/memoApp/features/memo` owns memo list, composer, toolbar, commands, state, and repositories.
+- `apps/memoApp/features/tag` now uses:
+  - `containers/` for tag selection/filter/editor orchestration
+  - `ui/` for tag presenter components and popovers
+  - `model/` for tag state
+  - `application/` for tag command hooks
+  - `infrastructure/` for tag API access
+  - `types.ts` for feature-public types
+- `apps/memoApp/features/view` owns memo view scope state and navigation helpers.
+- `apps/memoApp/pages/useMemoPageSetup.ts` is the page-level load boundary for memo and tag bootstrap.
+- `apps/quiz-app` is also in the frontend reference scope.
+- `apps/quiz-app/features/quiz` uses `application/`, `containers/`, `infrastructure/`, `model/`, `ui/`, and `index.ts`.
+- Quiz initial load now lives in containers, while application hooks stay lifecycle-free.
+- `apps/tradeApp` now routes through `pages/` and a feature public surface, but remains transitional because most internals still live in app-level technical directories.
+- `apps/testApp` now routes through `pages/` and `features/pipeline`, but remains a lightweight playground app rather than a reference feature.
+- `tradeApp` and `testApp` remain available but are not the reference frontend architecture for this phase.
 
-## Frontend Component Design
-
-### Page Composition
-
-`MenuLayout.vue` renders:
-
-1. top-level menu header
-2. route breadcrumb / summary
-3. child `router-view`
-
-`MenuHomePage.vue` renders:
-
-1. launcher hero
-2. section groups
-3. app cards generated from `appRegistry`
-
-`MemoPage.vue` renders:
-
-1. `FeedbackBanner`
-2. `MemoScopeTabs`
-3. `MemoComposerContainer`
-4. `MemoToolbar`
-5. `MemoListContainer`
-
-`MemoTrashPage.vue` renders:
-
-1. `FeedbackBanner`
-2. `MemoScopeTabs`
-3. `MemoToolbar`
-4. `MemoTrashListContainer`
-
-### State and Commands
-
-- `apps/memoApp/features/memo/model/useMemoStore.ts` stores loaded memo state and local memo mutations.
-- `apps/memoApp/features/tag/model/useTagStore.ts` stores loaded tag state and local tag mutations.
-- `apps/memoApp/features/memo/model/useMemoHistoryCommands.ts` is the command facade.
-  - memo write commands live in `memoCommandHandlers.ts`
-  - tag write commands live in `tagCommandHandlers.ts`
-  - shared conversion/result helpers live in `commandHelpers.ts`
-- `shared/history/useHistoryManager.ts` is the shared undo/redo engine backed by Pinia state.
-- `shared/api/client.ts` is the HTTP boundary.
-- `shared/api/apiError.ts` normalizes backend messages into UI-safe errors.
-
-This means the current frontend architecture is:
+## Frontend Composition Flow
 
 ```text
-router -> menu layout -> page -> page setup -> feature containers -> command facade -> command handlers -> repository -> backend API
-                                                     -> Pinia stores
-                                                     -> shared history manager
+router
+-> menu layout
+-> memo app shell
+-> page setup
+-> feature containers
+-> feature ui
+-> feature application / model
+-> feature infrastructure
+-> backend API
 ```
 
-### Memo Feature Breakdown
-
-- `apps/memoApp/features/memo/components/MemoComposer*` handles creation inputs and selected tags.
-- `apps/memoApp/features/memo/components/MemoToolbar` handles keyword search, search type, sort mode, and tag filtering.
-- `apps/memoApp/features/memo/components/MemoList` handles active-list rendering, trash-list rendering, and reordering.
-- `apps/memoApp/features/memo/components/MemoCard` handles inline edit, copy, save, trash, and per-memo tag editing.
-- `apps/memoApp/features/memo/components/MemoTrashCard` handles restore and permanent delete actions for trashed memos.
-
-### Tag Feature Breakdown
-
-- `apps/memoApp/features/tag/components/TagSelectionSelect` is the tag picker used during memo creation.
-- `apps/memoApp/features/tag/components/TagRelationEditor` is the tag editor used on an existing memo card.
-- `apps/memoApp/features/tag/components/TagSearchPopover` is the shared tag picker popover shell.
-- `apps/memoApp/features/tag/components/TagFilterSelect` is the toolbar tag filter.
-- `apps/memoApp/features/tag/components/TagCatalogPanel` renders searchable tag choices and system tag deletion.
-- `apps/memoApp/features/tag/components/MemoTagSourceTab` applies tags from another memo.
-
-## Verification Coverage
-
-- Frontend unit tests cover component behavior, stores, commands, page setup, API error normalization, and Vite proxy smoke behavior.
-- Frontend browser smoke coverage runs through initial memo load, memo creation, trash, restore, and reload persistence with Playwright.
-- Backend API tests cover app boot, config parsing, and selected route validation behavior.
-- Backend `src/test/e2eApiServer.ts` provides a test-only in-memory Prisma substitute for browser smoke runs.
-
-## Data Model
-
-Active models in `backend/prisma/schema.prisma`:
-
-- `Memos`
-- `Tags`
-- `memo_tags`
-- `MemoHistories`
-
-Current runtime usage:
-
-- `Memos`, `Tags`, `memo_tags`, and `MemoHistories` are actively used.
-- Memo width, height, ordering, and trash state (`deletedAt`) are handled directly on `Memos`.
+- `MemoPage.vue` and `MemoTrashPage.vue` consume the memo feature through its public surface.
+- Tag orchestration now lives in tag containers, not in tag presenter components.
+- Presenter components emit events upward; containers own store reads, command execution, and confirmation flows.
+- Application hooks stay lifecycle-free; first-load responsibility lives in page setup or containers.
+- All mounted app routes now enter through `pages/`, not directly through `application/`, `model/`, or `infrastructure/`.
 
 ## Source Of Truth
 
-- Active Prisma migrations live in `backend/prisma/migrations`.
-- Active backend environment settings are documented in `backend/.env.example`.
-- Legacy top-level migration files under `C:\\personal-development\\migrations` were removed during cleanup.
-- Empty or partially abandoned directories should not be treated as active architecture.
-
-## Legacy Or Inactive Areas
-
-Duplicate legacy API clients, unmounted legacy tag route modules, legacy migration files, and empty legacy directories were removed during cleanup.
-
-Keep this distinction in mind before extending the application.
-
-## Verification Commands
-
-Backend:
-
-```powershell
-npm run test:api
-npm run build
-```
-
-Frontend:
-
-```powershell
-npm run test:unit
-npm run test:e2e
-npm run build
-```
+- Runtime entrypoints:
+  - `backend/src/app.ts`
+  - `frontend/src/app/router/index.ts`
+- Reference rules:
+  - `docs/ARCHITECTURE_RULES.md`
+- Guardrail script:
+  - `tooling/check-architecture.mjs`
+- Validation workflow:
+  - `.github/workflows/deploy.yml`

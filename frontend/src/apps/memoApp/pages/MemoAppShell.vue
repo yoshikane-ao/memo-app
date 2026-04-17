@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { RouterView, useRoute } from "vue-router";
+import { RouterView, useRoute, useRouter } from "vue-router";
 import { onBeforeUnmount, watch } from "vue";
 import { useCopyShortcuts } from "../../../shared/copy/useCopyShortcuts";
 import { useHistoryManager } from "../../../shared/history/useHistoryManager";
 import { useHistoryShortcuts } from "../../../shared/history/useHistoryShortcuts";
 import { memoPaths } from "../routes";
-import { useMemoViewStore } from "../features/view/model/useMemoViewStore";
+import { useMemoViewStore } from "../features/view";
 
 const history = useHistoryManager();
 const route = useRoute();
-// const router = useRouter();
+const router = useRouter();
 const viewStore = useMemoViewStore();
 
 useHistoryShortcuts();
@@ -30,10 +30,17 @@ watch(
   { immediate: true }
 );
 
-// const changeScope = async (scope: "active" | "trash") => {
-//   viewStore.setScope(scope);
-//   await router.push(scope === "trash" ? memoPaths.trash : memoPaths.active);
-// };
+watch(
+  () => viewStore.currentScope,
+  (scope) => {
+    const nextPath = scope === "trash" ? memoPaths.trash : memoPaths.active;
+    if (route.path === nextPath) {
+      return;
+    }
+
+    void router.push(nextPath);
+  }
+);
 
 onBeforeUnmount(() => {
   history.clear();

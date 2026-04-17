@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [vue()],
     server: {
+      port: 5174,
       proxy: createApiProxy(apiProxyTarget),
     },
   };

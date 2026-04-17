@@ -1,17 +1,12 @@
 export { useMemoStore } from "./model/useMemoStore";
-export { default as MemoComposerContainer } from "./components/MemoComposer/MemoComposerContainer.vue";
-export { default as MemoListContainer } from "./components/MemoList/MemoListContainer.vue";
-export { default as MemoScopeTabs } from "./components/MemoToolbar/MemoScopeTabs.vue";
-export { default as MemoTrashActionsContainer } from "./components/MemoToolbar/MemoTrashActionsContainer.vue";
-export { default as MemoToolbar } from "./components/MemoToolbar/MemoToolbar.vue";
-export { default as MemoTrashListContainer } from "./components/MemoList/MemoTrashListContainer.vue";
+export { useMemoHistoryCommands } from "./application/useMemoCommands";
+export { default as MemoComposerContainer } from "./containers/MemoComposer/MemoComposerContainer.vue";
+export { default as MemoListContainer } from "./containers/MemoList/MemoListContainer.vue";
+export { default as MemoTrashListContainer } from "./containers/MemoList/MemoTrashListContainer.vue";
+export { default as MemoScopeTabs } from "./ui/MemoToolbar/MemoScopeTabs.vue";
+export { default as MemoTrashActionsContainer } from "./containers/MemoToolbar/MemoTrashActionsContainer.vue";
+export { default as MemoToolbar } from "./ui/MemoToolbar/MemoToolbar.vue";
 export type {
-  CreateMemoInput,
   Memo,
   MemoCollectionScope,
-  MemoDto,
-  MemoTagRelation,
-  ReorderMemoInput,
-  TagSummary,
-  UpdateMemoInput,
-} from "./model/memo.types";
+} from "./types";

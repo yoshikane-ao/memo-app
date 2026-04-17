@@ -5,10 +5,12 @@ import { useMemoPageSetup } from "./useMemoPageSetup";
 
 const {
   fetchAllMock,
+  ensureTagsLoadedMock,
   listViewState,
   useMemoListViewMock,
 } = vi.hoisted(() => ({
   fetchAllMock: vi.fn(() => Promise.resolve(true)),
+  ensureTagsLoadedMock: vi.fn(() => Promise.resolve(true)),
   useMemoListViewMock: vi.fn(),
   listViewState: {
     keyword: "",
@@ -27,6 +29,12 @@ vi.mock("../features/memo", () => ({
   }),
 }));
 
+vi.mock("../features/tag", () => ({
+  useTagStore: () => ({
+    ensureLoaded: ensureTagsLoadedMock,
+  }),
+}));
+
 vi.mock("./useMemoListView", () => ({
   useMemoListView: (...args: unknown[]) => {
     useMemoListViewMock(...args);
@@ -39,7 +47,7 @@ describe("useMemoPageSetup", () => {
     vi.clearAllMocks();
   });
 
-  it("initializes shortcuts and loads memos on mount", async () => {
+  it("loads memos and shared tag state on mount", async () => {
     const TestHost = defineComponent({
       template: "<div />",
       setup() {
@@ -51,6 +59,7 @@ describe("useMemoPageSetup", () => {
 
     expect(fetchAllMock).toHaveBeenCalledTimes(1);
     expect(fetchAllMock).toHaveBeenCalledWith("active");
+    expect(ensureTagsLoadedMock).toHaveBeenCalledTimes(1);
   });
 
   it("passes scope and list view options through to the page setup dependencies", async () => {
@@ -72,6 +81,7 @@ describe("useMemoPageSetup", () => {
     mount(TestHost);
 
     expect(fetchAllMock).toHaveBeenCalledWith("trash");
+    expect(ensureTagsLoadedMock).toHaveBeenCalledTimes(1);
     expect(useMemoListViewMock).toHaveBeenCalledWith(expect.anything(), listViewOptions);
   });
 });

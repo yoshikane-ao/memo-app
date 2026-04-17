@@ -3,9 +3,8 @@ import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { config } from "./config";
-import { memosRouter } from "./memoApp/memos/memosRouter";
-import { tagsRouter } from "./memoApp/tags/tagsRouter";
-import { quizRouter } from "./quiz-app/quiz/quizRouter"
+import { memosRouter, tagsRouter } from "./features/memo";
+import { quizRouter } from "./features/quiz";
 // import { tradeAppRoutes } from "./tradeApp/routes"
 
 const createRateLimiter = () =>

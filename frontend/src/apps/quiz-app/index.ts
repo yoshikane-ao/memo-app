@@ -1,0 +1,1 @@
+export { quizAppDefinition } from "./routes";
