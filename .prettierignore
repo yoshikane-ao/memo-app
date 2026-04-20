@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+**/coverage
+backend/generated
+backend/prisma/migrations
+frontend/test-results
+frontend/playwright-report
+tooling/tsconfig
+package-lock.json
+**/package-lock.json
+*.log
+tmp-*
+CHANGELOG.md
