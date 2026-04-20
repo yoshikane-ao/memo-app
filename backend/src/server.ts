@@ -5,18 +5,20 @@ initSentry();
 
 import { buildApp } from './app';
 import { config } from './config';
-import { ensureDemoUser } from './features/auth';
+import { createContainer } from './composition/container';
 import { logger } from './shared/logger';
 
 async function bootstrap() {
+  const container = createContainer();
+
   try {
-    await ensureDemoUser();
+    await container.ensureDemoUser();
   } catch (error) {
     // デモユーザー seed の失敗は起動自体を止めない（本体機能に影響しないため）
     logger.error({ err: error }, 'デモユーザーの seed に失敗しました');
   }
 
-  const app = buildApp();
+  const app = buildApp(container);
   const publicHost = config.host === '0.0.0.0' ? 'localhost' : config.host;
 
   app.listen(config.port, config.host, () => {
