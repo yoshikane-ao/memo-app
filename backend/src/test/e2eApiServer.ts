@@ -3,6 +3,8 @@
 // 本物の app.ts / authRouter / memoRouter を動かす。
 // 認証導入後は demo ユーザーで seed するため、先に process.env を仕込む。
 
+import { RecordNotFoundError } from '../shared/errors';
+
 const DEMO_EMAIL = 'demo@example.com';
 const DEMO_PASSWORD = 'demo12345';
 
@@ -327,7 +329,7 @@ const fakePrisma: Record<string, unknown> = {
     findUniqueOrThrow: async (args: { where: { id: number } }) => {
       const memo = memos.find((entry) => entry.id === args.where.id);
       if (!memo) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
       return cloneMemo(memo);
     },
@@ -388,7 +390,7 @@ const fakePrisma: Record<string, unknown> = {
       const memo = memos.find((entry) => entry.id === args.where.id);
 
       if (!memo) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
 
       Object.assign(memo, args.data, { updatedAt: new Date() });
@@ -412,7 +414,7 @@ const fakePrisma: Record<string, unknown> = {
     delete: async (args: { where: { id: number } }) => {
       const index = memos.findIndex((entry) => entry.id === args.where.id);
       if (index === -1) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
 
       const deletedMemo = memos.splice(index, 1)[0]!;
@@ -473,7 +475,7 @@ const fakePrisma: Record<string, unknown> = {
     delete: async (args: { where: { id: number } }) => {
       const index = tags.findIndex((tag) => tag.id === args.where.id);
       if (index === -1) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
       const deletedTag = tags.splice(index, 1)[0]!;
       return { ...deletedTag };

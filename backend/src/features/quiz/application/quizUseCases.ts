@@ -1,3 +1,4 @@
+import { RecordNotFoundError } from '../../../shared/errors';
 import type {
   BulkUpdateQuizLabelsInput,
   CreateQuizInput,
@@ -33,7 +34,7 @@ export const createQuizUseCases = ({ quizRepository }: { quizRepository: QuizRep
   async deleteQuizTag(userId: number, tagName: string) {
     const tag = await quizRepository.findTagByName(userId, tagName);
     if (!tag) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
     await quizRepository.deleteTagById(userId, tag.id);
@@ -90,7 +91,7 @@ export const createQuizUseCases = ({ quizRepository }: { quizRepository: QuizRep
   async toggleQuizFavorite(userId: number, id: number) {
     const quiz = await quizRepository.findById(userId, id);
     if (!quiz) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
     return quizRepository.toggleFavorite(userId, id, !quiz.isFavorite);

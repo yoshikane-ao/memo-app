@@ -1,0 +1,1 @@
+export { RecordNotFoundError } from './recordNotFoundError';
