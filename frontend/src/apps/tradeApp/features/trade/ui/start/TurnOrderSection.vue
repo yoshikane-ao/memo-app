@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { FirstPlayer } from '../../model/tradeSetup';
+import type { FirstPlayer } from '../../types';
 
 const props = defineProps<{
   modelValue: FirstPlayer;

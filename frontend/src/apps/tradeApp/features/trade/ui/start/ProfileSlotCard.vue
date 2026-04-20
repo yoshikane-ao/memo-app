@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { TradeProfile } from '../../model/useTradeProfileStore';
-import type { PlayerIdentity, PlayerSlot } from '../../model/playerIdentity';
+import type { PlayerIdentity, PlayerSlot, TradeProfile } from '../../types';
 
 const props = withDefaults(
   defineProps<{

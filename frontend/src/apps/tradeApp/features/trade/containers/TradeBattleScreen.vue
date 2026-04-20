@@ -5,14 +5,23 @@ import StockBoard from '../ui/StockBoard.vue';
 import PlayerPanel from '../ui/PlayerPanel.vue';
 import ActionPanel from '../ui/ActionPanel.vue';
 
-import type { PlayerId, PlayerState, StockKey, StockState } from '../types';
+import type {
+  ActionPanelImpactPatterns,
+  PlayerId,
+  PlayerPanelPositionRow,
+  PlayerState,
+  StockKey,
+  StockState,
+} from '../types';
 import type { BattleActionDraft } from '../model/tradeBattle';
 import {
   buildBattleActionProjection,
   buildBattleConfirmedAction,
   createDefaultBattleActionDraft,
 } from '../model/tradeBattle';
-import { calculatePlayerVictoryValue, formatCurrency } from '../model/gameCalculations';
+import { calculatePlayerVictoryValue, calculateTradePositionPnL } from '../model/gameCalculations';
+import { formatCurrency } from '../../../../../shared/format/currency';
+import { resolveTradeImpactPattern } from '../model/tradeImpact';
 import { MAX_BATTLE_TURNS as MAX_TURNS, findPlayerById } from '../model/tradeBattleState';
 import type { BattleClosePreview, ChartOrderMarker } from '../model/tradeBattleSelectors';
 import {
@@ -204,6 +213,58 @@ const activePositionMarkers = computed<ChartOrderMarker[]>(() =>
   }),
 );
 
+function resolveTargetLabel(stockKey: StockKey): string {
+  if (stockKey === 'market') return 'マーケット';
+  if (stockKey === 'p1') return 'Player1会社';
+  return 'Player2会社';
+}
+
+function buildPlayerPanelPositionRows(player: PlayerState): PlayerPanelPositionRow[] {
+  const currentPriceMap = state.stocks.reduce<Record<StockKey, number>>(
+    (acc, stock) => {
+      acc[stock.key] = stock.currentPrice;
+      return acc;
+    },
+    { p1: 0, p2: 0, market: 0 },
+  );
+  const projectedPrices = projectedBoardPrices.value;
+  const pendingCloseId = pendingClosePreview.value?.positionId ?? null;
+
+  return [...player.positions].reverse().map((position) => {
+    const currentPrice = currentPriceMap[position.stockKey] ?? 0;
+    const isPendingClose = pendingCloseId === position.id;
+    const projectedPrice = projectedPrices?.[position.stockKey] ?? currentPrice;
+    const currentPnl = calculateTradePositionPnL(position, currentPrice);
+
+    return {
+      id: position.id,
+      targetLabel: resolveTargetLabel(position.stockKey),
+      orderAmountText: formatCurrency(position.orderAmount),
+      directionText: position.side === 'buy' ? '買い' : '売り',
+      pnl: currentPnl,
+      projectedPnl: isPendingClose
+        ? currentPnl
+        : calculateTradePositionPnL(position, projectedPrice),
+      projectedPnlLabel: isPendingClose ? '決済損益' : '行動後',
+      isPendingClose,
+      closeButtonLabel: isPendingClose ? '保留解除' : 'ポジション決済',
+    };
+  });
+}
+
+const leftPlayerRows = computed<PlayerPanelPositionRow[]>(() =>
+  buildPlayerPanelPositionRows(leftPlayer.value),
+);
+const rightPlayerRows = computed<PlayerPanelPositionRow[]>(() =>
+  buildPlayerPanelPositionRows(rightPlayer.value),
+);
+
+const actionImpactPatterns = computed<ActionPanelImpactPatterns>(() => ({
+  p1: resolveTradeImpactPattern(activePlayer.value.id, 'p1', actionDraft.value.tradeAction),
+  p2: resolveTradeImpactPattern(activePlayer.value.id, 'p2', actionDraft.value.tradeAction),
+  market: resolveTradeImpactPattern(activePlayer.value.id, 'market', actionDraft.value.tradeAction),
+}));
+
 function getPlayer(playerId: PlayerId): PlayerState {
   return findPlayerById(state, playerId);
 }
@@ -284,9 +345,7 @@ async function goBackToMenu(): Promise<void> {
     <PlayerPanel
       class="left-panel"
       :player="leftPlayer"
-      :stocks="state.stocks"
-      :projected-prices="projectedBoardPrices"
-      :pending-close="pendingClosePreview"
+      :position-rows="leftPlayerRows"
       :is-active="!isGameOver && state.currentPlayer === 'player1'"
       :victory-value="leftVictoryValue"
       :victory-diff="leftVictoryDiff"
@@ -308,9 +367,7 @@ async function goBackToMenu(): Promise<void> {
     <PlayerPanel
       class="right-panel"
       :player="rightPlayer"
-      :stocks="state.stocks"
-      :projected-prices="projectedBoardPrices"
-      :pending-close="pendingClosePreview"
+      :position-rows="rightPlayerRows"
       :is-active="!isGameOver && state.currentPlayer === 'player2'"
       :victory-value="rightVictoryValue"
       :victory-diff="rightVictoryDiff"
@@ -324,6 +381,7 @@ async function goBackToMenu(): Promise<void> {
       :player-names="playerNames"
       :draft="actionDraft"
       :projection="actionProjection"
+      :impact-patterns="actionImpactPatterns"
       :pending-close="pendingCloseSummary"
       @update:draft="handleDraftChange"
       @confirm="handleConfirmTurn"

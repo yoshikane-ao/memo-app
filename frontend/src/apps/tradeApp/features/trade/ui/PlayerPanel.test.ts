@@ -1,55 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import type { PlayerState, StockState } from '../types';
+import type { PlayerPanelPositionRow, PlayerState } from '../types';
 import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
   FACILITY_INVESTMENT_ACTION,
 } from '../types';
-import { formatSignedCurrency } from '../model/gameCalculations';
+import { formatSignedCurrency } from '../../../../../shared/format/currency';
 import PlayerPanel from './PlayerPanel.vue';
-
-function createStocks(): StockState[] {
-  return [
-    {
-      key: 'p1',
-      name: 'Player1会社',
-      basePrice: 10000,
-      currentPrice: 10000,
-      previousPrice: 10000,
-      bubbleUpper: 0,
-      bubbleLower: 0,
-      history: [10000],
-      shortInterest: 0,
-      correlationNote: '',
-    },
-    {
-      key: 'p2',
-      name: 'Player2会社',
-      basePrice: 10000,
-      currentPrice: 9800,
-      previousPrice: 9800,
-      bubbleUpper: 0,
-      bubbleLower: 0,
-      history: [9800],
-      shortInterest: 0,
-      correlationNote: '',
-    },
-    {
-      key: 'market',
-      name: 'マーケット',
-      basePrice: 10000,
-      currentPrice: 10000,
-      previousPrice: 10000,
-      bubbleUpper: 0,
-      bubbleLower: 0,
-      history: [10000],
-      shortInterest: 0,
-      correlationNote: '',
-    },
-  ];
-}
 
 function createPlayer(): PlayerState {
   return {
@@ -69,17 +28,7 @@ function createPlayer(): PlayerState {
       p2: { quantity: 0, avgPrice: 0 },
       market: { quantity: 0, avgPrice: 0 },
     },
-    positions: [
-      {
-        id: 'position-1',
-        stockKey: 'p1',
-        side: 'buy',
-        quantity: 1,
-        entryPrice: 10000,
-        orderAmount: 10000,
-        openedTurn: 1,
-      },
-    ],
+    positions: [],
     speculation: [],
     cooldowns: {
       [CAPITAL_INCREASE_ACTION]: 0,
@@ -100,19 +49,25 @@ function normalizedText(wrapper: ReturnType<typeof mount>): string {
 }
 
 describe('PlayerPanel', () => {
-  it('removes projected price labels and uses current pnl for pending close positions', () => {
+  it('renders pending close row with zero realized pnl and release label', () => {
+    const positionRows: PlayerPanelPositionRow[] = [
+      {
+        id: 'position-1',
+        targetLabel: 'Player1会社',
+        orderAmountText: '10,000円',
+        directionText: '買い',
+        pnl: 0,
+        projectedPnl: 0,
+        projectedPnlLabel: '決済損益',
+        isPendingClose: true,
+        closeButtonLabel: '保留解除',
+      },
+    ];
+
     const wrapper = mount(PlayerPanel, {
       props: {
         player: createPlayer(),
-        stocks: createStocks(),
-        projectedPrices: {
-          p1: 9500,
-        },
-        pendingClose: {
-          positionId: 'position-1',
-          executionPrice: 9500,
-          realizedPnl: -500,
-        },
+        positionRows,
         isActive: true,
         victoryValue: 20000,
         victoryDiff: 0,
@@ -128,79 +83,28 @@ describe('PlayerPanel', () => {
     expect(text).toContain('保留解除');
     expect(text).not.toContain('行動後価格');
     expect(text).not.toContain('決済価格');
-    expect(text).not.toContain(formatSignedCurrency(-500).replace(/\s+/g, ''));
     expect(wrapper.find('[data-turn-flag]').exists()).toBe(true);
   });
 
-  it('ignores pending close projected pnl and keeps the current pnl for sell positions', () => {
-    const player = createPlayer();
-    player.positions = [
-      {
-        id: 'position-2',
-        stockKey: 'p2',
-        side: 'sell',
-        quantity: 1,
-        entryPrice: 10000,
-        orderAmount: 10000,
-        openedTurn: 1,
-      },
-    ];
-
-    const wrapper = mount(PlayerPanel, {
-      props: {
-        player,
-        stocks: createStocks(),
-        pendingClose: {
-          positionId: 'position-2',
-          executionPrice: 9700,
-          realizedPnl: 500,
-        },
-        isActive: true,
-        victoryValue: 20000,
-        victoryDiff: 0,
-      },
-    });
-
-    const text = normalizedText(wrapper);
-
-    expect(text).toContain('決済損益');
-    expect(text).toContain(formatSignedCurrency(200).replace(/\s+/g, ''));
-    expect(text).not.toContain(formatSignedCurrency(500).replace(/\s+/g, ''));
-  });
-
-  it('shows a 5000 yen projected loss on million-yen charts without doubling it', () => {
-    const player = createPlayer();
-    player.positions = [
+  it('shows the precomputed projected pnl for active positions', () => {
+    const positionRows: PlayerPanelPositionRow[] = [
       {
         id: 'position-1',
-        stockKey: 'market',
-        side: 'buy',
-        quantity: 1,
-        entryPrice: 1005000,
-        orderAmount: 5000,
-        openedTurn: 1,
+        targetLabel: 'マーケット',
+        orderAmountText: '5,000円',
+        directionText: '買い',
+        pnl: 0,
+        projectedPnl: -5000,
+        projectedPnlLabel: '行動後',
+        isPendingClose: false,
+        closeButtonLabel: 'ポジション決済',
       },
     ];
 
-    const stocks = createStocks().map((stock) =>
-      stock.key === 'market'
-        ? {
-            ...stock,
-            basePrice: 1000000,
-            currentPrice: 1005000,
-            previousPrice: 1005000,
-            history: [1005000],
-          }
-        : stock,
-    );
-
     const wrapper = mount(PlayerPanel, {
       props: {
-        player,
-        stocks,
-        projectedPrices: {
-          market: 1000000,
-        },
+        player: createPlayer(),
+        positionRows,
         isActive: false,
         victoryValue: 20000,
         victoryDiff: 0,

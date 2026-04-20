@@ -8,7 +8,20 @@ import {
   FACILITY_INVESTMENT_ACTION,
 } from '../types';
 import { buildBattleActionProjection, createDefaultBattleActionDraft } from '../model/tradeBattle';
+import { resolveTradeImpactPattern } from '../model/tradeImpact';
+import type { ActionPanelImpactPatterns, PlayerId, TradeAction } from '../types';
 import ActionPanel from './ActionPanel.vue';
+
+function createImpactPatterns(
+  playerId: PlayerId,
+  tradeAction: TradeAction,
+): ActionPanelImpactPatterns {
+  return {
+    p1: resolveTradeImpactPattern(playerId, 'p1', tradeAction),
+    p2: resolveTradeImpactPattern(playerId, 'p2', tradeAction),
+    market: resolveTradeImpactPattern(playerId, 'market', tradeAction),
+  };
+}
 
 function createStocks(): StockState[] {
   return [
@@ -109,6 +122,7 @@ describe('ActionPanel', () => {
         playerNames: createPlayerNames(),
         draft,
         projection,
+        impactPatterns: createImpactPatterns(currentPlayer.id, draft.tradeAction),
       },
     });
     const text = normalizedText(wrapper);
@@ -138,6 +152,7 @@ describe('ActionPanel', () => {
         playerNames: createPlayerNames(),
         draft,
         projection,
+        impactPatterns: createImpactPatterns(currentPlayer.id, draft.tradeAction),
         pendingClose: {
           stockName: 'マーケット',
           side: 'buy',
@@ -170,6 +185,7 @@ describe('ActionPanel', () => {
         playerNames: createPlayerNames(),
         draft,
         projection,
+        impactPatterns: createImpactPatterns(currentPlayer.id, draft.tradeAction),
       },
     });
 
@@ -201,6 +217,7 @@ describe('ActionPanel', () => {
         playerNames: createPlayerNames(),
         draft,
         projection,
+        impactPatterns: createImpactPatterns(currentPlayer.id, draft.tradeAction),
       },
     });
 
@@ -231,6 +248,7 @@ describe('ActionPanel', () => {
         playerNames: createPlayerNames(),
         draft,
         projection,
+        impactPatterns: createImpactPatterns(currentPlayer.id, draft.tradeAction),
       },
     });
 
