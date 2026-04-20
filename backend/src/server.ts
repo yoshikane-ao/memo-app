@@ -1,9 +1,10 @@
-import { buildApp } from "./app";
-import { config } from "./config";
+import { buildApp } from './app';
+import { config } from './config';
+import { logger } from './shared/logger';
 
 const app = buildApp();
-const publicHost = config.host === "0.0.0.0" ? "localhost" : config.host;
+const publicHost = config.host === '0.0.0.0' ? 'localhost' : config.host;
 
 app.listen(config.port, config.host, () => {
-  console.log(`Listening on http://${publicHost}:${config.port}`);
+  logger.info({ url: `http://${publicHost}:${config.port}` }, 'backend listening');
 });
