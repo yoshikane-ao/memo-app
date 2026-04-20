@@ -1,4 +1,5 @@
 import cors from 'cors';
+type CorsOptions = Parameters<typeof cors>[0];
 import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
@@ -20,6 +21,18 @@ const createRateLimiter = () =>
     windowMs: config.rateLimitWindowMs,
     limit: config.rateLimitMaxRequests,
   });
+
+// CORS ポリシー:
+//  - `wildcard` (既定): 全オリジン許可・Cookie 送信不可。`Access-Control-Allow-Origin: *`
+//    ブラウザは credentials:'include' と `*` を組み合わせられないため、
+//    Cookie ベースの認証 API ではクロスオリジン呼び出しを事実上拒否する。
+//  - `allowList`: 指定オリジンのみ許可・Cookie 送信許可。本番でクロスオリジン運用する場合に使う。
+const toCorsOptions = (): CorsOptions => {
+  if (config.cors.kind === 'allowList') {
+    return { origin: config.cors.origins, credentials: true };
+  }
+  return { origin: '*', credentials: false };
+};
 
 const registerRoutes = (app: express.Express) => {
   app.get('/health', (_req, res) => {
@@ -56,7 +69,7 @@ export function buildApp() {
 
   app.use(requestLogger);
   app.use(metricsMiddleware);
-  app.use(cors());
+  app.use(cors(toCorsOptions()));
   // Swagger UI が 'unsafe-inline' / 'unsafe-eval' を要求し、HTTP 配信環境では
   // upgrade-insecure-requests が誤動作するため、CSP を portfolio 用に緩める。
   app.use(
