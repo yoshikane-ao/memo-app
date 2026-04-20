@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
-import BaseButton from "../../../../../shared/ui/BaseButton.vue";
-import { useQuizPage } from "../application/useQuizPage";
-import QuizBulkEditModal from "../ui/QuizBulkEditModal.vue";
-import QuizEditModal from "../ui/QuizEditModal.vue";
-import QuizListTable from "../ui/QuizListTable.vue";
-import QuizRegistrationForm from "../ui/QuizRegistrationForm.vue";
+import { onBeforeUnmount, onMounted } from 'vue';
+import BaseButton from '../../../../../shared/ui/BaseButton.vue';
+import { useQuizPage } from '../application/useQuizPage';
+import QuizBulkEditModal from '../ui/QuizBulkEditModal.vue';
+import QuizEditModal from '../ui/QuizEditModal.vue';
+import QuizListTable from '../ui/QuizListTable.vue';
+import QuizRegistrationForm from '../ui/QuizRegistrationForm.vue';
 
 const {
   items,
@@ -60,26 +60,26 @@ onBeforeUnmount(() => {
     <QuizRegistrationForm
       :word="draft.word"
       :mean="draft.mean"
-      :selectedTags="draft.selectedTags"
-      :selectedGroup="draft.selectedGroup"
-      :availableTags="availableTags"
-      :availableGroups="availableGroups"
-      :keepTags="keepTags"
-      :keepGroups="keepGroups"
-      :isFavorite="draft.isFavorite"
-      :isSubmitDisabled="isSubmitDisabled"
-      :isSubmitting="isSubmitting"
+      :selected-tags="draft.selectedTags"
+      :selected-group="draft.selectedGroup"
+      :available-tags="availableTags"
+      :available-groups="availableGroups"
+      :keep-tags="keepTags"
+      :keep-groups="keepGroups"
+      :is-favorite="draft.isFavorite"
+      :is-submit-disabled="isSubmitDisabled"
+      :is-submitting="isSubmitting"
       @update:word="draft.word = $event"
       @update:mean="draft.mean = $event"
-      @update:selectedTags="setSelectedTags"
-      @update:selectedGroup="setSelectedGroup"
-      @update:keepTags="setKeepTags"
-      @update:keepGroups="setKeepGroups"
-      @update:isFavorite="draft.isFavorite = $event"
-      @addTag="addTag"
-      @addGroup="addGroup"
-      @deleteTag="removeTag"
-      @deleteGroup="removeGroup"
+      @update:selected-tags="setSelectedTags"
+      @update:selected-group="setSelectedGroup"
+      @update:keep-tags="setKeepTags"
+      @update:keep-groups="setKeepGroups"
+      @update:is-favorite="draft.isFavorite = $event"
+      @add-tag="addTag"
+      @add-group="addGroup"
+      @delete-tag="removeTag"
+      @delete-group="removeGroup"
       @submit="submitQuiz"
     />
 
@@ -87,7 +87,11 @@ onBeforeUnmount(() => {
       <div v-if="errorMessage" key="error" class="quiz-page__feedback quiz-page__feedback--error">
         {{ errorMessage }}
       </div>
-      <div v-else-if="noticeMessage" key="notice" class="quiz-page__feedback quiz-page__feedback--success">
+      <div
+        v-else-if="noticeMessage"
+        key="notice"
+        class="quiz-page__feedback quiz-page__feedback--success"
+      >
         {{ noticeMessage }}
       </div>
     </Transition>
@@ -95,7 +99,7 @@ onBeforeUnmount(() => {
     <div class="quiz-page__toolbar">
       <div class="quiz-page__toolbar-actions">
         <BaseButton :disabled="isLoading" @click="loadQuizzes">
-          {{ isLoading ? "Loading..." : "Reload" }}
+          {{ isLoading ? 'Loading...' : 'Reload' }}
         </BaseButton>
         <BaseButton
           v-if="selectedQuizIds.length > 0"
@@ -117,38 +121,38 @@ onBeforeUnmount(() => {
 
     <QuizListTable
       :items="items"
-      :isLoading="isLoading"
-      :selectedIds="selectedQuizIds"
-      @update:selectedIds="setSelectedQuizIds"
+      :is-loading="isLoading"
+      :selected-ids="selectedQuizIds"
+      @update:selected-ids="setSelectedQuizIds"
       @edit="openEdit"
       @delete="removeQuiz"
-      @toggleFavorite="toggleQuizFavorite"
+      @toggle-favorite="toggleQuizFavorite"
     />
 
     <QuizEditModal
       v-if="editingItem"
       :item="editingItem"
-      :isSubmitting="isSubmitting"
-      :availableTags="availableTags"
-      :availableGroups="availableGroups"
+      :is-submitting="isSubmitting"
+      :available-tags="availableTags"
+      :available-groups="availableGroups"
       @save="submitUpdate"
       @close="closeEdit"
-      @addTag="addTag"
-      @addGroup="addGroup"
-      @deleteTag="removeTag"
-      @deleteGroup="removeGroup"
+      @add-tag="addTag"
+      @add-group="addGroup"
+      @delete-tag="removeTag"
+      @delete-group="removeGroup"
     />
 
     <QuizBulkEditModal
       v-if="isBulkEditOpen"
-      :selectedIds="selectedQuizIds"
-      :isSubmitting="isSubmitting"
-      :availableTags="availableTags"
-      :availableGroups="availableGroups"
+      :selected-ids="selectedQuizIds"
+      :is-submitting="isSubmitting"
+      :available-tags="availableTags"
+      :available-groups="availableGroups"
       @submit="submitBulkUpdate"
       @close="closeBulkEdit"
-      @addTag="addTag"
-      @addGroup="addGroup"
+      @add-tag="addTag"
+      @add-group="addGroup"
     />
   </div>
 </template>

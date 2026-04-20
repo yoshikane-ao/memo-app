@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { getCommandErrorMessage } from "../../../../../../shared/command/commandResult";
-import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
-import { useMemoTagSources } from "../../application/useMemoTagSources";
-import { useTagCommands } from "../../application/useTagCommands";
-import TagPickerField from "../../ui/TagSelection/TagPickerField.vue";
-import { useTagStore } from "../../model/useTagStore";
+import { ref, watch } from 'vue';
+import { getCommandErrorMessage } from '../../../../../../shared/command/commandResult';
+import { useFeedbackStore } from '../../../../../../shared/feedback/useFeedbackStore';
+import { useMemoTagSources } from '../../application/useMemoTagSources';
+import { useTagCommands } from '../../application/useTagCommands';
+import TagPickerField from '../../ui/TagSelection/TagPickerField.vue';
+import { useTagStore } from '../../model/useTagStore';
 import type {
   MemoTagSource,
   TagItem,
   TagSelectionSelectEmits,
   TagSelectionSelectProps,
-} from "../../types";
+} from '../../types';
 
 const props = withDefaults(defineProps<TagSelectionSelectProps>(), {
   resetKey: 0,
@@ -41,11 +41,11 @@ const handleToggleTag = (tag: TagItem) => {
     ? removeSelectedTag(props.selectedTags, tag.id)
     : addSelectedTag(props.selectedTags, tag);
 
-  emit("update:selectedTags", nextTags);
+  emit('update:selectedTags', nextTags);
 };
 
 const handleRemoveTag = (tag: TagItem) => {
-  emit("update:selectedTags", removeSelectedTag(props.selectedTags, tag.id));
+  emit('update:selectedTags', removeSelectedTag(props.selectedTags, tag.id));
 };
 
 const handleCreateTag = async (title: string) => {
@@ -59,13 +59,13 @@ const handleCreateTag = async (title: string) => {
     const createdTag = await commands.createTag({ title });
 
     if (!createdTag.ok) {
-      if (createdTag.reason === "error") {
-        feedback.showError(getCommandErrorMessage(createdTag, "Failed to create tag."));
+      if (createdTag.reason === 'error') {
+        feedback.showError(getCommandErrorMessage(createdTag, 'Failed to create tag.'));
       }
       return;
     }
 
-    emit("update:selectedTags", addSelectedTag(props.selectedTags, createdTag.value));
+    emit('update:selectedTags', addSelectedTag(props.selectedTags, createdTag.value));
   } finally {
     isCreatingTag.value = false;
   }
@@ -81,23 +81,23 @@ const handleDeleteTag = async (tag: TagItem) => {
   const success = await commands.deleteTag(tag.id);
 
   if (!success.ok) {
-    if (success.reason === "error") {
-      feedback.showError(getCommandErrorMessage(success, "Failed to delete tag."));
+    if (success.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(success, 'Failed to delete tag.'));
     }
     return;
   }
 
-  emit("update:selectedTags", removeSelectedTag(props.selectedTags, tag.id));
-  emit("tag-deleted", tag.id);
+  emit('update:selectedTags', removeSelectedTag(props.selectedTags, tag.id));
+  emit('tag-deleted', tag.id);
 };
 
 const handleApplyTagsFromMemo = (source: MemoTagSource) => {
   emit(
-    "update:selectedTags",
+    'update:selectedTags',
     source.tags.map((tag) => ({
       id: tag.id,
       title: tag.title,
-    }))
+    })),
   );
 };
 
@@ -111,19 +111,19 @@ watch(
       return;
     }
 
-    emit("update:selectedTags", filteredTags);
+    emit('update:selectedTags', filteredTags);
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 
 <template>
   <TagPickerField
-    :selectedTags="selectedTags"
-    :availableTags="tagStore.items"
-    :memoSources="memoSources"
-    :resetKey="resetKey"
-    :isCreating="isCreatingTag"
+    :selected-tags="selectedTags"
+    :available-tags="tagStore.items"
+    :memo-sources="memoSources"
+    :reset-key="resetKey"
+    :is-creating="isCreatingTag"
     @toggle-tag="handleToggleTag"
     @remove-tag="handleRemoveTag"
     @create-tag="void handleCreateTag($event)"

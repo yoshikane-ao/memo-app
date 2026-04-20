@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { applyAutoHeight, applyAutoWidth } from "../../../../../../shared/composables/textareaAutosize";
-import { useActiveCopyTarget } from "../../../../../../shared/copy/activeCopyTarget";
-import { copyText } from "../../../../../../shared/copy/copyText";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import {
+  applyAutoHeight,
+  applyAutoWidth,
+} from '../../../../../../shared/composables/textareaAutosize';
+import { useActiveCopyTarget } from '../../../../../../shared/copy/activeCopyTarget';
+import { copyText } from '../../../../../../shared/copy/copyText';
 import {
   handleMultilineEnterSubmit,
   handleSingleLineEnterSubmit,
-} from "../../../../../../shared/keyboard/handleEnterSubmit";
-import MemoCardActions from "./MemoCardActions.vue";
-import MemoCardTags from "./MemoCardTags.vue";
-import type { MemoCardEmits, MemoCardProps } from "./types";
+} from '../../../../../../shared/keyboard/handleEnterSubmit';
+import MemoCardActions from './MemoCardActions.vue';
+import MemoCardTags from './MemoCardTags.vue';
+import type { MemoCardEmits, MemoCardProps } from './types';
 
 const props = defineProps<MemoCardProps>();
 const emit = defineEmits<MemoCardEmits>();
@@ -27,17 +30,17 @@ const isCopied = ref(false);
 let copiedTimer: ReturnType<typeof setTimeout> | null = null;
 
 const titleStyle = computed(() =>
-  currentWidth.value == null ? undefined : `${currentWidth.value}px`
+  currentWidth.value == null ? undefined : `${currentWidth.value}px`,
 );
 const contentStyle = computed(() =>
-  currentHeight.value == null ? undefined : `${currentHeight.value}px`
+  currentHeight.value == null ? undefined : `${currentHeight.value}px`,
 );
 
 const hasTextChanged = computed(
-  () => draftTitle.value !== props.memo.title || draftContent.value !== props.memo.content
+  () => draftTitle.value !== props.memo.title || draftContent.value !== props.memo.content,
 );
 const hasRequiredFields = computed(
-  () => draftTitle.value.trim() !== "" && draftContent.value.trim() !== ""
+  () => draftTitle.value.trim() !== '' && draftContent.value.trim() !== '',
 );
 const isSaveDisabled = computed(() => !hasRequiredFields.value || !hasTextChanged.value);
 
@@ -96,7 +99,7 @@ const handleSaveRequested = () => {
     return;
   }
 
-  emit("save-requested", {
+  emit('save-requested', {
     memoId: props.memo.id,
     title: draftTitle.value,
     content: draftContent.value,
@@ -132,8 +135,8 @@ const copyMemoContent = async () => {
     markCopied();
     return true;
   } catch (error) {
-    console.error("Failed to copy memo content.", error);
-    emit("copy-error", "Failed to copy memo.");
+    console.error('Failed to copy memo content.', error);
+    emit('copy-error', 'Failed to copy memo.');
     return false;
   }
 };
@@ -143,7 +146,7 @@ watch(
   (value) => {
     draftTitle.value = value;
     void nextTick(syncTitleLayout);
-  }
+  },
 );
 
 watch(
@@ -151,7 +154,7 @@ watch(
   (value) => {
     draftContent.value = value;
     void nextTick(syncContentLayout);
-  }
+  },
 );
 
 watch(
@@ -160,7 +163,7 @@ watch(
     if (value != null) {
       currentWidth.value = value;
     }
-  }
+  },
 );
 
 watch(
@@ -169,7 +172,7 @@ watch(
     if (value != null) {
       currentHeight.value = value;
     }
-  }
+  },
 );
 
 onMounted(() => {
@@ -223,7 +226,7 @@ onBeforeUnmount(() => {
       />
 
       <MemoCardTags
-        :memoId="memo.id"
+        :memo-id="memo.id"
         :tags="memo.memo_tags"
         @memo-tags-updated="emit('memo-tags-updated', $event)"
         @tag-deleted="emit('tag-deleted', $event)"
@@ -232,9 +235,9 @@ onBeforeUnmount(() => {
 
     <div class="actions-cell">
       <MemoCardActions
-        :memoId="memo.id"
-        :isCopied="isCopied"
-        :isSaveDisabled="isSaveDisabled"
+        :memo-id="memo.id"
+        :is-copied="isCopied"
+        :is-save-disabled="isSaveDisabled"
         @copy-requested="void copyMemoContent()"
         @save-requested="handleSaveRequested"
         @trash-requested="emit('trash-requested', memo.id)"

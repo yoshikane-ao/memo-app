@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { TagRelationEditor } from "../../../tag";
-import type { MemoCardTagsEmits, MemoCardTagsProps } from "./types";
+import { TagRelationEditor } from '../../../tag';
+import type { MemoCardTagsEmits, MemoCardTagsProps } from './types';
 
 defineProps<MemoCardTagsProps>();
 const emit = defineEmits<MemoCardTagsEmits>();
@@ -8,7 +8,7 @@ const emit = defineEmits<MemoCardTagsEmits>();
 
 <template>
   <TagRelationEditor
-    :memoId="memoId"
+    :memo-id="memoId"
     :tags="tags.map(({ tag }) => tag)"
     @memo-tags-updated="emit('memo-tags-updated', $event)"
     @tag-deleted="emit('tag-deleted', $event)"

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import MemoTagSourceTab from "./MemoTagSourceTab.vue";
-import TagCatalogPanel from "./TagCatalogPanel.vue";
-import TagPickerPopoverShell from "./TagPickerPopoverShell.vue";
-import type { MemoTagSource, TagItem } from "../types";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
+import MemoTagSourceTab from './MemoTagSourceTab.vue';
+import TagCatalogPanel from './TagCatalogPanel.vue';
+import TagPickerPopoverShell from './TagPickerPopoverShell.vue';
+import type { MemoTagSource, TagItem } from '../types';
 
 const props = defineProps<{
   tags: TagItem[];
@@ -14,17 +14,17 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: "close"): void;
-  (e: "toggle-tag", tag: TagItem): void;
-  (e: "create-tag", title: string): void;
-  (e: "tag-deleted", tag: TagItem): void;
-  (e: "apply-tags-from-memo", source: MemoTagSource): void;
+  (e: 'close'): void;
+  (e: 'toggle-tag', tag: TagItem): void;
+  (e: 'create-tag', title: string): void;
+  (e: 'tag-deleted', tag: TagItem): void;
+  (e: 'apply-tags-from-memo', source: MemoTagSource): void;
 }>();
 
-type PickerTab = "tags" | "memos";
+type PickerTab = 'tags' | 'memos';
 
 const modalRef = ref<HTMLElement | null>(null);
-const activeTab = ref<PickerTab>("tags");
+const activeTab = ref<PickerTab>('tags');
 const hasMemoTab = computed(() => props.memoSources !== undefined);
 let previousFocusedElement: HTMLElement | null = null;
 let outsideClickTimer: ReturnType<typeof setTimeout> | null = null;
@@ -35,14 +35,14 @@ const focusFirstElement = () => {
     return;
   }
 
-  const preferredFocusable = root.querySelector<HTMLElement>("[data-tag-popover-autofocus]");
+  const preferredFocusable = root.querySelector<HTMLElement>('[data-tag-popover-autofocus]');
   if (preferredFocusable) {
     preferredFocusable.focus();
     return;
   }
 
   const firstFocusable = root.querySelector<HTMLElement>(
-    'input:not([disabled]), button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+    'input:not([disabled]), button:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
   );
 
   firstFocusable?.focus();
@@ -59,12 +59,12 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 
   if (modalRef.value && !modalRef.value.contains(target)) {
-    emit("close");
+    emit('close');
   }
 };
 
 onMounted(() => {
-  if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+  if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
     previousFocusedElement = document.activeElement;
   }
 
@@ -73,11 +73,11 @@ onMounted(() => {
   });
 
   outsideClickTimer = setTimeout(() => {
-    if (typeof document === "undefined") {
+    if (typeof document === 'undefined') {
       return;
     }
 
-    document.addEventListener("click", handleClickOutside, true);
+    document.addEventListener('click', handleClickOutside, true);
   }, 100);
 });
 
@@ -87,8 +87,8 @@ onBeforeUnmount(() => {
     outsideClickTimer = null;
   }
 
-  if (typeof document !== "undefined") {
-    document.removeEventListener("click", handleClickOutside, true);
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('click', handleClickOutside, true);
   }
 
   if (previousFocusedElement?.isConnected) {
@@ -100,16 +100,16 @@ onBeforeUnmount(() => {
 <template>
   <div ref="modalRef">
     <TagPickerPopoverShell
-      :activeTab="activeTab"
-      :showMemoTab="hasMemoTab"
-      @update:activeTab="activeTab = $event"
+      :active-tab="activeTab"
+      :show-memo-tab="hasMemoTab"
+      @update:active-tab="activeTab = $event"
       @close="emit('close')"
     >
       <TagCatalogPanel
         v-if="activeTab === 'tags'"
         :tags="tags"
-        :selectedTagIds="selectedTagIds"
-        :isCreating="isCreating"
+        :selected-tag-ids="selectedTagIds"
+        :is-creating="isCreating"
         @toggle-tag="emit('toggle-tag', $event)"
         @create-tag="emit('create-tag', $event)"
         @tag-deleted="emit('tag-deleted', $event)"
@@ -117,7 +117,7 @@ onBeforeUnmount(() => {
 
       <MemoTagSourceTab
         v-else-if="memoSources"
-        :memoSources="memoSources"
+        :memo-sources="memoSources"
         @apply-tags-from-memo="emit('apply-tags-from-memo', $event)"
       />
 

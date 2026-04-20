@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { getCommandErrorMessage } from "../../../../../../shared/command/commandResult";
-import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
-import { useMemoTagSources } from "../../application/useMemoTagSources";
-import { useTagCommands } from "../../application/useTagCommands";
+import { computed, ref } from 'vue';
+import { getCommandErrorMessage } from '../../../../../../shared/command/commandResult';
+import { useFeedbackStore } from '../../../../../../shared/feedback/useFeedbackStore';
+import { useMemoTagSources } from '../../application/useMemoTagSources';
+import { useTagCommands } from '../../application/useTagCommands';
 import type {
   MemoTagSource,
   MemoTagsUpdatedPayload,
   TagItem,
   TagRelationEditorEmits,
   TagRelationEditorProps,
-} from "../../types";
-import { useTagStore } from "../../model/useTagStore";
-import TagPickerField from "../../ui/TagSelection/TagPickerField.vue";
+} from '../../types';
+import { useTagStore } from '../../model/useTagStore';
+import TagPickerField from '../../ui/TagSelection/TagPickerField.vue';
 
 const props = defineProps<TagRelationEditorProps>();
 const emit = defineEmits<TagRelationEditorEmits>();
@@ -52,7 +52,7 @@ const emitMemoTagsUpdated = (tags: TagItem[] = selectedTags.value) => {
     memoId: props.memoId,
     tags: toUniqueTags(tags),
   };
-  emit("memo-tags-updated", payload);
+  emit('memo-tags-updated', payload);
 };
 
 const handleTagToggle = async (tag: TagItem) => {
@@ -62,9 +62,12 @@ const handleTagToggle = async (tag: TagItem) => {
     : await commands.addTagToMemo(props.memoId, tag);
 
   if (!success.ok) {
-    if (success.reason === "error") {
+    if (success.reason === 'error') {
       feedback.showError(
-        getCommandErrorMessage(success, isSelected ? "Failed to remove tag." : "Failed to add tag.")
+        getCommandErrorMessage(
+          success,
+          isSelected ? 'Failed to remove tag.' : 'Failed to add tag.',
+        ),
       );
     }
     return;
@@ -98,8 +101,8 @@ const handleCreateTag = async (title: string) => {
     });
 
     if (!createdTag.ok) {
-      if (createdTag.reason === "error") {
-        feedback.showError(getCommandErrorMessage(createdTag, "Failed to create tag."));
+      if (createdTag.reason === 'error') {
+        feedback.showError(getCommandErrorMessage(createdTag, 'Failed to create tag.'));
       }
       return;
     }
@@ -120,23 +123,23 @@ const handleTagDeleted = async (tag: TagItem) => {
   const success = await commands.deleteTag(tag.id);
 
   if (!success.ok) {
-    if (success.reason === "error") {
-      feedback.showError(getCommandErrorMessage(success, "Failed to delete tag."));
+    if (success.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(success, 'Failed to delete tag.'));
     }
     return;
   }
 
   const nextTags = selectedTags.value.filter((currentTag) => currentTag.id !== tag.id);
   emitMemoTagsUpdated(nextTags);
-  emit("tag-deleted", tag.id);
+  emit('tag-deleted', tag.id);
 };
 
 const handleApplyTagsFromMemo = async (source: MemoTagSource) => {
   const success = await commands.replaceMemoTags(props.memoId, source.tags);
 
   if (!success.ok) {
-    if (success.reason === "error") {
-      feedback.showError(getCommandErrorMessage(success, "Failed to apply tags from memo."));
+    if (success.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(success, 'Failed to apply tags from memo.'));
     }
     return;
   }
@@ -152,10 +155,10 @@ const handleApplyTagsFromMemo = async (source: MemoTagSource) => {
 <template>
   <div class="tag-row">
     <TagPickerField
-      :selectedTags="selectedTags"
-      :availableTags="tagStore.items"
-      :memoSources="memoSources"
-      :isCreating="isCreatingTag"
+      :selected-tags="selectedTags"
+      :available-tags="tagStore.items"
+      :memo-sources="memoSources"
+      :is-creating="isCreatingTag"
       @toggle-tag="void handleTagToggle($event)"
       @remove-tag="void handleTagRemove($event)"
       @create-tag="void handleCreateTag($event)"

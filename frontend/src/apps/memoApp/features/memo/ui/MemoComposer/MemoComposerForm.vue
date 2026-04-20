@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import BaseButton from "../../../../../../shared/ui/BaseButton.vue";
-import { TagSelectionSelect } from "../../../tag";
-import MemoComposerFields from "./MemoComposerFields.vue";
-import type { MemoComposerFormEmits, MemoComposerFormProps } from "./types";
+import BaseButton from '../../../../../../shared/ui/BaseButton.vue';
+import { TagSelectionSelect } from '../../../tag';
+import MemoComposerFields from './MemoComposerFields.vue';
+import type { MemoComposerFormEmits, MemoComposerFormProps } from './types';
 
 defineProps<MemoComposerFormProps>();
 const emit = defineEmits<MemoComposerFormEmits>();
@@ -28,9 +28,9 @@ const emit = defineEmits<MemoComposerFormEmits>();
 
       <div class="register-tag-controls">
         <TagSelectionSelect
-          :selectedTags="selectedTags"
-          :resetKey="tagSelectionResetKey"
-          @update:selectedTags="emit('update:selectedTags', $event)"
+          :selected-tags="selectedTags"
+          :reset-key="tagSelectionResetKey"
+          @update:selected-tags="emit('update:selectedTags', $event)"
           @tag-deleted="emit('tag-deleted', $event)"
         />
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { getCommandErrorMessage } from "../../../../../../shared/command/commandResult";
-import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
-import { useTagCommands } from "../../application/useTagCommands";
-import TagBadgeList from "../../ui/TagBadgeList.vue";
-import TagSearchPopover from "../../ui/TagSearchPopover.vue";
-import { useTagStore } from "../../model/useTagStore";
-import type { TagFilterSelectEmits, TagFilterSelectProps, TagItem } from "../../types";
+import { computed, ref, watch } from 'vue';
+import { getCommandErrorMessage } from '../../../../../../shared/command/commandResult';
+import { useFeedbackStore } from '../../../../../../shared/feedback/useFeedbackStore';
+import { useTagCommands } from '../../application/useTagCommands';
+import TagBadgeList from '../../ui/TagBadgeList.vue';
+import TagSearchPopover from '../../ui/TagSearchPopover.vue';
+import { useTagStore } from '../../model/useTagStore';
+import type { TagFilterSelectEmits, TagFilterSelectProps, TagItem } from '../../types';
 
 const props = withDefaults(defineProps<TagFilterSelectProps>(), {
   selectedTags: () => [],
@@ -27,7 +27,7 @@ const isSameTagIdList = (left: number[], right: number[]) =>
 const selectedTagItems = computed<TagItem[]>(() =>
   localSelectedTags.value
     .map((tagId) => tagStore.items.find((tag) => tag.id === tagId))
-    .filter((tag): tag is TagItem => Boolean(tag))
+    .filter((tag): tag is TagItem => Boolean(tag)),
 );
 
 const addTag = (tagId: number) => {
@@ -37,7 +37,9 @@ const addTag = (tagId: number) => {
 };
 
 const removeTag = (tagId: number) => {
-  localSelectedTags.value = localSelectedTags.value.filter((currentTagId) => currentTagId !== tagId);
+  localSelectedTags.value = localSelectedTags.value.filter(
+    (currentTagId) => currentTagId !== tagId,
+  );
 };
 
 const handleToggleTag = (tag: TagItem) => {
@@ -60,8 +62,8 @@ const handleCreateTag = async (title: string) => {
     const createdTag = await commands.createTag({ title });
 
     if (!createdTag.ok) {
-      if (createdTag.reason === "error") {
-        feedback.showError(getCommandErrorMessage(createdTag, "Failed to create tag."));
+      if (createdTag.reason === 'error') {
+        feedback.showError(getCommandErrorMessage(createdTag, 'Failed to create tag.'));
       }
       return;
     }
@@ -82,14 +84,14 @@ const handleDeleteTag = async (tag: TagItem) => {
   const success = await commands.deleteTag(tag.id);
 
   if (!success.ok) {
-    if (success.reason === "error") {
-      feedback.showError(getCommandErrorMessage(success, "Failed to delete tag."));
+    if (success.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(success, 'Failed to delete tag.'));
     }
     return;
   }
 
   removeTag(tag.id);
-  emit("tag-deleted", tag.id);
+  emit('tag-deleted', tag.id);
 };
 
 watch(
@@ -98,26 +100,28 @@ watch(
     if (!isSameTagIdList(localSelectedTags.value, value)) {
       localSelectedTags.value = [...value];
     }
-  }
+  },
 );
 
 watch(
   () => tagStore.items,
   (tags) => {
     const validTagIds = tags.map((tag) => tag.id);
-    localSelectedTags.value = localSelectedTags.value.filter((tagId) => validTagIds.includes(tagId));
+    localSelectedTags.value = localSelectedTags.value.filter((tagId) =>
+      validTagIds.includes(tagId),
+    );
   },
-  { deep: true }
+  { deep: true },
 );
 
 watch(
   localSelectedTags,
   (value) => {
     if (!isSameTagIdList(value, props.selectedTags)) {
-      emit("update:selectedTags", [...value]);
+      emit('update:selectedTags', [...value]);
     }
   },
-  { deep: true }
+  { deep: true },
 );
 </script>
 
@@ -125,7 +129,7 @@ watch(
   <div ref="dropdownContainerRef" class="dropdown-container">
     <div class="tag-filter-trigger-row">
       <button type="button" class="dropdown-toggle" @click="isDropdownOpen = !isDropdownOpen">
-        Filter tags {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : "" }}
+        Filter tags {{ localSelectedTags.length > 0 ? `(${localSelectedTags.length})` : '' }}
       </button>
 
       <div v-if="selectedTagItems.length > 0" class="tag-filter-selected-preview">
@@ -136,9 +140,9 @@ watch(
     <TagSearchPopover
       v-if="isDropdownOpen"
       :tags="tagStore.items"
-      :selectedTagIds="localSelectedTags"
-      :isCreating="isCreatingTag"
-      :boundaryEl="dropdownContainerRef"
+      :selected-tag-ids="localSelectedTags"
+      :is-creating="isCreatingTag"
+      :boundary-el="dropdownContainerRef"
       @toggle-tag="handleToggleTag"
       @create-tag="void handleCreateTag($event)"
       @tag-deleted="void handleDeleteTag($event)"
