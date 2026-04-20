@@ -1,21 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import type { PlayerState, StockKey, StockState, TradePositionEntry } from '../types';
-import {
-  calculateTradePositionPnL,
-  formatCurrency,
-  formatSignedCurrency,
-} from '../model/gameCalculations';
+import type { PlayerPanelPositionRow, PlayerState } from '../types';
+import { formatCurrency, formatSignedCurrency } from '../../../../../shared/format/currency';
 
 const props = defineProps<{
   player: PlayerState;
-  stocks: StockState[];
-  projectedPrices?: Partial<Record<StockKey, number>> | null;
-  pendingClose?: {
-    positionId: string;
-    executionPrice: number;
-    realizedPnl: number;
-  } | null;
+  positionRows: PlayerPanelPositionRow[];
   isActive: boolean;
   victoryValue: number;
   victoryDiff: number;
@@ -29,53 +18,10 @@ const cashLabel = '\u73fe\u91d1';
 const victoryValueLabel = '\u7dcf\u8cc7\u7523';
 const positionsLabel = '\u6ce8\u6587\u30dd\u30b8\u30b7\u30e7\u30f3';
 const noPositionsLabel = '\u30dd\u30b8\u30b7\u30e7\u30f3\u306a\u3057';
-const closePositionLabel = '\u30dd\u30b8\u30b7\u30e7\u30f3\u6c7a\u6e08';
 const orderAmountLabel = '\u6ce8\u6587';
 const buyLabel = '\u8cb7\u3044';
-const sellLabel = '\u58f2\u308a';
 const pnlLabel = '\u640d\u76ca';
-const projectedPnlLabel = '\u884c\u52d5\u5f8c';
 const pendingCloseLabel = '\u6c7a\u6e08\u4fdd\u7559\u4e2d';
-const releasePendingCloseLabel = '\u4fdd\u7559\u89e3\u9664';
-
-function resolveTargetLabel(stockKey: StockKey): string {
-  if (stockKey === 'market') return '\u30de\u30fc\u30b1\u30c3\u30c8';
-  if (stockKey === 'p1') return 'Player1\u4f1a\u793e';
-  return 'Player2\u4f1a\u793e';
-}
-
-function calculatePositionPnl(position: TradePositionEntry, currentPrice: number): number {
-  return calculateTradePositionPnL(position, currentPrice);
-}
-
-const positionRows = computed(() => {
-  const currentPriceMap = props.stocks.reduce<Record<StockKey, number>>(
-    (acc, stock) => {
-      acc[stock.key] = stock.currentPrice;
-      return acc;
-    },
-    { p1: 0, p2: 0, market: 0 },
-  );
-
-  return [...props.player.positions].reverse().map((position) => {
-    const currentPrice = currentPriceMap[position.stockKey] ?? 0;
-    const isPendingClose = props.pendingClose?.positionId === position.id;
-    const projectedPrice = props.projectedPrices?.[position.stockKey] ?? currentPrice;
-    const currentPnl = calculatePositionPnl(position, currentPrice);
-
-    return {
-      id: position.id,
-      targetLabel: resolveTargetLabel(position.stockKey),
-      orderAmountText: formatCurrency(position.orderAmount),
-      directionText: position.side === 'buy' ? buyLabel : sellLabel,
-      pnl: currentPnl,
-      projectedPnl: isPendingClose ? currentPnl : calculatePositionPnl(position, projectedPrice),
-      projectedPnlLabel: isPendingClose ? '\u6c7a\u6e08\u640d\u76ca' : projectedPnlLabel,
-      isPendingClose,
-      closeButtonLabel: isPendingClose ? releasePendingCloseLabel : closePositionLabel,
-    };
-  });
-});
 </script>
 
 <template>

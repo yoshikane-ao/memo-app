@@ -147,3 +147,73 @@ export const COOLDOWN_ACTIONS: CooldownAction[] = [
   BUYBACK_ACTION,
   FACILITY_INVESTMENT_ACTION,
 ];
+
+export type {
+  BattleActionDraft,
+  BattleActionKind,
+  BattleActionPreview,
+  BattleActionProjection,
+  BattleConfirmedAction,
+  BattleStockChoice,
+  PreviewSummaryItem,
+  StockImpactItem,
+  StockImpactLevel,
+} from './model/tradeBattle';
+
+export type {
+  DynamicPriceLines,
+  PriceLineEvent,
+  TradeImpactAmounts,
+  TradeImpactPattern,
+} from './model/tradeImpact';
+
+export type {
+  BattleMode,
+  FirstPlayer,
+  GameStartSettings,
+  MarketStartingPriceMode,
+  ResolvedFirstPlayer,
+  StartingCashMode,
+  TradeSessionSnapshot,
+  TradeSetupDraft,
+  TradeStartViewModel,
+} from './model/tradeSetup';
+
+export type { GuestLabel, PlayerIdentity, PlayerSlot } from './model/playerIdentity';
+
+export type {
+  CreateTradeProfileInput,
+  RecordBattleInput,
+  TradeProfile,
+  TradeProfileIcon,
+  TradeProfileId,
+  TradeProfileStats,
+  TradeProfileStyle,
+  TradeProfileTheme,
+} from './model/useTradeProfileStore';
+
+export type { BattleStockHistoryRuntime } from './model/tradeBattleState';
+
+export type { BattleSequenceRuntime } from './model/tradeBattleRuntime';
+
+export type {
+  BattleClosePreview,
+  BattleResultSummary,
+  ChartOrderMarker,
+  PendingCloseSummary,
+} from './model/tradeBattleSelectors';
+
+export type PlayerPanelPositionRow = {
+  id: string;
+  targetLabel: string;
+  orderAmountText: string;
+  directionText: string;
+  pnl: number;
+  projectedPnl: number;
+  projectedPnlLabel: string;
+  isPendingClose: boolean;
+  closeButtonLabel: string;
+};
+
+import type { TradeImpactPattern as _TradeImpactPattern } from './model/tradeImpact';
+export type ActionPanelImpactPatterns = Record<StockKey, _TradeImpactPattern>;

@@ -1,9 +1,16 @@
 ﻿<script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import type { CompanyAction, PlayerState, StockKey, TradeAction, TradeMode } from '../types';
+import type {
+  ActionPanelImpactPatterns,
+  BattleActionDraft,
+  BattleActionProjection,
+  CompanyAction,
+  PlayerState,
+  StockKey,
+  TradeAction,
+  TradeMode,
+} from '../types';
 import { COMPANY_ACTIONS, MODE_LABELS, TRADE_LABELS } from '../types';
-import type { BattleActionDraft, BattleActionProjection } from '../model/tradeBattle';
-import { resolveTradeImpactPattern } from '../model/tradeImpact';
 
 const props = defineProps<{
   currentPlayer: PlayerState;
@@ -13,6 +20,7 @@ const props = defineProps<{
   };
   draft: BattleActionDraft;
   projection: BattleActionProjection;
+  impactPatterns: ActionPanelImpactPatterns;
   pendingClose?: {
     stockName: string;
     side: 'buy' | 'sell';
@@ -173,7 +181,7 @@ const tradeGuideItems = computed<TradeGuideItem[]>(() => {
   const effectOrder: StockKey[] = [...playerTargets, 'market'];
 
   return targets.map((targetKey) => {
-    const pattern = resolveTradeImpactPattern(props.currentPlayer.id, targetKey, form.tradeAction);
+    const pattern = props.impactPatterns[targetKey];
 
     return {
       key: targetKey,
