@@ -20,6 +20,7 @@ describe('createConfig', () => {
         password: null,
         displayName: 'デモユーザー',
       },
+      cors: { kind: 'wildcard' },
     });
     // Dev fallback が 32 文字以上であることだけ確認し、値そのものはテストしない。
     expect(cfg.auth.jwtSecret.length).toBeGreaterThanOrEqual(32);
@@ -40,6 +41,7 @@ describe('createConfig', () => {
       DEMO_EMAIL: 'demo@example.com',
       DEMO_PASSWORD: 'demo12345',
       DEMO_DISPLAY_NAME: 'Demo',
+      CORS_ALLOWED_ORIGIN: 'https://app.example.com, https://admin.example.com',
     });
     expect(cfg).toEqual({
       host: '127.0.0.1',
@@ -58,6 +60,10 @@ describe('createConfig', () => {
         email: 'demo@example.com',
         password: 'demo12345',
         displayName: 'Demo',
+      },
+      cors: {
+        kind: 'allowList',
+        origins: ['https://app.example.com', 'https://admin.example.com'],
       },
     });
   });

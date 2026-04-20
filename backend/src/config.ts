@@ -18,6 +18,12 @@ export type DemoConfig = {
   displayName: string;
 };
 
+export type CorsConfig =
+  // 明示指定なし: 全許可 + Cookie なし（現状互換。ブラウザは credentials:'include' と `*` を組み合わせ不可）
+  | { kind: 'wildcard' }
+  // 明示指定あり: 指定オリジンのみ許可 + Cookie 送信許可（本番運用向け）
+  | { kind: 'allowList'; origins: string[] };
+
 export type AppConfig = {
   host: string;
   port: number;
@@ -26,6 +32,7 @@ export type AppConfig = {
   logLevel: LogLevel;
   auth: AuthConfig;
   demo: DemoConfig;
+  cors: CorsConfig;
 };
 
 const parsePositiveInt = (value: string | undefined, fallback: number) => {
@@ -62,6 +69,17 @@ const parseBool = (value: string | undefined, fallback: boolean): boolean => {
 
 const DEV_JWT_FALLBACK = 'dev-only-secret-do-not-use-in-production-minimum-32-characters-needed';
 
+const parseCors = (value: string | undefined): CorsConfig => {
+  const trimmed = value?.trim();
+  if (!trimmed) return { kind: 'wildcard' };
+  const origins = trimmed
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  if (origins.length === 0) return { kind: 'wildcard' };
+  return { kind: 'allowList', origins };
+};
+
 const resolveJwtSecret = (value: string | undefined): string => {
   const trimmed = value?.trim();
   if (trimmed && trimmed.length >= 32) {
@@ -90,6 +108,7 @@ export const createConfig = (env: Record<string, string | undefined> = process.e
     password: env.DEMO_PASSWORD?.trim() || null,
     displayName: env.DEMO_DISPLAY_NAME?.trim() || 'デモユーザー',
   },
+  cors: parseCors(env.CORS_ALLOWED_ORIGIN),
 });
 
 export const config = createConfig();
