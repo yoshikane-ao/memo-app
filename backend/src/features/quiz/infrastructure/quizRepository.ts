@@ -1,5 +1,5 @@
-import type { Prisma } from "../../../generated/prisma/client";
-import { prisma } from "../../../db";
+import type { Prisma } from '../../../generated/prisma/client';
+import { prisma } from '../../../db';
 import type {
   BulkQuizLabelOperation,
   BulkUpdateQuizLabelsInput,
@@ -12,7 +12,7 @@ import type {
   QuizRepository,
   QuizTagRecord,
   UpdateQuizInput,
-} from "../application/quizPorts";
+} from '../application/quizPorts';
 
 const quizDetailSelect = {
   id: true,
@@ -79,7 +79,7 @@ const normalizeValues = (values: string[]) => {
 
   for (const value of values) {
     const normalized = value.trim();
-    if (normalized === "" || seen.has(normalized)) {
+    if (normalized === '' || seen.has(normalized)) {
       continue;
     }
 
@@ -91,23 +91,23 @@ const normalizeValues = (values: string[]) => {
 };
 
 const parseGroupNames = (groupName: string | null) =>
-  normalizeValues(groupName ? groupName.split(",") : []);
+  normalizeValues(groupName ? groupName.split(',') : []);
 
 const applyBulkLabelOperation = (currentValues: string[], operation: BulkQuizLabelOperation) => {
   const normalizedCurrentValues = normalizeValues(currentValues);
 
   switch (operation.action) {
-    case "add": {
+    case 'add': {
       return normalizeValues([...normalizedCurrentValues, ...(operation.values ?? [])]);
     }
-    case "remove": {
+    case 'remove': {
       const valuesToRemove = new Set(normalizeValues(operation.values ?? []));
       return normalizedCurrentValues.filter((value) => !valuesToRemove.has(value));
     }
-    case "replace": {
+    case 'replace': {
       return normalizeValues(operation.values ?? []);
     }
-    case "clear": {
+    case 'clear': {
       return [];
     }
   }
@@ -115,10 +115,10 @@ const applyBulkLabelOperation = (currentValues: string[], operation: BulkQuizLab
 
 const toDelimitedGroupName = (groups: string[]) => {
   const normalizedGroups = normalizeValues(groups);
-  return normalizedGroups.length > 0 ? normalizedGroups.join(",") : null;
+  return normalizedGroups.length > 0 ? normalizedGroups.join(',') : null;
 };
 
-const buildQuizCreateData = (input: CreateQuizInput): Prisma.QuizsCreateInput => ({
+const buildQuizMutationData = (input: CreateQuizInput) => ({
   word: input.word,
   mean: input.mean,
   groupName: input.groupName ?? null,
@@ -131,8 +131,8 @@ const buildQuizCreateData = (input: CreateQuizInput): Prisma.QuizsCreateInput =>
           create: input.tag.map((tagName) => ({
             quizTag: {
               connectOrCreate: {
-                where: { tagName },
-                create: { tagName },
+                where: { userId_tagName: { userId: input.userId, tagName } },
+                create: { userId: input.userId, tagName },
               },
             },
           })),
@@ -147,85 +147,119 @@ const buildQuizCreateData = (input: CreateQuizInput): Prisma.QuizsCreateInput =>
 });
 
 export const createQuizRepository = (): QuizRepository => ({
-  list() {
-    return prisma.quizs.findMany({ select: quizDetailSelect }).then((rows) => rows.map(toQuizRecord));
+  list(userId: number) {
+    return prisma.quizs
+      .findMany({ where: { userId }, select: quizDetailSelect })
+      .then((rows) => rows.map(toQuizRecord));
   },
 
   create(input: CreateQuizInput) {
     return prisma.quizs
       .create({
-        data: buildQuizCreateData(input),
+        data: {
+          userId: input.userId,
+          ...buildQuizMutationData(input),
+        },
         select: quizDetailSelect,
       })
       .then(toQuizRecord);
   },
 
   async update(input: UpdateQuizInput) {
-    await prisma.$transaction([
-      prisma.quizTagsRelations.deleteMany({ where: { quiz_id: input.id } }),
-      prisma.quizChoice.deleteMany({ where: { quiz_id: input.id } }),
-    ]);
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.quizs.findFirst({
+        where: { id: input.id, userId: input.userId },
+        select: { id: true },
+      });
+      if (!existing) {
+        throw { code: 'P2025' };
+      }
 
-    const quiz = await prisma.quizs.update({
-      where: { id: input.id },
-      data: buildQuizCreateData(input),
-      select: quizDetailSelect,
+      await tx.quizTagsRelations.deleteMany({ where: { quiz_id: input.id } });
+      await tx.quizChoice.deleteMany({ where: { quiz_id: input.id } });
+
+      const quiz = await tx.quizs.update({
+        where: { id: input.id },
+        data: buildQuizMutationData(input),
+        select: quizDetailSelect,
+      });
+
+      return toQuizRecord(quiz);
+    });
+  },
+
+  async remove(userId: number, id: number) {
+    const result = await prisma.quizs.deleteMany({
+      where: { id, userId },
     });
 
-    return toQuizRecord(quiz);
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
   },
 
-  remove(id: number) {
-    return prisma.quizs.delete({ where: { id } }).then(() => undefined);
-  },
-
-  listTags() {
+  listTags(userId: number) {
     return prisma.quizTag
       .findMany({
+        where: { userId },
         select: { id: true, tagName: true },
-        orderBy: { tagName: "asc" },
+        orderBy: { tagName: 'asc' },
       })
       .then((rows) => rows.map(toQuizTagRecord));
   },
 
-  findTagByName(tagName: string) {
+  findTagByName(userId: number, tagName: string) {
     return prisma.quizTag
       .findUnique({
-        where: { tagName },
+        where: { userId_tagName: { userId, tagName } },
         select: { id: true, tagName: true },
       })
       .then((tag) => (tag ? toQuizTagRecord(tag) : null));
   },
 
-  deleteTagById(tagId: number) {
-    return prisma.$transaction([
-      prisma.quizTagsRelations.deleteMany({ where: { quizTag_id: tagId } }),
-      prisma.quizTag.delete({ where: { id: tagId } }),
-    ]).then(() => undefined);
+  async deleteTagById(userId: number, tagId: number) {
+    await prisma.$transaction(async (tx) => {
+      const tag = await tx.quizTag.findFirst({
+        where: { id: tagId, userId },
+        select: { id: true },
+      });
+      if (!tag) {
+        throw { code: 'P2025' };
+      }
+
+      await tx.quizTagsRelations.deleteMany({ where: { quizTag_id: tagId } });
+      await tx.quizTag.delete({ where: { id: tagId } });
+    });
   },
 
-  listGroupNameRows() {
+  listGroupNameRows(userId: number) {
     return prisma.quizs
       .findMany({
-        where: { groupName: { not: null } },
+        where: { userId, groupName: { not: null } },
         select: { id: true, groupName: true },
       })
-      .then(
-        (rows): QuizGroupNameRow[] =>
-          rows.map((row) => ({
-            id: row.id,
-            groupName: row.groupName,
-          }))
+      .then((rows): QuizGroupNameRow[] =>
+        rows.map((row) => ({
+          id: row.id,
+          groupName: row.groupName,
+        })),
       );
   },
 
-  updateGroupName(id: number, groupName: string | null) {
-    return prisma.quizs.update({ where: { id }, data: { groupName } }).then(() => undefined);
+  async updateGroupName(userId: number, id: number, groupName: string | null) {
+    const result = await prisma.quizs.updateMany({
+      where: { id, userId },
+      data: { groupName },
+    });
+
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
   },
 
   async bulkUpdateLabels(input: BulkUpdateQuizLabelsInput): Promise<BulkUpdateQuizLabelsResult> {
     const quizzes = await prisma.quizs.findMany({
-      where: { id: { in: input.quizIds } },
+      where: { id: { in: input.quizIds }, userId: input.userId },
       select: {
         id: true,
         groupName: true,
@@ -242,14 +276,14 @@ export const createQuizRepository = (): QuizRepository => ({
     });
 
     if (quizzes.length !== input.quizIds.length) {
-      throw { code: "P2025" };
+      throw { code: 'P2025' };
     }
 
     const nextGroupNames = input.groups
       ? quizzes.map((quiz) => ({
           id: quiz.id,
           groupName: toDelimitedGroupName(
-            applyBulkLabelOperation(parseGroupNames(quiz.groupName), input.groups!)
+            applyBulkLabelOperation(parseGroupNames(quiz.groupName), input.groups!),
           ),
         }))
       : [];
@@ -258,21 +292,23 @@ export const createQuizRepository = (): QuizRepository => ({
       ? quizzes.flatMap((quiz) =>
           applyBulkLabelOperation(
             quiz.quizTagsRelations.map((relation) => relation.quizTag.tagName),
-            input.tags!
+            input.tags!,
           ).map((tagName) => ({
             quizId: quiz.id,
             tagName,
-          }))
+          })),
         )
       : [];
 
     await prisma.$transaction(async (tx) => {
       if (input.tags) {
-        const uniqueTagNames = normalizeValues(nextTagAssignments.map((assignment) => assignment.tagName));
+        const uniqueTagNames = normalizeValues(
+          nextTagAssignments.map((assignment) => assignment.tagName),
+        );
 
         if (uniqueTagNames.length > 0) {
           await tx.quizTag.createMany({
-            data: uniqueTagNames.map((tagName) => ({ tagName })),
+            data: uniqueTagNames.map((tagName) => ({ userId: input.userId, tagName })),
             skipDuplicates: true,
           });
         }
@@ -280,7 +316,7 @@ export const createQuizRepository = (): QuizRepository => ({
         const tagRows =
           uniqueTagNames.length > 0
             ? await tx.quizTag.findMany({
-                where: { tagName: { in: uniqueTagNames } },
+                where: { userId: input.userId, tagName: { in: uniqueTagNames } },
                 select: { id: true, tagName: true },
               })
             : [];
@@ -319,8 +355,8 @@ export const createQuizRepository = (): QuizRepository => ({
             tx.quizs.update({
               where: { id: groupUpdate.id },
               data: { groupName: groupUpdate.groupName },
-            })
-          )
+            }),
+          ),
         );
       }
     });
@@ -328,22 +364,25 @@ export const createQuizRepository = (): QuizRepository => ({
     return { updatedCount: quizzes.length };
   },
 
-  findById(id: number) {
+  findById(userId: number, id: number) {
     return prisma.quizs
-      .findUnique({
-        where: { id },
+      .findFirst({
+        where: { id, userId },
         select: { id: true, isFavorite: true },
       })
       .then((quiz) => (quiz ? toFavoriteState(quiz) : null));
   },
 
-  toggleFavorite(id: number, isFavorite: boolean) {
-    return prisma.quizs
-      .update({
-        where: { id },
-        data: { isFavorite },
-        select: { id: true, isFavorite: true },
-      })
-      .then(toFavoriteState);
+  async toggleFavorite(userId: number, id: number, isFavorite: boolean) {
+    const result = await prisma.quizs.updateMany({
+      where: { id, userId },
+      data: { isFavorite },
+    });
+
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+
+    return { id, isFavorite };
   },
 });

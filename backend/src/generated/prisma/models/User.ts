@@ -222,6 +222,8 @@ export type UserWhereInput = {
   updatedAt?: Prisma.DateTimeFilter<'User'> | Date | string;
   memos?: Prisma.MemosListRelationFilter;
   tags?: Prisma.TagsListRelationFilter;
+  quizzes?: Prisma.QuizsListRelationFilter;
+  quizTags?: Prisma.QuizTagListRelationFilter;
 };
 
 export type UserOrderByWithRelationInput = {
@@ -233,6 +235,8 @@ export type UserOrderByWithRelationInput = {
   updatedAt?: Prisma.SortOrder;
   memos?: Prisma.MemosOrderByRelationAggregateInput;
   tags?: Prisma.TagsOrderByRelationAggregateInput;
+  quizzes?: Prisma.QuizsOrderByRelationAggregateInput;
+  quizTags?: Prisma.quizTagOrderByRelationAggregateInput;
 };
 
 export type UserWhereUniqueInput = Prisma.AtLeast<
@@ -248,6 +252,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     updatedAt?: Prisma.DateTimeFilter<'User'> | Date | string;
     memos?: Prisma.MemosListRelationFilter;
     tags?: Prisma.TagsListRelationFilter;
+    quizzes?: Prisma.QuizsListRelationFilter;
+    quizTags?: Prisma.QuizTagListRelationFilter;
   },
   'id' | 'email'
 >;
@@ -286,6 +292,8 @@ export type UserCreateInput = {
   updatedAt?: Date | string;
   memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
   tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateInput = {
@@ -297,6 +305,8 @@ export type UserUncheckedCreateInput = {
   updatedAt?: Date | string;
   memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
   tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsUncheckedCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserUpdateInput = {
@@ -307,6 +317,8 @@ export type UserUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
   tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateInput = {
@@ -318,6 +330,8 @@ export type UserUncheckedUpdateInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
   tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUncheckedUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 export type UserCreateManyInput = {
@@ -455,6 +469,58 @@ export type UserUpdateOneRequiredWithoutTagsNestedInput = {
   >;
 };
 
+export type UserCreateNestedOneWithoutQuizzesInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizzesInput,
+    Prisma.UserUncheckedCreateWithoutQuizzesInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuizzesInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneRequiredWithoutQuizzesNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizzesInput,
+    Prisma.UserUncheckedCreateWithoutQuizzesInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuizzesInput;
+  upsert?: Prisma.UserUpsertWithoutQuizzesInput;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutQuizzesInput,
+      Prisma.UserUpdateWithoutQuizzesInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutQuizzesInput
+  >;
+};
+
+export type UserCreateNestedOneWithoutQuizTagsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizTagsInput,
+    Prisma.UserUncheckedCreateWithoutQuizTagsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuizTagsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneRequiredWithoutQuizTagsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizTagsInput,
+    Prisma.UserUncheckedCreateWithoutQuizTagsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutQuizTagsInput;
+  upsert?: Prisma.UserUpsertWithoutQuizTagsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutQuizTagsInput,
+      Prisma.UserUpdateWithoutQuizTagsInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutQuizTagsInput
+  >;
+};
+
 export type UserCreateWithoutMemosInput = {
   email: string;
   passwordHash: string;
@@ -462,6 +528,8 @@ export type UserCreateWithoutMemosInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateWithoutMemosInput = {
@@ -472,6 +540,8 @@ export type UserUncheckedCreateWithoutMemosInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsUncheckedCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserCreateOrConnectWithoutMemosInput = {
@@ -506,6 +576,8 @@ export type UserUpdateWithoutMemosInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutMemosInput = {
@@ -516,6 +588,8 @@ export type UserUncheckedUpdateWithoutMemosInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUncheckedUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 export type UserCreateWithoutTagsInput = {
@@ -525,6 +599,8 @@ export type UserCreateWithoutTagsInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateWithoutTagsInput = {
@@ -535,6 +611,8 @@ export type UserUncheckedCreateWithoutTagsInput = {
   createdAt?: Date | string;
   updatedAt?: Date | string;
   memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsUncheckedCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserCreateOrConnectWithoutTagsInput = {
@@ -560,6 +638,8 @@ export type UserUpdateWithoutTagsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateWithoutTagsInput = {
@@ -570,6 +650,156 @@ export type UserUncheckedUpdateWithoutTagsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUncheckedUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUncheckedUpdateManyWithoutUserNestedInput;
+};
+
+export type UserCreateWithoutQuizzesInput = {
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagCreateNestedManyWithoutUserInput;
+};
+
+export type UserUncheckedCreateWithoutQuizzesInput = {
+  id?: number;
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
+  quizTags?: Prisma.quizTagUncheckedCreateNestedManyWithoutUserInput;
+};
+
+export type UserCreateOrConnectWithoutQuizzesInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizzesInput,
+    Prisma.UserUncheckedCreateWithoutQuizzesInput
+  >;
+};
+
+export type UserUpsertWithoutQuizzesInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutQuizzesInput,
+    Prisma.UserUncheckedUpdateWithoutQuizzesInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizzesInput,
+    Prisma.UserUncheckedCreateWithoutQuizzesInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutQuizzesInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutQuizzesInput,
+    Prisma.UserUncheckedUpdateWithoutQuizzesInput
+  >;
+};
+
+export type UserUpdateWithoutQuizzesInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUpdateManyWithoutUserNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutQuizzesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
+  quizTags?: Prisma.quizTagUncheckedUpdateManyWithoutUserNestedInput;
+};
+
+export type UserCreateWithoutQuizTagsInput = {
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsCreateNestedManyWithoutUserInput;
+};
+
+export type UserUncheckedCreateWithoutQuizTagsInput = {
+  id?: number;
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
+  quizzes?: Prisma.QuizsUncheckedCreateNestedManyWithoutUserInput;
+};
+
+export type UserCreateOrConnectWithoutQuizTagsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizTagsInput,
+    Prisma.UserUncheckedCreateWithoutQuizTagsInput
+  >;
+};
+
+export type UserUpsertWithoutQuizTagsInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutQuizTagsInput,
+    Prisma.UserUncheckedUpdateWithoutQuizTagsInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutQuizTagsInput,
+    Prisma.UserUncheckedCreateWithoutQuizTagsInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutQuizTagsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<
+    Prisma.UserUpdateWithoutQuizTagsInput,
+    Prisma.UserUncheckedUpdateWithoutQuizTagsInput
+  >;
+};
+
+export type UserUpdateWithoutQuizTagsInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUpdateManyWithoutUserNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutQuizTagsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
+  quizzes?: Prisma.QuizsUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 /**
@@ -579,6 +809,8 @@ export type UserUncheckedUpdateWithoutTagsInput = {
 export type UserCountOutputType = {
   memos: number;
   tags: number;
+  quizzes: number;
+  quizTags: number;
 };
 
 export type UserCountOutputTypeSelect<
@@ -586,6 +818,8 @@ export type UserCountOutputTypeSelect<
 > = {
   memos?: boolean | UserCountOutputTypeCountMemosArgs;
   tags?: boolean | UserCountOutputTypeCountTagsArgs;
+  quizzes?: boolean | UserCountOutputTypeCountQuizzesArgs;
+  quizTags?: boolean | UserCountOutputTypeCountQuizTagsArgs;
 };
 
 /**
@@ -618,6 +852,24 @@ export type UserCountOutputTypeCountTagsArgs<
   where?: Prisma.TagsWhereInput;
 };
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountQuizzesArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.QuizsWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountQuizTagsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.quizTagWhereInput;
+};
+
 export type UserSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetSelect<
@@ -630,6 +882,8 @@ export type UserSelect<
     updatedAt?: boolean;
     memos?: boolean | Prisma.User$memosArgs<ExtArgs>;
     tags?: boolean | Prisma.User$tagsArgs<ExtArgs>;
+    quizzes?: boolean | Prisma.User$quizzesArgs<ExtArgs>;
+    quizTags?: boolean | Prisma.User$quizTagsArgs<ExtArgs>;
     _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
   },
   ExtArgs['result']['user']
@@ -683,6 +937,8 @@ export type UserInclude<
 > = {
   memos?: boolean | Prisma.User$memosArgs<ExtArgs>;
   tags?: boolean | Prisma.User$tagsArgs<ExtArgs>;
+  quizzes?: boolean | Prisma.User$quizzesArgs<ExtArgs>;
+  quizTags?: boolean | Prisma.User$quizTagsArgs<ExtArgs>;
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
 };
 export type UserIncludeCreateManyAndReturn<
@@ -699,6 +955,8 @@ export type $UserPayload<
   objects: {
     memos: Prisma.$MemosPayload<ExtArgs>[];
     tags: Prisma.$TagsPayload<ExtArgs>[];
+    quizzes: Prisma.$QuizsPayload<ExtArgs>[];
+    quizTags: Prisma.$quizTagPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
@@ -1235,6 +1493,28 @@ export interface Prisma__UserClient<
     | runtime.Types.Result.GetResult<Prisma.$TagsPayload<ExtArgs>, T, 'findMany', GlobalOmitOptions>
     | Null
   >;
+  quizzes<T extends Prisma.User$quizzesArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$quizzesArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$QuizsPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  quizTags<T extends Prisma.User$quizTagsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$quizTagsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$quizTagPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
+  >;
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1741,6 +2021,58 @@ export type User$tagsArgs<
   take?: number;
   skip?: number;
   distinct?: Prisma.TagsScalarFieldEnum | Prisma.TagsScalarFieldEnum[];
+};
+
+/**
+ * User.quizzes
+ */
+export type User$quizzesArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Quizs
+   */
+  select?: Prisma.QuizsSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Quizs
+   */
+  omit?: Prisma.QuizsOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.QuizsInclude<ExtArgs> | null;
+  where?: Prisma.QuizsWhereInput;
+  orderBy?: Prisma.QuizsOrderByWithRelationInput | Prisma.QuizsOrderByWithRelationInput[];
+  cursor?: Prisma.QuizsWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.QuizsScalarFieldEnum | Prisma.QuizsScalarFieldEnum[];
+};
+
+/**
+ * User.quizTags
+ */
+export type User$quizTagsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the quizTag
+   */
+  select?: Prisma.quizTagSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the quizTag
+   */
+  omit?: Prisma.quizTagOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.quizTagInclude<ExtArgs> | null;
+  where?: Prisma.quizTagWhereInput;
+  orderBy?: Prisma.quizTagOrderByWithRelationInput | Prisma.quizTagOrderByWithRelationInput[];
+  cursor?: Prisma.quizTagWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.QuizTagScalarFieldEnum | Prisma.QuizTagScalarFieldEnum[];
 };
 
 /**

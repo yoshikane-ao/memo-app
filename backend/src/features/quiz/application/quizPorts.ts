@@ -34,7 +34,7 @@ export interface QuizFavoriteState {
   isFavorite: boolean;
 }
 
-export type BulkQuizLabelAction = "add" | "remove" | "replace" | "clear";
+export type BulkQuizLabelAction = 'add' | 'remove' | 'replace' | 'clear';
 
 export interface BulkQuizLabelOperation {
   action: BulkQuizLabelAction;
@@ -42,6 +42,7 @@ export interface BulkQuizLabelOperation {
 }
 
 export interface BulkUpdateQuizLabelsInput {
+  userId: number;
   quizIds: number[];
   tags?: BulkQuizLabelOperation;
   groups?: BulkQuizLabelOperation;
@@ -52,6 +53,7 @@ export interface BulkUpdateQuizLabelsResult {
 }
 
 export type CreateQuizInput = {
+  userId: number;
   word: string;
   mean: string;
   tag: string[];
@@ -67,16 +69,16 @@ export type UpdateQuizInput = CreateQuizInput & {
 };
 
 export interface QuizRepository {
-  list(): Promise<QuizRecord[]>;
+  list(userId: number): Promise<QuizRecord[]>;
   create(input: CreateQuizInput): Promise<QuizRecord>;
   update(input: UpdateQuizInput): Promise<QuizRecord>;
-  remove(id: number): Promise<void>;
-  listTags(): Promise<QuizTagRecord[]>;
-  findTagByName(tagName: string): Promise<QuizTagRecord | null>;
-  deleteTagById(tagId: number): Promise<void>;
-  listGroupNameRows(): Promise<QuizGroupNameRow[]>;
-  updateGroupName(id: number, groupName: string | null): Promise<void>;
+  remove(userId: number, id: number): Promise<void>;
+  listTags(userId: number): Promise<QuizTagRecord[]>;
+  findTagByName(userId: number, tagName: string): Promise<QuizTagRecord | null>;
+  deleteTagById(userId: number, tagId: number): Promise<void>;
+  listGroupNameRows(userId: number): Promise<QuizGroupNameRow[]>;
+  updateGroupName(userId: number, id: number, groupName: string | null): Promise<void>;
   bulkUpdateLabels(input: BulkUpdateQuizLabelsInput): Promise<BulkUpdateQuizLabelsResult>;
-  findById(id: number): Promise<QuizFavoriteState | null>;
-  toggleFavorite(id: number, isFavorite: boolean): Promise<QuizFavoriteState>;
+  findById(userId: number, id: number): Promise<QuizFavoriteState | null>;
+  toggleFavorite(userId: number, id: number, isFavorite: boolean): Promise<QuizFavoriteState>;
 }

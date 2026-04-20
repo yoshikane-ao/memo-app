@@ -44,6 +44,9 @@ export const quizAppDefinition: MenuAppDefinition = {
     {
       path: quizBasePath,
       component: loadQuizAppShell,
+      meta: {
+        requiresAuth: true,
+      },
       children: [
         {
           path: '',
@@ -51,6 +54,7 @@ export const quizAppDefinition: MenuAppDefinition = {
           redirect: { name: 'quiz-start' },
           meta: {
             pageTitle: `${quizEntry.name} | アプリ一覧`,
+            requiresAuth: true,
             ...quizMeta,
           },
         },
@@ -60,6 +64,7 @@ export const quizAppDefinition: MenuAppDefinition = {
           component: loadQuizStartPage,
           meta: {
             pageTitle: `スタート | ${quizEntry.name}`,
+            requiresAuth: true,
             ...quizMeta,
           },
         },
@@ -69,6 +74,7 @@ export const quizAppDefinition: MenuAppDefinition = {
           component: loadQuizCreatePage,
           meta: {
             pageTitle: `作成 | ${quizEntry.name}`,
+            requiresAuth: true,
             ...quizMeta,
           },
         },
@@ -78,6 +84,7 @@ export const quizAppDefinition: MenuAppDefinition = {
           component: loadQuizAnswerPage,
           meta: {
             pageTitle: `回答 | ${quizEntry.name}`,
+            requiresAuth: true,
             ...quizMeta,
           },
         },
