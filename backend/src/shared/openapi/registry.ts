@@ -31,7 +31,7 @@ export const generateOpenApiDocument = () => {
       title: 'memo-app API',
       version: '1.0.0',
       description:
-        'memo / tag / quiz / auth のエンドポイント一覧。認証が必要な route は Cookie (`memo_access`) を送信してください。',
+        'memo / tag / quiz / auth のエンドポイント一覧。認証が必要な route は httpOnly cookie (`access_token`) を送信してください。',
     },
     servers: [
       { url: 'http://localhost:3004', description: 'ローカル開発' },
