@@ -16,11 +16,12 @@ import {
   DEFAULT_MARKET_STOCK_STARTING_PRICE,
   DEFAULT_PLAYER_STOCK_STARTING_PRICE,
   buildTradeSessionSnapshot,
+  createGuestIdentity,
+  type PlayerIdentity,
+  type PlayerSlot,
   type TradeSetupDraft,
-} from '../lib/tradeSetup';
+} from '../features/trade';
 import { useTradeButtonSound } from '../composables/useTradeButtonSound';
-import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity';
-import { createGuestIdentity } from '../types/playerIdentity';
 import startBackgroundUrl from '../assets/start-screen-background.png';
 
 type StartingCashMode = 'same' | 'separate';

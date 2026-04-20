@@ -1,7 +1,7 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import type { StockState } from '../api/types/game'
-import StockBoard from './StockBoard.vue'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import type { StockState } from '../features/trade';
+import StockBoard from './StockBoard.vue';
 
 function createStocks(): StockState[] {
   return [
@@ -41,7 +41,7 @@ function createStocks(): StockState[] {
       shortInterest: 0,
       correlationNote: '',
     },
-  ]
+  ];
 }
 
 function createProjectedPrices() {
@@ -49,7 +49,7 @@ function createProjectedPrices() {
     market: 1015000,
     p1: 1055000,
     p2: 986000,
-  }
+  };
 }
 
 function createCommittedStocks(): StockState[] {
@@ -72,7 +72,7 @@ function createCommittedStocks(): StockState[] {
       previousPrice: 993000,
       history: [1000000, 970000, 999000, 993000, 986000],
     },
-  ]
+  ];
 }
 
 function createLongHistoryStocks(): StockState[] {
@@ -113,7 +113,7 @@ function createLongHistoryStocks(): StockState[] {
       shortInterest: 0,
       correlationNote: '',
     },
-  ]
+  ];
 }
 
 describe('StockBoard', () => {
@@ -149,44 +149,81 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
-    const quoteNames = wrapper.findAll('.quote-name').map((node) => node.text())
-    const legendNames = wrapper.findAll('.legend-chip__label').map((node) => node.text())
-    const chartSvgStyle = wrapper.find('.chart-svg').attributes('style')
-    expect(wrapper.findAll('.chart-svg')).toHaveLength(1)
-    expect(wrapper.find('.shared-chart').attributes('data-preview-zoom')).toBe('true')
-    expect(chartSvgStyle).toContain('--chart-commit-duration')
-    expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(true)
-    expect(wrapper.findAll('[data-series]')).toHaveLength(3)
-    expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2)
-    expect(wrapper.findAll('[data-series-label]')).toHaveLength(3)
-    expect(wrapper.findAll('[data-series-projection]')).toHaveLength(3)
-    expect(quoteNames).toContain('Player1')
-    expect(quoteNames).toContain('Player2')
-    expect(legendNames).toContain('Player1')
-    expect(legendNames).toContain('Player2')
-    expect(wrapper.find('[data-series-label="market"]').text()).toContain('1,010,000')
-    expect(wrapper.find('[data-series-label="p1"]').text()).toContain('1,040,000')
-    expect(wrapper.findAll('.price-label').map((node) => node.text())).toEqual(['1,050,000', '1,000,000'])
-    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-player-marker')).toBe('P1')
-    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-marker-clickable')).toBe('true')
-    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).toContain('is-pending-close')
-    expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring').exists()).toBe(false)
-    expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring-mover').exists()).toBe(true)
-    expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring-mover animate[attributeName="cx"]').exists()).toBe(true)
-    expect(wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring-mover animate[attributeName="cy"]').exists()).toBe(true)
-    expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe('P2')
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(true)
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).toContain('L')
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d')).not.toContain('C')
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__halo').exists()).toBe(true)
-    expect(wrapper.find('[data-series-projection="market"] .chart-projection__ripple').exists()).toBe(true)
-    expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(true)
-    expect(wrapper.find('[data-commit-line="market"]').exists()).toBe(false)
-    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false)
-    expect(wrapper.text()).toContain('P1')
-  })
+    const quoteNames = wrapper.findAll('.quote-name').map((node) => node.text());
+    const legendNames = wrapper.findAll('.legend-chip__label').map((node) => node.text());
+    const chartSvgStyle = wrapper.find('.chart-svg').attributes('style');
+    expect(wrapper.findAll('.chart-svg')).toHaveLength(1);
+    expect(wrapper.find('.shared-chart').attributes('data-preview-zoom')).toBe('true');
+    expect(chartSvgStyle).toContain('--chart-commit-duration');
+    expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(true);
+    expect(wrapper.findAll('[data-series]')).toHaveLength(3);
+    expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2);
+    expect(wrapper.findAll('[data-series-label]')).toHaveLength(3);
+    expect(wrapper.findAll('[data-series-projection]')).toHaveLength(3);
+    expect(quoteNames).toContain('Player1');
+    expect(quoteNames).toContain('Player2');
+    expect(legendNames).toContain('Player1');
+    expect(legendNames).toContain('Player2');
+    expect(wrapper.find('[data-series-label="market"]').text()).toContain('1,010,000');
+    expect(wrapper.find('[data-series-label="p1"]').text()).toContain('1,040,000');
+    expect(wrapper.findAll('.price-label').map((node) => node.text())).toEqual([
+      '1,050,000',
+      '1,000,000',
+    ]);
+    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-player-marker')).toBe(
+      'P1',
+    );
+    expect(wrapper.find('[data-order-marker="marker-1"]').attributes('data-marker-clickable')).toBe(
+      'true',
+    );
+    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).toContain('is-pending-close');
+    expect(
+      wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring').exists(),
+    ).toBe(false);
+    expect(
+      wrapper.find('[data-order-marker="marker-1"] .order-marker__pending-ring-mover').exists(),
+    ).toBe(true);
+    expect(
+      wrapper
+        .find(
+          '[data-order-marker="marker-1"] .order-marker__pending-ring-mover animate[attributeName="cx"]',
+        )
+        .exists(),
+    ).toBe(true);
+    expect(
+      wrapper
+        .find(
+          '[data-order-marker="marker-1"] .order-marker__pending-ring-mover animate[attributeName="cy"]',
+        )
+        .exists(),
+    ).toBe(true);
+    expect(wrapper.find('[data-order-marker="marker-2"]').attributes('data-player-marker')).toBe(
+      'P2',
+    );
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__path').exists()).toBe(
+      true,
+    );
+    expect(
+      wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d'),
+    ).toContain('L');
+    expect(
+      wrapper.find('[data-series-projection="market"] .chart-projection__path').attributes('d'),
+    ).not.toContain('C');
+    expect(wrapper.find('[data-series-projection="market"] .chart-projection__halo').exists()).toBe(
+      true,
+    );
+    expect(
+      wrapper.find('[data-series-projection="market"] .chart-projection__ripple').exists(),
+    ).toBe(true);
+    expect(wrapper.find('[data-series-projection="p1"] .chart-projection__point').exists()).toBe(
+      true,
+    );
+    expect(wrapper.find('[data-commit-line="market"]').exists()).toBe(false);
+    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false);
+    expect(wrapper.text()).toContain('P1');
+  });
 
   it('renders commit overlay along the projected line only while resolved animation is active', () => {
     const wrapper = mount(StockBoard, {
@@ -201,14 +238,18 @@ describe('StockBoard', () => {
         },
         resolvedAnimationDurationMs: 760,
       },
-    })
+    });
 
-    expect(wrapper.find('.shared-chart').attributes('data-commit-animation')).toBe('true')
-    expect(wrapper.find('.chart-svg').attributes('style')).toContain('--chart-commit-duration: 760ms')
-    expect(wrapper.find('[data-commit-line="market"] .chart-commit__main').attributes('pathLength')).toBe('100')
-    expect(wrapper.find('[data-commit-line="p1"]').exists()).toBe(true)
-    expect(wrapper.find('[data-series-label="market"]').text()).toContain('1,010,000')
-  })
+    expect(wrapper.find('.shared-chart').attributes('data-commit-animation')).toBe('true');
+    expect(wrapper.find('.chart-svg').attributes('style')).toContain(
+      '--chart-commit-duration: 760ms',
+    );
+    expect(
+      wrapper.find('[data-commit-line="market"] .chart-commit__main').attributes('pathLength'),
+    ).toBe('100');
+    expect(wrapper.find('[data-commit-line="p1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-series-label="market"]').text()).toContain('1,010,000');
+  });
 
   it('emits close-position when the active player marker label is clicked', async () => {
     const wrapper = mount(StockBoard, {
@@ -242,20 +283,20 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
-    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false)
+    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false);
 
-    await wrapper.find('[data-order-marker="marker-1"] .order-marker__text').trigger('click')
+    await wrapper.find('[data-order-marker="marker-1"] .order-marker__text').trigger('click');
 
-    expect(wrapper.emitted('close-position')).toEqual([['position-1']])
-    const markerDetail = wrapper.find('[data-selected-marker-summary="marker-1"]')
-    expect(markerDetail.exists()).toBe(true)
-    expect(markerDetail.text()).toContain('1,040,000')
-    expect(markerDetail.text()).toContain('+12,000')
-    const connector = markerDetail.find('.marker-detail__connector')
-    expect(Number(connector.attributes('y2'))).toBeGreaterThan(Number(connector.attributes('y1')))
-  })
+    expect(wrapper.emitted('close-position')).toEqual([['position-1']]);
+    const markerDetail = wrapper.find('[data-selected-marker-summary="marker-1"]');
+    expect(markerDetail.exists()).toBe(true);
+    expect(markerDetail.text()).toContain('1,040,000');
+    expect(markerDetail.text()).toContain('+12,000');
+    const connector = markerDetail.find('.marker-detail__connector');
+    expect(Number(connector.attributes('y2'))).toBeGreaterThan(Number(connector.attributes('y1')));
+  });
 
   it('closes marker detail when another place is clicked', async () => {
     const wrapper = mount(StockBoard, {
@@ -290,18 +331,18 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
     try {
-      await wrapper.find('[data-order-marker="marker-1"] .order-marker__text').trigger('click')
-      expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(true)
+      await wrapper.find('[data-order-marker="marker-1"] .order-marker__text').trigger('click');
+      expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(true);
 
-      await wrapper.find('.shared-chart').trigger('click')
-      expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false)
+      await wrapper.find('.shared-chart').trigger('click');
+      expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false);
     } finally {
-      wrapper.unmount()
+      wrapper.unmount();
     }
-  })
+  });
 
   it('closes marker detail when the same marker is clicked again', async () => {
     const wrapper = mount(StockBoard, {
@@ -324,18 +365,18 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
-    const markerText = wrapper.find('[data-order-marker="marker-1"] .order-marker__text')
+    const markerText = wrapper.find('[data-order-marker="marker-1"] .order-marker__text');
 
-    await markerText.trigger('click')
-    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(true)
+    await markerText.trigger('click');
+    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(true);
 
-    await markerText.trigger('click')
+    await markerText.trigger('click');
 
-    expect(wrapper.emitted('close-position')).toEqual([['position-1'], ['position-1']])
-    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false)
-  })
+    expect(wrapper.emitted('close-position')).toEqual([['position-1'], ['position-1']]);
+    expect(wrapper.find('[data-selected-marker-summary="marker-1"]').exists()).toBe(false);
+  });
 
   it('dims other series, markers, price tags, and projections when a focus target is selected', async () => {
     const wrapper = mount(StockBoard, {
@@ -368,22 +409,22 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
-    const focusButton = wrapper.find('[data-focus-toggle="p1"]')
-    await focusButton.trigger('click')
+    const focusButton = wrapper.find('[data-focus-toggle="p1"]');
+    await focusButton.trigger('click');
 
-    expect(focusButton.attributes('aria-pressed')).toBe('true')
-    expect(wrapper.find('[data-series="p1"]').classes()).toContain('is-focused')
-    expect(wrapper.find('[data-series="market"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-series="p2"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-series-label="market"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-series-label="p2"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-series-projection="market"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-series-projection="p2"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-order-marker="marker-2"]').classes()).toContain('is-dimmed')
-    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).not.toContain('is-dimmed')
-  })
+    expect(focusButton.attributes('aria-pressed')).toBe('true');
+    expect(wrapper.find('[data-series="p1"]').classes()).toContain('is-focused');
+    expect(wrapper.find('[data-series="market"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-series="p2"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-series-label="market"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-series-label="p2"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-series-projection="market"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-series-projection="p2"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-order-marker="marker-2"]').classes()).toContain('is-dimmed');
+    expect(wrapper.find('[data-order-marker="marker-1"]').classes()).not.toContain('is-dimmed');
+  });
 
   it('keeps older history visible without rendering chart navigation controls', () => {
     const wrapper = mount(StockBoard, {
@@ -406,10 +447,10 @@ describe('StockBoard', () => {
           },
         ],
       },
-    })
+    });
 
-    expect(wrapper.find('[data-history-controls]').exists()).toBe(false)
-    expect(wrapper.find('[data-order-marker="marker-old"]').exists()).toBe(true)
-    expect(wrapper.find('[data-series="market"] path.line-main').attributes('d')).toContain('L')
-  })
-})
+    expect(wrapper.find('[data-history-controls]').exists()).toBe(false);
+    expect(wrapper.find('[data-order-marker="marker-old"]').exists()).toBe(true);
+    expect(wrapper.find('[data-series="market"] path.line-main').attributes('d')).toContain('L');
+  });
+});

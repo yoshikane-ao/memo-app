@@ -5,7 +5,7 @@ import {
   DEFAULT_MANAGEMENT_STAKE_SHARES,
   FACILITY_INVESTMENT_ACTION,
   type GameState,
-} from '../types/game'
+} from '../types';
 
 export function createInitialGameState(): GameState {
   return {
@@ -135,5 +135,5 @@ export function createInitialGameState(): GameState {
         tone: 'down',
       },
     ],
-  }
+  };
 }

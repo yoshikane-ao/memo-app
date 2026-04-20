@@ -1,27 +1,26 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue';
 import {
   useTradeProfileStore,
   type TradeProfile,
   type TradeProfileIcon,
-} from '../store/useTradeProfileStore'
-import type { PlayerSlot, PlayerIdentity } from '../types/playerIdentity'
-import { createGuestIdentity } from '../types/playerIdentity'
+} from '../store/useTradeProfileStore';
+import { createGuestIdentity, type PlayerIdentity, type PlayerSlot } from '../features/trade';
 
 const props = defineProps<{
-  modelValue: boolean
-  slot: PlayerSlot | null
-  profiles: TradeProfile[]
-}>()
+  modelValue: boolean;
+  slot: PlayerSlot | null;
+  profiles: TradeProfile[];
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: boolean): void
-  (e: 'select', payload: PlayerIdentity): void
-  (e: 'create'): void
-  (e: 'delete', profileId: string): void
-}>()
+  (e: 'update:modelValue', value: boolean): void;
+  (e: 'select', payload: PlayerIdentity): void;
+  (e: 'create'): void;
+  (e: 'delete', profileId: string): void;
+}>();
 
-const profileStore = useTradeProfileStore()
+const profileStore = useTradeProfileStore();
 
 const iconOptions: Array<{ value: TradeProfileIcon; label: string; glyph: string }> = [
   { value: 'bull', label: '牛', glyph: '🐂' },
@@ -32,98 +31,98 @@ const iconOptions: Array<{ value: TradeProfileIcon; label: string; glyph: string
   { value: 'crown', label: '王冠', glyph: '👑' },
   { value: 'flame', label: '炎', glyph: '🔥' },
   { value: 'shield', label: '盾', glyph: '🛡️' },
-]
+];
 
-const editingProfileId = ref<string | null>(null)
+const editingProfileId = ref<string | null>(null);
 const editForm = reactive<{
-  icon: TradeProfileIcon
-  tagline: string
+  icon: TradeProfileIcon;
+  tagline: string;
 }>({
   icon: 'bull',
   tagline: '',
-})
+});
 
 const guestIdentity = computed(() => {
   if (!props.slot) {
-    return null
+    return null;
   }
-  return createGuestIdentity(props.slot)
-})
+  return createGuestIdentity(props.slot);
+});
 
 const guestLabel = computed(() => {
   if (!props.slot) {
-    return 'ゲスト'
+    return 'ゲスト';
   }
-  return props.slot === 'p1' ? 'プレイヤー1' : 'プレイヤー2'
-})
+  return props.slot === 'p1' ? 'プレイヤー1' : 'プレイヤー2';
+});
 
 function close(): void {
-  editingProfileId.value = null
-  emit('update:modelValue', false)
+  editingProfileId.value = null;
+  emit('update:modelValue', false);
 }
 
 function handleSelectProfile(profileId: string): void {
   if (editingProfileId.value === profileId) {
-    return
+    return;
   }
-  emit('select', { kind: 'profile', profileId })
-  close()
+  emit('select', { kind: 'profile', profileId });
+  close();
 }
 
 function handleSelectGuest(): void {
   if (!guestIdentity.value) {
-    return
+    return;
   }
-  emit('select', guestIdentity.value)
-  close()
+  emit('select', guestIdentity.value);
+  close();
 }
 
 function handleCreate(): void {
-  editingProfileId.value = null
-  close()
-  emit('create')
+  editingProfileId.value = null;
+  close();
+  emit('create');
 }
 
 function handleDelete(profileId: string): void {
-  const confirmed = window.confirm('このキャラクターを削除しますか？')
+  const confirmed = window.confirm('このキャラクターを削除しますか？');
   if (!confirmed) {
-    return
+    return;
   }
 
   if (editingProfileId.value === profileId) {
-    editingProfileId.value = null
+    editingProfileId.value = null;
   }
 
-  profileStore.removeProfile(profileId)
-  emit('delete', profileId)
+  profileStore.removeProfile(profileId);
+  emit('delete', profileId);
 }
 
 function openEdit(profile: TradeProfile): void {
-  editingProfileId.value = profile.id
-  editForm.icon = profile.icon
-  editForm.tagline = profile.tagline
+  editingProfileId.value = profile.id;
+  editForm.icon = profile.icon;
+  editForm.tagline = profile.tagline;
 }
 
 function cancelEdit(): void {
-  editingProfileId.value = null
+  editingProfileId.value = null;
 }
 
 function saveEdit(profileId: string): void {
   profileStore.updateProfile(profileId, {
     icon: editForm.icon,
     tagline: editForm.tagline,
-  })
-  editingProfileId.value = null
+  });
+  editingProfileId.value = null;
 }
 
 function iconGlyph(icon: TradeProfileIcon): string {
-  return iconOptions.find((option) => option.value === icon)?.glyph ?? '👤'
+  return iconOptions.find((option) => option.value === icon)?.glyph ?? '👤';
 }
 
 function formatCurrency(value: number): string {
-  const rounded = Math.round(value)
-  const prefix = rounded < 0 ? '-¥' : '¥'
-  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`
+  const rounded = Math.round(value);
+  const prefix = rounded < 0 ? '-¥' : '¥';
+  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`;
 }
 </script>
 
@@ -132,7 +131,12 @@ function formatCurrency(value: number): string {
     <div v-if="modelValue" class="picker-modal">
       <div class="picker-modal__backdrop" @click="close" />
 
-      <section class="picker-modal__dialog" role="dialog" aria-modal="true" aria-label="プロフィール選択">
+      <section
+        class="picker-modal__dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="プロフィール選択"
+      >
         <header class="picker-modal__header">
           <div>
             <p class="picker-modal__eyebrow">PROFILE PICKER</p>
@@ -170,11 +174,7 @@ function formatCurrency(value: number): string {
             :class="`theme-${profile.theme}`"
           >
             <div class="picker-card__actions">
-              <button
-                type="button"
-                class="picker-card__edit"
-                @click.stop="openEdit(profile)"
-              >
+              <button type="button" class="picker-card__edit" @click.stop="openEdit(profile)">
                 編集
               </button>
 
@@ -212,16 +212,14 @@ function formatCurrency(value: number): string {
                 </div>
                 <div>
                   <span>現在資産</span>
-                  <strong :class="{ 'is-negative': profile.stats.currentAssets < 0 }">{{ formatCurrency(profile.stats.currentAssets) }}</strong>
+                  <strong :class="{ 'is-negative': profile.stats.currentAssets < 0 }">{{
+                    formatCurrency(profile.stats.currentAssets)
+                  }}</strong>
                 </div>
               </div>
             </button>
 
-            <div
-              v-if="editingProfileId === profile.id"
-              class="picker-card__editor"
-              @click.stop
-            >
+            <div v-if="editingProfileId === profile.id" class="picker-card__editor" @click.stop>
               <div class="picker-card__editor-section">
                 <span class="picker-card__editor-label">アイコン</span>
                 <div class="picker-card__icon-grid">
@@ -253,7 +251,11 @@ function formatCurrency(value: number): string {
                 <button type="button" class="picker-card__editor-cancel" @click="cancelEdit">
                   キャンセル
                 </button>
-                <button type="button" class="picker-card__editor-save" @click="saveEdit(profile.id)">
+                <button
+                  type="button"
+                  class="picker-card__editor-save"
+                  @click="saveEdit(profile.id)"
+                >
                   保存
                 </button>
               </div>
@@ -349,7 +351,10 @@ function formatCurrency(value: number): string {
   color: #eef4ff;
   cursor: pointer;
   text-align: left;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .picker-card:hover {

@@ -8,7 +8,7 @@ import type {
   TradeAction,
   TradeMode,
   TurnActionPayload,
-} from '../api/types/game'
+} from '../types';
 import {
   BUYBACK_ACTION,
   COMPANY_ACTIONS,
@@ -16,119 +16,119 @@ import {
   NO_COMPANY_ACTION,
   STOCK_LABELS,
   TRADE_LABELS,
-} from '../api/types/game'
+} from '../types';
 import {
   MIN_TRADE_ORDER_AMOUNT,
   calculateTradePriceImpact,
   resolvePriceAfterDelta,
   resolveTradeImpactPattern,
-} from './tradeImpact'
+} from './tradeImpact';
 
-export type BattleActionKind = 'trade' | 'company' | 'wait'
+export type BattleActionKind = 'trade' | 'company' | 'wait';
 
-export type StockImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down'
+export type StockImpactLevel = 'strong-up' | 'up' | 'neutral' | 'down' | 'strong-down';
 
 export type StockImpactItem = {
-  key: StockKey
-  title: string
-  subtitle: string
-  level: StockImpactLevel
-  headline: string
-  detail: string
-}
+  key: StockKey;
+  title: string;
+  subtitle: string;
+  level: StockImpactLevel;
+  headline: string;
+  detail: string;
+};
 
 export type PreviewSummaryItem = {
-  label: string
-  value: string
-}
+  label: string;
+  value: string;
+};
 
 export type BattleActionDraft = {
-  actionKind: BattleActionKind
-  stockKey: StockKey
-  tradeAction: TradeAction
-  tradeMode: TradeMode
-  quantity: number
-  companyAction: CompanyAction
-}
+  actionKind: BattleActionKind;
+  stockKey: StockKey;
+  tradeAction: TradeAction;
+  tradeMode: TradeMode;
+  quantity: number;
+  companyAction: CompanyAction;
+};
 
 export type BattleActionPreview = {
-  actionKind: BattleActionKind
-  bannerTitle: string
-  overviewTitle: string
-  overviewSub: string
-  stockImpactPreview: StockImpactItem[]
-  companySummaryItems: PreviewSummaryItem[]
-  actionChips: string[]
-  decisionLabel: string
-}
+  actionKind: BattleActionKind;
+  bannerTitle: string;
+  overviewTitle: string;
+  overviewSub: string;
+  stockImpactPreview: StockImpactItem[];
+  companySummaryItems: PreviewSummaryItem[];
+  actionChips: string[];
+  decisionLabel: string;
+};
 
 export type BattleStockChoice = {
-  key: StockKey
-  title: string
-  subtitle: string
-}
+  key: StockKey;
+  title: string;
+  subtitle: string;
+};
 
 export type BattleActionProjection = {
-  draft: BattleActionDraft
-  stockChoices: BattleStockChoice[]
-  companyActions: CooldownAction[]
-  visibleTradeActions: TradeAction[]
-  selectedPrice: number
-  projectedExecutionPrice: number
-  selectedHoldingQuantity: number
-  selectedShortQuantity: number
-  availableCash: number
-  orderAmount: number
-  estimatedShares: number
-  executedAmount: number
-  requiredCashAmount: number
-  isCashInsufficient: boolean
-  executionEstimateText: string
-  canSubmitTrade: boolean
-  canSubmitCompany: boolean
-  canSubmitWait: boolean
-  canSubmit: boolean
-  preview: BattleActionPreview
-}
+  draft: BattleActionDraft;
+  stockChoices: BattleStockChoice[];
+  companyActions: CooldownAction[];
+  visibleTradeActions: TradeAction[];
+  selectedPrice: number;
+  projectedExecutionPrice: number;
+  selectedHoldingQuantity: number;
+  selectedShortQuantity: number;
+  availableCash: number;
+  orderAmount: number;
+  estimatedShares: number;
+  executedAmount: number;
+  requiredCashAmount: number;
+  isCashInsufficient: boolean;
+  executionEstimateText: string;
+  canSubmitTrade: boolean;
+  canSubmitCompany: boolean;
+  canSubmitWait: boolean;
+  canSubmit: boolean;
+  preview: BattleActionPreview;
+};
 
 export type BattleConfirmedAction = TurnActionPayload & {
-  metaAction?: 'wait'
-}
+  metaAction?: 'wait';
+};
 
-const NONE_COMPANY_ACTION = NO_COMPANY_ACTION
-const HIDDEN_COMPANY_ACTION = BUYBACK_ACTION
+const NONE_COMPANY_ACTION = NO_COMPANY_ACTION;
+const HIDDEN_COMPANY_ACTION = BUYBACK_ACTION;
 
 function formatCurrency(value: number): string {
-  return `${Math.round(value).toLocaleString('ja-JP')}円`
+  return `${Math.round(value).toLocaleString('ja-JP')}円`;
 }
 
 function formatUnits(value: number): string {
-  const normalized = Math.round(value * 10000) / 10000
+  const normalized = Math.round(value * 10000) / 10000;
   return normalized.toLocaleString('ja-JP', {
     minimumFractionDigits: normalized % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2,
-  })
+  });
 }
 
 function ownStockKey(playerId: PlayerId): StockKey {
-  return playerId === 'player1' ? 'p1' : 'p2'
+  return playerId === 'player1' ? 'p1' : 'p2';
 }
 
 function rivalStockKey(playerId: PlayerId): StockKey {
-  return playerId === 'player1' ? 'p2' : 'p1'
+  return playerId === 'player1' ? 'p2' : 'p1';
 }
 
 function normalizeQuantity(value: number): number {
   if (!Number.isFinite(value)) {
-    return 0
+    return 0;
   }
 
-  return Math.max(0, Math.floor(value))
+  return Math.max(0, Math.floor(value));
 }
 
 function stockChoicesForPlayer(playerId: PlayerId): BattleStockChoice[] {
-  const ownKey = ownStockKey(playerId)
-  const rivalKey = rivalStockKey(playerId)
+  const ownKey = ownStockKey(playerId);
+  const rivalKey = rivalStockKey(playerId);
 
   return [
     {
@@ -146,17 +146,17 @@ function stockChoicesForPlayer(playerId: PlayerId): BattleStockChoice[] {
       title: 'マーケット',
       subtitle: STOCK_LABELS.market,
     },
-  ]
+  ];
 }
 
 function companyActionsForBattle(): CooldownAction[] {
   return COMPANY_ACTIONS.filter(
     (action) => action !== NONE_COMPANY_ACTION && action !== HIDDEN_COMPANY_ACTION,
-  ) as CooldownAction[]
+  ) as CooldownAction[];
 }
 
 function visibleTradeActionsForMode(tradeMode: TradeMode): TradeAction[] {
-  return tradeMode === 'speculation' ? ['buy', 'sell'] : ['buy', 'sell']
+  return tradeMode === 'speculation' ? ['buy', 'sell'] : ['buy', 'sell'];
 }
 
 export function resolveEffectiveTradeAction(
@@ -164,43 +164,37 @@ export function resolveEffectiveTradeAction(
   _stockKey: StockKey,
   tradeAction: TradeAction,
 ): TradeAction {
-  return tradeAction
+  return tradeAction;
 }
 
-export function resolveNextBattlePlayer(
-  currentPlayerId: PlayerId,
-  currentTurn: number,
-): PlayerId {
-  const leadPlayer = resolveTurnLeadPlayer(currentTurn)
+export function resolveNextBattlePlayer(currentPlayerId: PlayerId, currentTurn: number): PlayerId {
+  const leadPlayer = resolveTurnLeadPlayer(currentTurn);
 
   if (currentPlayerId === leadPlayer) {
-    return leadPlayer === 'player1' ? 'player2' : 'player1'
+    return leadPlayer === 'player1' ? 'player2' : 'player1';
   }
 
-  return resolveTurnLeadPlayer(currentTurn + 1)
+  return resolveTurnLeadPlayer(currentTurn + 1);
 }
 
 export function resolveTurnLeadPlayer(turn: number): PlayerId {
-  return turn % 2 === 1 ? 'player1' : 'player2'
+  return turn % 2 === 1 ? 'player1' : 'player2';
 }
 
-export function isBattleTurnComplete(
-  currentPlayerId: PlayerId,
-  currentTurn: number,
-): boolean {
-  return currentPlayerId !== resolveTurnLeadPlayer(currentTurn)
+export function isBattleTurnComplete(currentPlayerId: PlayerId, currentTurn: number): boolean {
+  return currentPlayerId !== resolveTurnLeadPlayer(currentTurn);
 }
 
 function resolveOrderQuantity(executionPrice: number, orderAmount: number): number {
   if (executionPrice <= 0 || orderAmount < MIN_TRADE_ORDER_AMOUNT) {
-    return 0
+    return 0;
   }
 
-  return orderAmount / executionPrice
+  return orderAmount / executionPrice;
 }
 
 function isPositiveAction(action: TradeAction): boolean {
-  return action === 'buy'
+  return action === 'buy';
 }
 
 function resolveProjectedExecutionPrice(
@@ -212,34 +206,34 @@ function resolveProjectedExecutionPrice(
     return {
       executionPrice: 0,
       priceImpactAmount: 0,
-    }
+    };
   }
 
   const priceImpactAmount = calculateTradePriceImpact(
     orderAmount,
     stock.currentPrice,
     stock.basePrice,
-  )
+  );
   if (priceImpactAmount <= 0) {
     return {
       executionPrice: stock.currentPrice,
       priceImpactAmount,
-    }
+    };
   }
 
-  const direction = isPositiveAction(tradeAction) ? 1 : -1
+  const direction = isPositiveAction(tradeAction) ? 1 : -1;
   const resolved = resolvePriceAfterDelta(
     stock.currentPrice,
     stock.basePrice,
     stock.bubbleUpper,
     stock.bubbleLower,
     direction * priceImpactAmount,
-  )
+  );
 
   return {
     executionPrice: resolved.nextPrice,
     priceImpactAmount,
-  }
+  };
 }
 
 function normalizeDraftForPlayer(
@@ -250,28 +244,28 @@ function normalizeDraftForPlayer(
   const nextDraft: BattleActionDraft = {
     ...draft,
     quantity: normalizeQuantity(draft.quantity),
-  }
+  };
 
   if (nextDraft.actionKind === 'wait') {
-    nextDraft.quantity = 0
-    nextDraft.companyAction = NONE_COMPANY_ACTION
-    return nextDraft
+    nextDraft.quantity = 0;
+    nextDraft.companyAction = NONE_COMPANY_ACTION;
+    return nextDraft;
   }
 
   if (nextDraft.actionKind === 'company') {
-    nextDraft.stockKey = ownStockKey(playerId)
+    nextDraft.stockKey = ownStockKey(playerId);
     if (
-      nextDraft.companyAction === NONE_COMPANY_ACTION
-      || nextDraft.companyAction === HIDDEN_COMPANY_ACTION
+      nextDraft.companyAction === NONE_COMPANY_ACTION ||
+      nextDraft.companyAction === HIDDEN_COMPANY_ACTION
     ) {
-      nextDraft.companyAction = companyActions[0] ?? NONE_COMPANY_ACTION
+      nextDraft.companyAction = companyActions[0] ?? NONE_COMPANY_ACTION;
     }
-    return nextDraft
+    return nextDraft;
   }
 
-  nextDraft.companyAction = NONE_COMPANY_ACTION
+  nextDraft.companyAction = NONE_COMPANY_ACTION;
 
-  return nextDraft
+  return nextDraft;
 }
 
 function createNeutralImpact(choice: BattleStockChoice): StockImpactItem {
@@ -282,7 +276,7 @@ function createNeutralImpact(choice: BattleStockChoice): StockImpactItem {
     level: 'neutral',
     headline: '変動なし',
     detail: 'この操作では価格は動きません。',
-  }
+  };
 }
 
 function setImpact(
@@ -292,9 +286,9 @@ function setImpact(
   headline: string,
   detail: string,
 ): void {
-  const index = items.findIndex((item) => item.key === key)
+  const index = items.findIndex((item) => item.key === key);
   if (index < 0) {
-    return
+    return;
   }
 
   items[index] = {
@@ -302,25 +296,25 @@ function setImpact(
     level,
     headline,
     detail,
-  }
+  };
 }
 
 function impactLevel(direction: number, priceImpactAmount: number): StockImpactLevel {
   if (direction === 0 || priceImpactAmount <= 0) {
-    return 'neutral'
+    return 'neutral';
   }
 
   if (direction > 0) {
-    return priceImpactAmount >= 1000 ? 'strong-up' : 'up'
+    return priceImpactAmount >= 1000 ? 'strong-up' : 'up';
   }
 
-  return priceImpactAmount >= 1000 ? 'strong-down' : 'down'
+  return priceImpactAmount >= 1000 ? 'strong-down' : 'down';
 }
 
 function impactSizeText(priceImpactAmount: number): string {
-  if (priceImpactAmount >= 1000) return '大きく'
-  if (priceImpactAmount >= 300) return '中くらいに'
-  return '小さく'
+  if (priceImpactAmount >= 1000) return '大きく';
+  if (priceImpactAmount >= 300) return '中くらいに';
+  return '小さく';
 }
 
 function buildTradeImpactSummary(
@@ -330,15 +324,15 @@ function buildTradeImpactSummary(
   isOrderAmountValid: boolean,
 ): string {
   if (!isOrderAmountValid) {
-    return `最低注文額は${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です`
+    return `最低注文額は${MIN_TRADE_ORDER_AMOUNT.toLocaleString('ja-JP')}円です`;
   }
 
   if (priceImpactAmount <= 0) {
-    return `${targetLabel} 変動なし`
+    return `${targetLabel} 変動なし`;
   }
 
-  const sign = isPositiveAction(tradeAction) ? '+' : '-'
-  return `${targetLabel} ${sign}${priceImpactAmount.toLocaleString('ja-JP')}円`
+  const sign = isPositiveAction(tradeAction) ? '+' : '-';
+  return `${targetLabel} ${sign}${priceImpactAmount.toLocaleString('ja-JP')}円`;
 }
 
 function buildTradeImpactPreview(
@@ -348,17 +342,17 @@ function buildTradeImpactPreview(
   priceImpactAmount: number,
   effectiveTradeAction: TradeAction,
 ): StockImpactItem[] {
-  const items = stockChoices.map((choice) => createNeutralImpact(choice))
+  const items = stockChoices.map((choice) => createNeutralImpact(choice));
 
   if (priceImpactAmount <= 0) {
-    return items
+    return items;
   }
 
-  const pattern = resolveTradeImpactPattern(playerId, draft.stockKey, effectiveTradeAction)
+  const pattern = resolveTradeImpactPattern(playerId, draft.stockKey, effectiveTradeAction);
 
   stockChoices.forEach((choice) => {
-    const direction = pattern[choice.key]
-    const appliedImpact = Math.round(Math.abs(priceImpactAmount * direction))
+    const direction = pattern[choice.key];
+    const appliedImpact = Math.round(Math.abs(priceImpactAmount * direction));
     if (direction === 0) {
       setImpact(
         items,
@@ -366,20 +360,22 @@ function buildTradeImpactPreview(
         'neutral',
         '変動なし',
         `${choice.title}は今回の操作では動きません。`,
-      )
-      return
+      );
+      return;
     }
 
     setImpact(
       items,
       choice.key,
       impactLevel(direction, appliedImpact),
-      direction > 0 ? `${impactSizeText(appliedImpact)}上がる見込み` : `${impactSizeText(appliedImpact)}下がる見込み`,
+      direction > 0
+        ? `${impactSizeText(appliedImpact)}上がる見込み`
+        : `${impactSizeText(appliedImpact)}下がる見込み`,
       `${choice.title}は ${direction > 0 ? '+' : '-'}${appliedImpact.toLocaleString('ja-JP')}円 動く見込みです。`,
-    )
-  })
+    );
+  });
 
-  return items
+  return items;
 }
 
 function buildWaitPreview(stockChoices: BattleStockChoice[]): BattleActionPreview {
@@ -399,7 +395,7 @@ function buildWaitPreview(stockChoices: BattleStockChoice[]): BattleActionPrevie
     companySummaryItems: [],
     actionChips: ['待機'],
     decisionLabel: 'このターンは待機',
-  }
+  };
 }
 
 function buildCompanyPreview(
@@ -419,7 +415,7 @@ function buildCompanyPreview(
     ],
     actionChips: [currentPlayer.name, companyAction],
     decisionLabel: 'この内容で実行',
-  }
+  };
 }
 
 function buildTradePreview(
@@ -434,8 +430,9 @@ function buildTradePreview(
   projectedExecutionPrice: number,
   priceImpactAmount: number,
 ): BattleActionPreview {
-  const selectedChoice = stockChoices.find((choice) => choice.key === draft.stockKey) ?? stockChoices[0]
-  const isOrderAmountValid = orderAmount >= MIN_TRADE_ORDER_AMOUNT
+  const selectedChoice =
+    stockChoices.find((choice) => choice.key === draft.stockKey) ?? stockChoices[0];
+  const isOrderAmountValid = orderAmount >= MIN_TRADE_ORDER_AMOUNT;
   const executionEstimateText =
     estimatedShares <= 0 || executedAmount <= 0
       ? orderAmount > 0 && orderAmount < MIN_TRADE_ORDER_AMOUNT
@@ -443,7 +440,7 @@ function buildTradePreview(
         : '注文額不足'
       : priceImpactAmount > 0
         ? `想定約定 ${formatCurrency(projectedExecutionPrice)} / 約${formatUnits(estimatedShares)}口`
-        : `現在価格 ${formatCurrency(selectedPrice)} に届くまで値動きなし`
+        : `現在価格 ${formatCurrency(selectedPrice)} に届くまで値動きなし`;
 
   return {
     actionKind: 'trade',
@@ -454,7 +451,10 @@ function buildTradePreview(
       priceImpactAmount,
       isOrderAmountValid,
     ),
-    overviewSub: estimatedShares <= 0 ? executionEstimateText : `投入額 ${formatCurrency(orderAmount)} / ${executionEstimateText}`,
+    overviewSub:
+      estimatedShares <= 0
+        ? executionEstimateText
+        : `投入額 ${formatCurrency(orderAmount)} / ${executionEstimateText}`,
     stockImpactPreview: buildTradeImpactPreview(
       playerId,
       draft,
@@ -470,7 +470,7 @@ function buildTradePreview(
       orderAmount > 0 ? `${orderAmount.toLocaleString('ja-JP')}円` : '0円',
     ],
     decisionLabel: 'この内容で注文',
-  }
+  };
 }
 
 export function createDefaultBattleActionDraft(): BattleActionDraft {
@@ -481,7 +481,7 @@ export function createDefaultBattleActionDraft(): BattleActionDraft {
     tradeMode: 'investment',
     quantity: 0,
     companyAction: NONE_COMPANY_ACTION,
-  }
+  };
 }
 
 export function buildBattleActionProjection(
@@ -489,35 +489,32 @@ export function buildBattleActionProjection(
   stocks: StockState[],
   draft: BattleActionDraft,
 ): BattleActionProjection {
-  const companyActions = companyActionsForBattle()
-  const stockChoices = stockChoicesForPlayer(currentPlayer.id)
-  const normalizedDraft = normalizeDraftForPlayer(draft, currentPlayer.id, companyActions)
-  const selectedStock = stocks.find((stock) => stock.key === normalizedDraft.stockKey)
-  const selectedPrice = selectedStock?.currentPrice ?? 0
-  const selectedHoldingQuantity = currentPlayer.holdings[normalizedDraft.stockKey]?.quantity ?? 0
-  const selectedShortQuantity = currentPlayer.shorts[normalizedDraft.stockKey]?.quantity ?? 0
+  const companyActions = companyActionsForBattle();
+  const stockChoices = stockChoicesForPlayer(currentPlayer.id);
+  const normalizedDraft = normalizeDraftForPlayer(draft, currentPlayer.id, companyActions);
+  const selectedStock = stocks.find((stock) => stock.key === normalizedDraft.stockKey);
+  const selectedPrice = selectedStock?.currentPrice ?? 0;
+  const selectedHoldingQuantity = currentPlayer.holdings[normalizedDraft.stockKey]?.quantity ?? 0;
+  const selectedShortQuantity = currentPlayer.shorts[normalizedDraft.stockKey]?.quantity ?? 0;
   const effectiveTradeAction = resolveEffectiveTradeAction(
     currentPlayer,
     normalizedDraft.stockKey,
     normalizedDraft.tradeAction,
-  )
-  const availableCash = Math.max(0, Math.floor(currentPlayer.cash))
-  const orderAmount = normalizeQuantity(normalizedDraft.quantity)
-  const executedAmount = orderAmount
-  const { executionPrice: projectedExecutionPrice, priceImpactAmount } = resolveProjectedExecutionPrice(
-    selectedStock,
-    effectiveTradeAction,
-    executedAmount,
-  )
-  const requestedQuantity = resolveOrderQuantity(projectedExecutionPrice, orderAmount)
-  const projectedExecutedShares = requestedQuantity
-  const requiresCashAmount = effectiveTradeAction === 'buy' || effectiveTradeAction === 'sell'
-  const requiredCashAmount = requiresCashAmount ? orderAmount : 0
+  );
+  const availableCash = Math.max(0, Math.floor(currentPlayer.cash));
+  const orderAmount = normalizeQuantity(normalizedDraft.quantity);
+  const executedAmount = orderAmount;
+  const { executionPrice: projectedExecutionPrice, priceImpactAmount } =
+    resolveProjectedExecutionPrice(selectedStock, effectiveTradeAction, executedAmount);
+  const requestedQuantity = resolveOrderQuantity(projectedExecutionPrice, orderAmount);
+  const projectedExecutedShares = requestedQuantity;
+  const requiresCashAmount = effectiveTradeAction === 'buy' || effectiveTradeAction === 'sell';
+  const requiredCashAmount = requiresCashAmount ? orderAmount : 0;
   const isCashInsufficient =
-    normalizedDraft.actionKind === 'trade'
-    && requiresCashAmount
-    && requiredCashAmount > availableCash
-  const visibleTradeActions = visibleTradeActionsForMode(normalizedDraft.tradeMode)
+    normalizedDraft.actionKind === 'trade' &&
+    requiresCashAmount &&
+    requiredCashAmount > availableCash;
+  const visibleTradeActions = visibleTradeActionsForMode(normalizedDraft.tradeMode);
   const executionEstimateText =
     normalizedDraft.actionKind !== 'trade'
       ? '未設定'
@@ -529,19 +526,17 @@ export function buildBattleActionProjection(
             ? '注文額不足'
             : priceImpactAmount > 0
               ? `想定約定 ${formatCurrency(projectedExecutionPrice)} / 約${formatUnits(projectedExecutedShares)}口`
-              : '値動きなし'
+              : '値動きなし';
 
   const canSubmitTrade =
-    normalizedDraft.actionKind === 'trade'
-    && projectedExecutedShares > 0
-    && !isCashInsufficient
+    normalizedDraft.actionKind === 'trade' && projectedExecutedShares > 0 && !isCashInsufficient;
 
   const canSubmitCompany =
-    normalizedDraft.actionKind === 'company'
-    && normalizedDraft.companyAction !== NONE_COMPANY_ACTION
+    normalizedDraft.actionKind === 'company' &&
+    normalizedDraft.companyAction !== NONE_COMPANY_ACTION;
 
-  const canSubmitWait = normalizedDraft.actionKind === 'wait'
-  const canSubmit = canSubmitTrade || canSubmitCompany || canSubmitWait
+  const canSubmitWait = normalizedDraft.actionKind === 'wait';
+  const canSubmit = canSubmitTrade || canSubmitCompany || canSubmitWait;
 
   const preview =
     normalizedDraft.actionKind === 'wait'
@@ -549,17 +544,17 @@ export function buildBattleActionProjection(
       : normalizedDraft.actionKind === 'company'
         ? buildCompanyPreview(currentPlayer, normalizedDraft.companyAction)
         : buildTradePreview(
-          currentPlayer.id,
-          normalizedDraft,
-          stockChoices,
-          orderAmount,
-          executedAmount,
-          projectedExecutedShares,
-          effectiveTradeAction,
-          selectedPrice,
-          projectedExecutionPrice,
-          priceImpactAmount,
-        )
+            currentPlayer.id,
+            normalizedDraft,
+            stockChoices,
+            orderAmount,
+            executedAmount,
+            projectedExecutedShares,
+            effectiveTradeAction,
+            selectedPrice,
+            projectedExecutionPrice,
+            priceImpactAmount,
+          );
 
   return {
     draft: normalizedDraft,
@@ -582,7 +577,7 @@ export function buildBattleActionProjection(
     canSubmitWait,
     canSubmit,
     preview,
-  }
+  };
 }
 
 export function buildBattleConfirmedAction(
@@ -590,7 +585,7 @@ export function buildBattleConfirmedAction(
   projection: BattleActionProjection,
 ): BattleConfirmedAction | null {
   if (!projection.canSubmit) {
-    return null
+    return null;
   }
 
   if (projection.draft.actionKind === 'wait') {
@@ -601,7 +596,7 @@ export function buildBattleConfirmedAction(
       quantity: 0,
       companyAction: NONE_COMPANY_ACTION,
       metaAction: 'wait',
-    }
+    };
   }
 
   return {
@@ -620,5 +615,5 @@ export function buildBattleConfirmedAction(
       projection.draft.actionKind === 'company'
         ? projection.draft.companyAction
         : NONE_COMPANY_ACTION,
-  }
+  };
 }
