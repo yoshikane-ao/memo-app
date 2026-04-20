@@ -41,6 +41,7 @@ jobs:
         run: |
           npm run check:architecture
           npm run test:api
+          npm run test:integration
           npm run build
 
       - name: Validate frontend
