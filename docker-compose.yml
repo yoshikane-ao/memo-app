@@ -60,6 +60,13 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    healthcheck:
+      # nginx:alpine に含まれる busybox wget で自身の 80 番を叩いて疎通確認する。
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost/']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
 
 volumes:
   memo_db_data:
