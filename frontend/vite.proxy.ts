@@ -1,9 +1,9 @@
-import type { ProxyOptions } from "vite";
+import type { ProxyOptions } from 'vite';
 
 export type ProxyEnv = Record<string, string | undefined>;
 
 export const resolveApiProxyTarget = (env: ProxyEnv, backendEnv: ProxyEnv) => {
-  const backendPort = backendEnv.PORT?.trim() || "3004";
+  const backendPort = backendEnv.PORT?.trim() || '3004';
 
   return (
     env.API_PROXY_TARGET ||
@@ -14,25 +14,33 @@ export const resolveApiProxyTarget = (env: ProxyEnv, backendEnv: ProxyEnv) => {
 };
 
 export const createApiProxy = (target: string): Record<string, ProxyOptions> => ({
-  "/health": {
+  '/auth': {
     target,
     changeOrigin: true,
   },
-  "/memos": {
+  '/health': {
     target,
     changeOrigin: true,
   },
-  "/tags": {
+  '/metrics': {
     target,
     changeOrigin: true,
   },
-  "/quiz": {
+  '/memos': {
+    target,
+    changeOrigin: true,
+  },
+  '/tags': {
+    target,
+    changeOrigin: true,
+  },
+  '/quiz': {
     target,
     changeOrigin: true,
   },
 
-  "/trade": {
+  '/trade': {
     target,
     changeOrigin: true,
-  }
+  },
 });

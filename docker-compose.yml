@@ -10,7 +10,7 @@ services:
     volumes:
       - memo_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ['CMD-SHELL', 'pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB']
       interval: 5s
       timeout: 5s
       retries: 20
@@ -27,12 +27,21 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
       PORT: 3000
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-15m}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-7d}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DEMO_EMAIL: ${DEMO_EMAIL:-}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
+      DEMO_DISPLAY_NAME: ${DEMO_DISPLAY_NAME:-デモユーザー}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     healthcheck:
       test:
         [
-          "CMD",
-          "node",
-          "-e",
+          'CMD',
+          'node',
+          '-e',
           "fetch('http://127.0.0.1:3000/health').then((response)=>process.exit(response.ok?0:1)).catch(()=>process.exit(1))",
         ]
       interval: 5s
@@ -47,7 +56,7 @@ services:
     container_name: memo_web
     restart: always
     ports:
-      - "80:80"
+      - '80:80'
     depends_on:
       api:
         condition: service_healthy

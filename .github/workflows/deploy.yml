@@ -136,10 +136,19 @@ jobs:
 
             echo "== write compose env from GitHub Secrets =="
             umask 077
-            printf 'POSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nPOSTGRES_DB=%s\n' \
-              '${{ secrets.POSTGRES_USER }}' \
-              '${{ secrets.POSTGRES_PASSWORD }}' \
-              '${{ secrets.POSTGRES_DB }}' > .env
+            {
+              printf 'POSTGRES_USER=%s\n' '${{ secrets.POSTGRES_USER }}'
+              printf 'POSTGRES_PASSWORD=%s\n' '${{ secrets.POSTGRES_PASSWORD }}'
+              printf 'POSTGRES_DB=%s\n' '${{ secrets.POSTGRES_DB }}'
+              printf 'JWT_SECRET=%s\n' '${{ secrets.JWT_SECRET }}'
+              printf 'DEMO_EMAIL=%s\n' '${{ secrets.DEMO_EMAIL }}'
+              printf 'DEMO_PASSWORD=%s\n' '${{ secrets.DEMO_PASSWORD }}'
+              printf 'DEMO_DISPLAY_NAME=%s\n' 'デモユーザー'
+              # EC2 は現状 HTTP 配信のため COOKIE_SECURE=false 固定。
+              # 将来 TLS を入れたら true に切り替える。
+              printf 'COOKIE_SECURE=false\n'
+              printf 'LOG_LEVEL=info\n'
+            } > .env
             chmod 600 .env
 
             echo "== load env for shell use =="
