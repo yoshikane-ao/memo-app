@@ -1,9 +1,11 @@
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { prisma } from './db';
+import { authRouter } from './features/auth';
 import { memosRouter, tagsRouter } from './features/memo';
 import { quizRouter } from './features/quiz';
 import { requestLogger } from './shared/http/requestLogger';
@@ -38,6 +40,7 @@ const registerRoutes = (app: express.Express) => {
     res.send(await metricsRegistry.metrics());
   });
 
+  app.use('/auth', authRouter);
   app.use('/memos', memosRouter);
   app.use('/tags', tagsRouter);
   app.use('/quiz', quizRouter);
@@ -54,6 +57,7 @@ export function buildApp() {
   app.use(helmet());
   app.use(createRateLimiter());
   app.use(express.json());
+  app.use(cookieParser());
 
   registerRoutes(app);
 
