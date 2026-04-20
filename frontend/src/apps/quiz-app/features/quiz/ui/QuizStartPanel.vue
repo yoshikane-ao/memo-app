@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import BaseButton from "../../../../../shared/ui/BaseButton.vue";
+import BaseButton from '../../../../../shared/ui/BaseButton.vue';
 
 defineEmits<{
-  (event: "goToCreate"): void;
-  (event: "goToAnswer"): void;
+  (event: 'goToCreate'): void;
+  (event: 'goToAnswer'): void;
 }>();
 
 defineProps<{
@@ -17,9 +17,7 @@ defineProps<{
       <div class="quiz-start__glow" />
       <p class="quiz-start__kicker">QUIZ APP</p>
       <h1 class="quiz-start__title">クイズで学ぼう</h1>
-      <p class="quiz-start__description">
-        登録した単語と意味をクイズ形式で復習できます。
-      </p>
+      <p class="quiz-start__description">登録した単語と意味をクイズ形式で復習できます。</p>
       <div class="quiz-start__stats">
         <span class="quiz-start__pill">{{ quizCount }} 問 登録済み</span>
       </div>
@@ -29,11 +27,7 @@ defineProps<{
       <BaseButton class="btn-primary quiz-start__btn" @click="$emit('goToCreate')">
         問題を作成する
       </BaseButton>
-      <BaseButton
-        class="quiz-start__btn"
-        :disabled="quizCount === 0"
-        @click="$emit('goToAnswer')"
-      >
+      <BaseButton class="quiz-start__btn" :disabled="quizCount === 0" @click="$emit('goToAnswer')">
         クイズに解答する
       </BaseButton>
     </div>
@@ -57,10 +51,7 @@ defineProps<{
   padding: 28px 24px;
   border-radius: 22px;
   border: 1px solid var(--quiz-border);
-  background:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.16), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.04), transparent 32%),
-    linear-gradient(135deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
+  background: var(--quiz-hero-bg);
   box-shadow: var(--quiz-shadow);
   overflow: hidden;
 }
@@ -79,8 +70,12 @@ defineProps<{
 }
 
 @keyframes quiz-orbit {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-12px, 16px, 0) scale(1.08); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-12px, 16px, 0) scale(1.08);
+  }
 }
 
 .quiz-start__kicker {

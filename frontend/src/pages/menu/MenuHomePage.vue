@@ -1,38 +1,60 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { RouterLink } from "vue-router";
-import { menuSectionGroups } from "../../app/router/appRegistry";
-import "./menu-home.css";
+import { computed } from 'vue';
+import { RouterLink } from 'vue-router';
+import { menuSectionGroups } from '../../app/router/appRegistry';
+import { useThemeStore } from '../../shared/theme/useThemeStore';
+import './menu-home.css';
 
-const totalAppCount = computed(() =>
-  menuSectionGroups.reduce((count, group) => count + group.apps.length, 0)
+const theme = useThemeStore();
+
+const thumbnailFor = (path: string) => {
+  if (theme.mode === 'dark') return path;
+  return path.replace(/\.svg$/, '-light.svg');
+};
+
+type PortfolioGroup = {
+  section: (typeof menuSectionGroups)[number]['section'];
+  apps: Array<(typeof menuSectionGroups)[number]['apps'][number]>;
+};
+
+const portfolioGroups = computed<PortfolioGroup[]>(() =>
+  menuSectionGroups
+    .map((group) => ({
+      section: group.section,
+      apps: group.apps.filter((app) => app.portfolio),
+    }))
+    .filter((group) => group.apps.length > 0),
+);
+
+const totalWorkCount = computed(() =>
+  portfolioGroups.value.reduce((count, group) => count + group.apps.length, 0),
 );
 
 const getSectionStyle = (index: number) => ({
-  "--menu-section-enter-delay": `${0.12 + index * 0.06}s`,
+  '--menu-section-enter-delay': `${0.12 + index * 0.06}s`,
 });
 
 const getCardStyle = (groupIndex: number, appIndex: number) => ({
-  "--menu-card-enter-delay": `${0.16 + (groupIndex * 3 + appIndex) * 0.06}s`,
+  '--menu-card-enter-delay': `${0.16 + (groupIndex * 3 + appIndex) * 0.06}s`,
 });
 </script>
 
 <template>
   <div class="menu-home-page">
     <section class="menu-hero">
-      <p class="menu-hero-kicker">アプリ一覧</p>
-      <h1 class="menu-hero-title">使いたい機能を、ここからすぐに。</h1>
+      <p class="menu-hero-kicker">ポートフォリオ</p>
+      <h1 class="menu-hero-title">作ったものを、動かしながら見せる。</h1>
       <p class="menu-hero-copy">
-        記録や整理に使う機能を、ひとつの入口から迷わず開けます。これからアプリが増えても、
-        同じ場所から探せます。
+        各作品の概要・工夫した点・使用技術・制作期間を並べています。カードから実際のアプリを
+        開いて、そのまま触って確認できます。
       </p>
       <div class="menu-hero-meta">
-        <span class="menu-hero-pill">現在利用できるアプリ {{ totalAppCount }}件</span>
+        <span class="menu-hero-pill">掲載作品 {{ totalWorkCount }}件</span>
       </div>
     </section>
 
     <section
-      v-for="(group, groupIndex) in menuSectionGroups"
+      v-for="(group, groupIndex) in portfolioGroups"
       :key="group.section.slug"
       class="menu-section"
       :data-menu-section="group.section.slug"
@@ -44,7 +66,6 @@ const getCardStyle = (groupIndex: number, appIndex: number) => ({
           <h2 class="menu-section-title">{{ group.section.label }}</h2>
         </div>
         <div class="menu-section-meta">
-          <p class="menu-section-copy">{{ group.section.description }}</p>
           <span class="menu-section-count">{{ group.apps.length }}件</span>
         </div>
       </div>
@@ -58,25 +79,44 @@ const getCardStyle = (groupIndex: number, appIndex: number) => ({
           :data-menu-app-id="app.id"
           :style="getCardStyle(groupIndex, appIndex)"
         >
-          <div class="menu-app-card-header">
-            <div class="menu-app-card-title-block">
-              <span class="menu-app-card-title">{{ app.name }}</span>
-              <span class="menu-app-card-subtitle">{{ group.section.label }}</span>
+          <div v-if="app.portfolio" class="menu-app-card-thumb">
+            <img :src="thumbnailFor(app.portfolio.thumbnail)" :alt="app.name" loading="lazy" />
+          </div>
+          <div class="menu-app-card-body">
+            <div class="menu-app-card-header">
+              <div class="menu-app-card-title-block">
+                <span class="menu-app-card-title">{{ app.name }}</span>
+                <span class="menu-app-card-subtitle">{{ group.section.label }}</span>
+              </div>
+              <span class="menu-app-card-arrow" aria-hidden="true">&rarr;</span>
             </div>
-            <span class="menu-app-card-arrow" aria-hidden="true">&rarr;</span>
-          </div>
-          <p class="menu-app-card-summary">{{ app.summary }}</p>
-          <div class="menu-app-card-keywords">
-            <span
-              v-for="keyword in app.keywords"
-              :key="`${app.id}-${keyword}`"
-              class="menu-app-card-keyword"
-            >
-              {{ keyword }}
-            </span>
-          </div>
-          <div class="menu-app-card-footer">
-            <span class="menu-app-card-cta">{{ app.ctaLabel }}</span>
+            <p class="menu-app-card-summary">{{ app.summary }}</p>
+            <ul v-if="app.portfolio" class="menu-app-card-highlights">
+              <li v-for="highlight in app.portfolio.highlights" :key="highlight">
+                {{ highlight }}
+              </li>
+            </ul>
+            <dl v-if="app.portfolio" class="menu-app-card-stack">
+              <div class="menu-app-card-stack-row">
+                <dt>言語</dt>
+                <dd>{{ app.portfolio.languages.join(', ') }}</dd>
+              </div>
+              <div class="menu-app-card-stack-row">
+                <dt>フレームワーク</dt>
+                <dd>{{ app.portfolio.frameworks.join(', ') }}</dd>
+              </div>
+              <div class="menu-app-card-stack-row">
+                <dt>DB</dt>
+                <dd>{{ app.portfolio.databases.join(', ') }}</dd>
+              </div>
+              <div class="menu-app-card-stack-row">
+                <dt>制作期間</dt>
+                <dd>{{ app.portfolio.period }}</dd>
+              </div>
+            </dl>
+            <div class="menu-app-card-footer">
+              <span class="menu-app-card-cta">{{ app.ctaLabel }}</span>
+            </div>
           </div>
         </RouterLink>
       </div>

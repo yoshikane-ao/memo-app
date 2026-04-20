@@ -1,4 +1,18 @@
 :root {
+  --bg-main: #f5f0e6;
+  --bg-panel: #ffffff;
+  --bg-panel-strong: #f4ecdd;
+  --border: rgba(60, 50, 40, 0.14);
+  --text-main: #1f1d1a;
+  --text-muted: #6a635a;
+  --text-subtle: #8a8479;
+  --accent: #c86a38;
+  --up-text: #1f8a4c;
+  --down-text: #c32f2f;
+  --flat-text: #4b4740;
+}
+
+[data-theme="dark"] {
   --bg-main: #0b1120;
   --bg-panel: #121a2b;
   --bg-panel-strong: #162033;
@@ -16,24 +30,22 @@
   box-sizing: border-box;
 }
 
-html,
-body,
-#app {
-  margin: 0;
-  min-height: 100%;
+[data-theme="dark"] html,
+[data-theme="dark"] body,
+[data-theme="dark"] #app {
   background:
     radial-gradient(circle at top, rgba(52, 95, 179, 0.18), transparent 30%),
     linear-gradient(180deg, #0b1020 0%, #0a1020 100%);
   color: var(--text-main);
+}
+
+body {
+  min-width: 1200px;
   font-family:
     Inter,
     "Hiragino Kaku Gothic ProN",
     "Yu Gothic",
     sans-serif;
-}
-
-body {
-  min-width: 1200px;
 }
 
 button,
@@ -44,10 +56,19 @@ select {
 
 .card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.3)),
     var(--bg-panel);
   border: 1px solid var(--border);
   border-radius: 18px;
+  box-shadow:
+    0 10px 30px rgba(60, 40, 20, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .card {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
+    var(--bg-panel);
   box-shadow:
     0 10px 30px rgba(0, 0, 0, 0.26),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);

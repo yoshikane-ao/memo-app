@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import BaseButton from "../../../../../shared/ui/BaseButton.vue";
+import { computed } from 'vue';
+import BaseButton from '../../../../../shared/ui/BaseButton.vue';
 
 const props = defineProps<{
   correctCount: number;
@@ -8,20 +8,20 @@ const props = defineProps<{
 }>();
 
 defineEmits<{
-  (event: "retry"): void;
-  (event: "goHome"): void;
+  (event: 'retry'): void;
+  (event: 'goHome'): void;
 }>();
 
 const scorePercent = computed(() =>
-  props.totalCount > 0 ? Math.round((props.correctCount / props.totalCount) * 100) : 0
+  props.totalCount > 0 ? Math.round((props.correctCount / props.totalCount) * 100) : 0,
 );
 
 const gradeLabel = computed(() => {
-  if (scorePercent.value === 100) return "パーフェクト！";
-  if (scorePercent.value >= 80) return "素晴らしい！";
-  if (scorePercent.value >= 60) return "よくできました！";
-  if (scorePercent.value >= 40) return "もう少し！";
-  return "頑張りましょう！";
+  if (scorePercent.value === 100) return 'パーフェクト！';
+  if (scorePercent.value >= 80) return '素晴らしい！';
+  if (scorePercent.value >= 60) return 'よくできました！';
+  if (scorePercent.value >= 40) return 'もう少し！';
+  return '頑張りましょう！';
 });
 </script>
 
@@ -35,13 +35,19 @@ const gradeLabel = computed(() => {
         <svg class="quiz-result__ring" viewBox="0 0 120 120">
           <circle
             class="quiz-result__ring-bg"
-            cx="60" cy="60" r="52"
-            fill="none" stroke-width="8"
+            cx="60"
+            cy="60"
+            r="52"
+            fill="none"
+            stroke-width="8"
           />
           <circle
             class="quiz-result__ring-fill"
-            cx="60" cy="60" r="52"
-            fill="none" stroke-width="8"
+            cx="60"
+            cy="60"
+            r="52"
+            fill="none"
+            stroke-width="8"
             :stroke-dasharray="`${(scorePercent / 100) * 327} 327`"
             stroke-linecap="round"
             transform="rotate(-90 60 60)"
@@ -55,18 +61,14 @@ const gradeLabel = computed(() => {
 
       <p class="quiz-result__grade">{{ gradeLabel }}</p>
 
-      <p class="quiz-result__detail">
-        {{ totalCount }} 問中 {{ correctCount }} 問正解
-      </p>
+      <p class="quiz-result__detail">{{ totalCount }} 問中 {{ correctCount }} 問正解</p>
     </div>
 
     <div class="quiz-result__actions">
       <BaseButton class="btn-primary quiz-result__btn" @click="$emit('retry')">
         もう一度挑戦する
       </BaseButton>
-      <BaseButton class="quiz-result__btn" @click="$emit('goHome')">
-        トップに戻る
-      </BaseButton>
+      <BaseButton class="quiz-result__btn" @click="$emit('goHome')"> トップに戻る </BaseButton>
     </div>
   </section>
 </template>
@@ -92,9 +94,7 @@ const gradeLabel = computed(() => {
   padding: 32px 24px;
   border: 1px solid var(--quiz-border);
   border-radius: 22px;
-  background:
-    radial-gradient(circle at top, rgba(200, 106, 56, 0.14), transparent 36%),
-    linear-gradient(180deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
+  background: var(--quiz-hero-bg-vertical);
   box-shadow: var(--quiz-shadow);
   overflow: hidden;
 }

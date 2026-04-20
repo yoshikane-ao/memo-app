@@ -12,10 +12,7 @@
   padding: 22px 20px;
   border-radius: 22px;
   border: 1px solid var(--menu-border);
-  background:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.16), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 32%),
-    linear-gradient(135deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
+  background: var(--menu-hero-bg);
   box-shadow: var(--menu-shadow);
   overflow: hidden;
   animation: menu-fade-up 0.56s ease 0.06s both;
@@ -29,7 +26,7 @@
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(200, 106, 56, 0.22), transparent 66%);
+  background: var(--menu-hero-glow);
   filter: blur(10px);
   animation: menu-orbit 8s ease-in-out infinite alternate;
   pointer-events: none;
@@ -72,8 +69,8 @@
   gap: 6px;
   padding: 7px 11px;
   border-radius: 999px;
-  border: 1px solid rgba(200, 106, 56, 0.22);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(200, 106, 56, 0.28);
+  background: var(--menu-accent-soft);
   color: var(--menu-accent-strong);
   font-size: 0.76rem;
   font-weight: 700;
@@ -133,31 +130,31 @@
   border-radius: 999px;
   background: var(--menu-accent-soft);
   color: var(--menu-accent-strong);
+  border: 1px solid rgba(200, 106, 56, 0.22);
   font-size: 0.74rem;
   font-weight: 700;
 }
 
 .menu-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: 1fr;
+  gap: 14px;
 }
 
 .menu-app-card {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 11px;
-  min-height: 170px;
-  padding: 16px 14px;
+  display: grid;
+  grid-template-columns: minmax(220px, 320px) 1fr;
+  align-items: stretch;
+  gap: 18px;
+  min-height: 200px;
+  padding: 18px;
   border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  background:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(28, 28, 31, 0.94), rgba(16, 16, 18, 0.96));
+  border: 1px solid var(--menu-card-border);
+  background: var(--menu-card-bg);
   color: inherit;
   text-decoration: none;
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--menu-card-elevation);
   overflow: hidden;
   transform: translateY(10px);
   opacity: 0;
@@ -170,6 +167,78 @@
   animation-delay: var(--menu-card-enter-delay, 0.16s);
 }
 
+.menu-app-card-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--menu-thumb-bg);
+  border: 1px solid var(--menu-card-border);
+  aspect-ratio: 16 / 10;
+}
+
+.menu-app-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.menu-app-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.menu-app-card-highlights {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--menu-text-soft);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+.menu-app-card-highlights li::marker {
+  color: var(--menu-accent-strong);
+}
+
+.menu-app-card-stack {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 6px 14px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--menu-stack-bg);
+  border: 1px solid var(--menu-stack-border);
+}
+
+.menu-app-card-stack-row {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 0.76rem;
+}
+
+.menu-app-card-stack-row dt {
+  flex-shrink: 0;
+  color: var(--menu-text-muted);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  min-width: 72px;
+}
+
+.menu-app-card-stack-row dd {
+  margin: 0;
+  color: var(--menu-text-soft);
+  word-break: break-word;
+}
+
 .menu-app-card::before {
   content: "";
   position: absolute;
@@ -180,8 +249,8 @@
 
 .menu-app-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(200, 106, 56, 0.24);
-  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.28);
+  border-color: rgba(200, 106, 56, 0.32);
+  box-shadow: var(--menu-card-elevation-hover);
 }
 
 .menu-app-card-header,
@@ -216,7 +285,7 @@
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--menu-chip-bg);
   color: var(--menu-accent-strong);
   font-size: 0.88rem;
   flex-shrink: 0;
@@ -227,7 +296,7 @@
 
 .menu-app-card:hover .menu-app-card-arrow {
   transform: translateX(2px);
-  background: rgba(200, 106, 56, 0.14);
+  background: var(--menu-accent-soft);
 }
 
 .menu-app-card-summary {
@@ -249,8 +318,8 @@
   align-items: center;
   padding: 4px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--menu-chip-bg);
+  border: 1px solid var(--menu-chip-border);
   color: var(--menu-text-muted);
   font-size: 0.68rem;
 }
@@ -261,7 +330,7 @@
   justify-content: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(200, 106, 56, 0.12);
+  background: var(--menu-accent-soft);
   color: var(--menu-accent-strong);
   font-size: 0.72rem;
   font-weight: 700;
@@ -321,8 +390,14 @@
   }
 
   .menu-app-card {
+    grid-template-columns: 1fr;
     min-height: 0;
-    padding: 14px 12px;
+    padding: 14px;
     border-radius: 16px;
+    gap: 12px;
+  }
+
+  .menu-app-card-thumb {
+    aspect-ratio: 16 / 9;
   }
 }
