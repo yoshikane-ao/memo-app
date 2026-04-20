@@ -163,7 +163,24 @@ export {
   syncIdentitiesForBattleMode,
 } from './model/tradeSetup';
 
+export { useTradeGameStore } from './model/useTradeGameStore';
+export type {
+  CreateTradeProfileInput,
+  RecordBattleInput,
+  TradeProfile,
+  TradeProfileIcon,
+  TradeProfileId,
+  TradeProfileStats,
+  TradeProfileStyle,
+  TradeProfileTheme,
+} from './model/useTradeProfileStore';
+export { useTradeProfileStore } from './model/useTradeProfileStore';
+
+export type { TurnActionWithWait } from './application/tradeBattleFlow';
+export { createTradeBattleFlow } from './application/tradeBattleFlow';
+
 export { createInitialGameState } from './infrastructure/mockGame';
 
+export { useTradeButtonSound } from './containers/useTradeButtonSound';
 export { default as TradeBattleContainer } from './containers/TradeBattleContainer.vue';
 export { default as TradeStartContainer } from './containers/TradeStartContainer.vue';

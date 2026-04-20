@@ -1,62 +1,62 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TradeProfile } from '../store/useTradeProfileStore'
+import { computed } from 'vue';
+import type { TradeProfile } from '../features/trade';
 
 const props = defineProps<{
-  profile: TradeProfile
-  selected?: boolean
-}>()
+  profile: TradeProfile;
+  selected?: boolean;
+}>();
 
 const emit = defineEmits<{
-  (event: 'select', profileId: string): void
-}>()
+  (event: 'select', profileId: string): void;
+}>();
 
-const themeClass = computed(() => `theme-${props.profile.theme}`)
+const themeClass = computed(() => `theme-${props.profile.theme}`);
 
 const styleLabel = computed(() => {
   switch (props.profile.stats.style) {
     case 'buy-aggressive':
-      return '買い攻勢型'
+      return '買い攻勢型';
     case 'short-pressure':
-      return '空売り圧力型'
+      return '空売り圧力型';
     case 'defensive':
-      return '慎重防衛型'
+      return '慎重防衛型';
     case 'comeback':
-      return '逆転狙い型'
+      return '逆転狙い型';
     default:
-      return '均衡型'
+      return '均衡型';
   }
-})
+});
 
 const iconGlyph = computed(() => {
   switch (props.profile.icon) {
     case 'bull':
-      return '🐂'
+      return '🐂';
     case 'bear':
-      return '🐻'
+      return '🐻';
     case 'wolf':
-      return '🐺'
+      return '🐺';
     case 'eagle':
-      return '🦅'
+      return '🦅';
     case 'lightning':
-      return '⚡'
+      return '⚡';
     case 'crown':
-      return '👑'
+      return '👑';
     case 'flame':
-      return '🔥'
+      return '🔥';
     default:
-      return '🛡️'
+      return '🛡️';
   }
-})
+});
 
 function handleClick(): void {
-  emit('select', props.profile.id)
+  emit('select', props.profile.id);
 }
 
 function formatCurrency(value: number): string {
-  const rounded = Math.round(value)
-  const prefix = rounded < 0 ? '-¥' : '¥'
-  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`
+  const rounded = Math.round(value);
+  const prefix = rounded < 0 ? '-¥' : '¥';
+  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`;
 }
 </script>
 
@@ -89,7 +89,9 @@ function formatCurrency(value: number): string {
       </div>
       <div>
         <dt>現在資産</dt>
-        <dd :class="{ 'is-negative': profile.stats.currentAssets < 0 }">{{ formatCurrency(profile.stats.currentAssets) }}</dd>
+        <dd :class="{ 'is-negative': profile.stats.currentAssets < 0 }">
+          {{ formatCurrency(profile.stats.currentAssets) }}
+        </dd>
       </div>
       <div>
         <dt>戦法</dt>
@@ -128,25 +130,33 @@ function formatCurrency(value: number): string {
 .profile-card.theme-blue:hover,
 .profile-card.theme-blue.is-selected {
   border-color: rgba(102, 180, 255, 0.78);
-  box-shadow: 0 0 0 1px rgba(102, 180, 255, 0.2), 0 18px 36px rgba(26, 101, 211, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(102, 180, 255, 0.2),
+    0 18px 36px rgba(26, 101, 211, 0.28);
 }
 
 .profile-card.theme-red:hover,
 .profile-card.theme-red.is-selected {
   border-color: rgba(255, 110, 110, 0.78);
-  box-shadow: 0 0 0 1px rgba(255, 110, 110, 0.2), 0 18px 36px rgba(195, 51, 51, 0.26);
+  box-shadow:
+    0 0 0 1px rgba(255, 110, 110, 0.2),
+    0 18px 36px rgba(195, 51, 51, 0.26);
 }
 
 .profile-card.theme-gold:hover,
 .profile-card.theme-gold.is-selected {
   border-color: rgba(255, 212, 110, 0.78);
-  box-shadow: 0 0 0 1px rgba(255, 212, 110, 0.2), 0 18px 36px rgba(180, 131, 26, 0.24);
+  box-shadow:
+    0 0 0 1px rgba(255, 212, 110, 0.2),
+    0 18px 36px rgba(180, 131, 26, 0.24);
 }
 
 .profile-card.theme-violet:hover,
 .profile-card.theme-violet.is-selected {
   border-color: rgba(190, 128, 255, 0.78);
-  box-shadow: 0 0 0 1px rgba(190, 128, 255, 0.22), 0 18px 36px rgba(102, 58, 177, 0.26);
+  box-shadow:
+    0 0 0 1px rgba(190, 128, 255, 0.22),
+    0 18px 36px rgba(102, 58, 177, 0.26);
 }
 
 .profile-card__header {

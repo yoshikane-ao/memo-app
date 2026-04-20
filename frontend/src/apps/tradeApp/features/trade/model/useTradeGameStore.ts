@@ -1,23 +1,22 @@
 import { reactive } from 'vue';
 import { defineStore } from 'pinia';
+import type { PlayerIdentity, PlayerSlot } from './playerIdentity';
+import { createGuestIdentity } from './playerIdentity';
 import type {
   BattleMode,
   FirstPlayer,
-  PlayerIdentity,
-  PlayerSlot,
   StartingCashMode,
   TradeSessionSnapshot,
   TradeSetupDraft,
-} from '../features/trade';
+} from './tradeSetup';
 import {
   createDefaultTradeSetupDraft,
-  createGuestIdentity,
   normalizeCash,
   normalizeCpuCount,
   normalizeMarketStartingPrice,
   normalizeNonNegativeInt,
   syncIdentitiesForBattleMode,
-} from '../features/trade';
+} from './tradeSetup';
 
 export type {
   BattleMode,
@@ -28,7 +27,7 @@ export type {
   StartingCashMode,
   TradeSessionSnapshot,
   TradeSetupDraft,
-} from '../features/trade';
+} from './tradeSetup';
 
 type TradeGameStoreState = {
   isInitialized: boolean;

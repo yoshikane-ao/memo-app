@@ -6,22 +6,21 @@ import TurnOrderSection from './start/TurnOrderSection.vue';
 import ProfileSlotCard from './start/ProfileSlotCard.vue';
 import ProfileCreateModal from './ProfileCreateModal.vue';
 import ProfilePickerModal from './ProfilePickerModal.vue';
-import { useTradeGameStore, type FirstPlayer } from '../store/useTradeGameStore';
-import {
-  useTradeProfileStore,
-  type CreateTradeProfileInput,
-  type TradeProfile,
-} from '../store/useTradeProfileStore';
 import {
   DEFAULT_MARKET_STOCK_STARTING_PRICE,
   DEFAULT_PLAYER_STOCK_STARTING_PRICE,
   buildTradeSessionSnapshot,
   createGuestIdentity,
+  useTradeButtonSound,
+  useTradeGameStore,
+  useTradeProfileStore,
+  type CreateTradeProfileInput,
+  type FirstPlayer,
   type PlayerIdentity,
   type PlayerSlot,
+  type TradeProfile,
   type TradeSetupDraft,
 } from '../features/trade';
-import { useTradeButtonSound } from '../composables/useTradeButtonSound';
 import startBackgroundUrl from '../assets/start-screen-background.png';
 
 type StartingCashMode = 'same' | 'separate';

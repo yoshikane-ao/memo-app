@@ -1,4 +1,4 @@
-import type { TradeProfile } from '../../../store/useTradeProfileStore';
+import type { TradeProfile } from './useTradeProfileStore';
 import type { PlayerIdentity, PlayerSlot } from './playerIdentity';
 import { createCpuIdentity, createGuestIdentity } from './playerIdentity';
 import { roundToStockPriceTick } from './tradeImpact';
