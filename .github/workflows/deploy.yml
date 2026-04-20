@@ -113,6 +113,9 @@ jobs:
             done
             [ "${DB_STATUS}" = "healthy" ]
 
+            echo "== cleanup failed migration records =="
+            sudo docker compose exec -T db psql -U memo_db -d memo_db -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" || true
+
             echo "== migrate =="
             sudo docker compose run -T --build --rm api npx prisma migrate deploy < /dev/null
 
