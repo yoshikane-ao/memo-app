@@ -73,8 +73,9 @@ export interface MemoRepository {
     scope: MemoSearchScope,
   ): Promise<MemoWithTags[]>;
   create(input: CreateMemoInput): Promise<MemoWithTags>;
-  update(input: UpdateMemoInput): Promise<MemoRecord>;
-  createHistory(userId: number, id: number, title: string, content: string): Promise<void>;
+  // メモ更新と履歴スナップショット作成を 1 トランザクションで束ねる契約。
+  // 履歴作成が失敗した場合は更新もロールバックされるため、監査ログと本体が乖離しない。
+  updateWithHistory(input: UpdateMemoInput): Promise<MemoRecord>;
   moveToTrash(userId: number, id: number): Promise<MemoWithTags>;
   restore(userId: number, id: number): Promise<MemoWithTags>;
   deleteManyTrashed(userId: number): Promise<number>;

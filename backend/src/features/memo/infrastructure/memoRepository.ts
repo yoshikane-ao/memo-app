@@ -1,5 +1,6 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import { prisma } from '../../../db';
+import { RecordNotFoundError } from '../../../shared/errors';
 import type {
   CreateMemoInput,
   MemoDeletionState,
@@ -172,7 +173,7 @@ export const createMemoRepository = (): MemoRepository => ({
     return toMemoWithTags(memo);
   },
 
-  async update(input: UpdateMemoInput) {
+  async updateWithHistory(input: UpdateMemoInput) {
     const updateData: Prisma.MemosUpdateInput = {
       title: input.title,
       content: input.content,
@@ -186,28 +187,25 @@ export const createMemoRepository = (): MemoRepository => ({
       updateData.height = input.height;
     }
 
-    const result = await prisma.memos.updateMany({
-      where: { id: input.id, userId: input.userId },
-      data: updateData,
+    return prisma.$transaction(async (tx) => {
+      const result = await tx.memos.updateMany({
+        where: { id: input.id, userId: input.userId },
+        data: updateData,
+      });
+
+      if (result.count === 0) {
+        throw new RecordNotFoundError();
+      }
+
+      await tx.memoHistories.create({
+        data: { title: input.title, content: input.content, memoId: input.id },
+      });
+
+      const memo = await tx.memos.findFirstOrThrow({
+        where: { id: input.id, userId: input.userId },
+      });
+      return toMemoRecord(memo);
     });
-
-    if (result.count === 0) {
-      throw { code: 'P2025' };
-    }
-
-    const memo = await prisma.memos.findUniqueOrThrow({ where: { id: input.id } });
-    return toMemoRecord(memo);
-  },
-
-  createHistory(userId: number, id: number, title: string, content: string) {
-    // 呼び出し元が updateMemo なので、userId で所有権を既に検証済み。
-    // memoId は cascade で user を辿れる。
-    void userId;
-    return prisma.memoHistories
-      .create({
-        data: { title, content, memoId: id },
-      })
-      .then(() => undefined);
   },
 
   async moveToTrash(userId: number, id: number) {
@@ -217,11 +215,11 @@ export const createMemoRepository = (): MemoRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
-    const memo = await prisma.memos.findUniqueOrThrow({
-      where: { id },
+    const memo = await prisma.memos.findFirstOrThrow({
+      where: { id, userId },
       include: memoWithTagsInclude,
     });
     return toMemoWithTags(memo);
@@ -234,11 +232,11 @@ export const createMemoRepository = (): MemoRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
-    const memo = await prisma.memos.findUniqueOrThrow({
-      where: { id },
+    const memo = await prisma.memos.findFirstOrThrow({
+      where: { id, userId },
       include: memoWithTagsInclude,
     });
     return toMemoWithTags(memo);
@@ -277,7 +275,7 @@ export const createMemoRepository = (): MemoRepository => ({
       include: memoWithTagsInclude,
     });
     if (!memo) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
     await prisma.memos.delete({ where: { id } });
     return toMemoWithTags(memo);
@@ -306,10 +304,12 @@ export const createMemoRepository = (): MemoRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
-    const memo = await prisma.memos.findUniqueOrThrow({ where: { id: input.memoId } });
+    const memo = await prisma.memos.findFirstOrThrow({
+      where: { id: input.memoId, userId: input.userId },
+    });
     return toMemoRecord(memo);
   },
 });
