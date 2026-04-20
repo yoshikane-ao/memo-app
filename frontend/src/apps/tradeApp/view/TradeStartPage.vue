@@ -1,125 +1,125 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import StartingCashSection from './start/StartingCashSection.vue'
-import TurnOrderSection from './start/TurnOrderSection.vue'
-import ProfileSlotCard from './start/ProfileSlotCard.vue'
-import ProfileCreateModal from './ProfileCreateModal.vue'
-import ProfilePickerModal from './ProfilePickerModal.vue'
-import { useTradeGameStore, type FirstPlayer } from '../store/useTradeGameStore'
+import { computed, onMounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import StartingCashSection from './start/StartingCashSection.vue';
+import TurnOrderSection from './start/TurnOrderSection.vue';
+import ProfileSlotCard from './start/ProfileSlotCard.vue';
+import ProfileCreateModal from './ProfileCreateModal.vue';
+import ProfilePickerModal from './ProfilePickerModal.vue';
+import { useTradeGameStore, type FirstPlayer } from '../store/useTradeGameStore';
 import {
   useTradeProfileStore,
   type CreateTradeProfileInput,
   type TradeProfile,
-} from '../store/useTradeProfileStore'
+} from '../store/useTradeProfileStore';
 import {
   DEFAULT_MARKET_STOCK_STARTING_PRICE,
   DEFAULT_PLAYER_STOCK_STARTING_PRICE,
   buildTradeSessionSnapshot,
   type TradeSetupDraft,
-} from '../lib/tradeSetup'
-import { useTradeButtonSound } from '../composables/useTradeButtonSound'
-import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
-import { createGuestIdentity } from '../types/playerIdentity'
-import startBackgroundUrl from '../assets/start-screen-background.png'
+} from '../lib/tradeSetup';
+import { useTradeButtonSound } from '../composables/useTradeButtonSound';
+import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity';
+import { createGuestIdentity } from '../types/playerIdentity';
+import startBackgroundUrl from '../assets/start-screen-background.png';
 
-type StartingCashMode = 'same' | 'separate'
+type StartingCashMode = 'same' | 'separate';
 
 type SelectedPlayerPayload = {
-  kind: PlayerIdentity['kind']
-  label?: string
-  profileId?: string
-}
+  kind: PlayerIdentity['kind'];
+  label?: string;
+  profileId?: string;
+};
 
-const router = useRouter()
-const gameStore = useTradeGameStore()
-const profileStore = useTradeProfileStore()
-const startPageRoot = ref<HTMLElement | null>(null)
+const router = useRouter();
+const gameStore = useTradeGameStore();
+const profileStore = useTradeProfileStore();
+const startPageRoot = ref<HTMLElement | null>(null);
 
-const firstPlayer = ref<FirstPlayer>('random')
-const startingCashMode = ref<StartingCashMode>('same')
-const sharedStartingCash = ref(100000)
-const player1StartingCash = ref(100000)
-const player2StartingCash = ref(100000)
-const statusMessage = ref('')
+const firstPlayer = ref<FirstPlayer>('random');
+const startingCashMode = ref<StartingCashMode>('same');
+const sharedStartingCash = ref(100000);
+const player1StartingCash = ref(100000);
+const player2StartingCash = ref(100000);
+const statusMessage = ref('');
 
-const p1Identity = ref<PlayerIdentity>(createGuestIdentity('p1'))
-const p2Identity = ref<PlayerIdentity>(createGuestIdentity('p2'))
+const p1Identity = ref<PlayerIdentity>(createGuestIdentity('p1'));
+const p2Identity = ref<PlayerIdentity>(createGuestIdentity('p2'));
 
-const pickerSlot = ref<PlayerSlot | null>(null)
-const isPickerOpen = ref(false)
-const isCreateModalOpen = ref(false)
-const createTargetSlot = ref<PlayerSlot>('p1')
+const pickerSlot = ref<PlayerSlot | null>(null);
+const isPickerOpen = ref(false);
+const isCreateModalOpen = ref(false);
+const createTargetSlot = ref<PlayerSlot>('p1');
 
-const p1Profile = computed<TradeProfile | null>(() => resolveProfile(p1Identity.value))
-const p2Profile = computed<TradeProfile | null>(() => resolveProfile(p2Identity.value))
+const p1Profile = computed<TradeProfile | null>(() => resolveProfile(p1Identity.value));
+const p2Profile = computed<TradeProfile | null>(() => resolveProfile(p2Identity.value));
 
 const resolvedPlayer1Name = computed(() => {
   if (p1Identity.value.kind === 'profile') {
-    return p1Profile.value?.name || 'PLAYER 1'
+    return p1Profile.value?.name || 'PLAYER 1';
   }
 
-  return p1Identity.value.label
-})
+  return p1Identity.value.label;
+});
 
 const resolvedPlayer2Name = computed(() => {
   if (p2Identity.value.kind === 'profile') {
-    return p2Profile.value?.name || 'PLAYER 2'
+    return p2Profile.value?.name || 'PLAYER 2';
   }
 
-  return p2Identity.value.label
-})
+  return p2Identity.value.label;
+});
 
 const resolvedPlayer1Cash = computed(() => {
   return startingCashMode.value === 'same'
     ? normalizeCash(sharedStartingCash.value)
-    : normalizeCash(player1StartingCash.value)
-})
+    : normalizeCash(player1StartingCash.value);
+});
 
 const resolvedPlayer2Cash = computed(() => {
   return startingCashMode.value === 'same'
     ? normalizeCash(sharedStartingCash.value)
-    : normalizeCash(player2StartingCash.value)
-})
+    : normalizeCash(player2StartingCash.value);
+});
 
-void resolvedPlayer1Cash
-void resolvedPlayer2Cash
+void resolvedPlayer1Cash.value;
+void resolvedPlayer2Cash.value;
 
-useTradeButtonSound(startPageRoot)
+useTradeButtonSound(startPageRoot);
 
 onMounted(() => {
-  profileStore.seedIfEmpty()
-  const draft = gameStore.state.draft
-  firstPlayer.value = draft.firstPlayer
-  startingCashMode.value = draft.startingCashMode
-  sharedStartingCash.value = draft.sharedStartingCash
-  player1StartingCash.value = draft.player1StartingCash
-  player2StartingCash.value = draft.player2StartingCash
-  p1Identity.value = draft.p1Identity.kind === 'cpu' ? createGuestIdentity('p1') : draft.p1Identity
-  p2Identity.value = draft.p2Identity.kind === 'cpu' ? createGuestIdentity('p2') : draft.p2Identity
-  syncDraftToStore()
-})
+  profileStore.seedIfEmpty();
+  const draft = gameStore.state.draft;
+  firstPlayer.value = draft.firstPlayer;
+  startingCashMode.value = draft.startingCashMode;
+  sharedStartingCash.value = draft.sharedStartingCash;
+  player1StartingCash.value = draft.player1StartingCash;
+  player2StartingCash.value = draft.player2StartingCash;
+  p1Identity.value = draft.p1Identity.kind === 'cpu' ? createGuestIdentity('p1') : draft.p1Identity;
+  p2Identity.value = draft.p2Identity.kind === 'cpu' ? createGuestIdentity('p2') : draft.p2Identity;
+  syncDraftToStore();
+});
 
 watch(firstPlayer, () => {
-  syncDraftToStore()
-})
+  syncDraftToStore();
+});
 
 function resolveProfile(identity: PlayerIdentity): TradeProfile | null {
   if (identity.kind !== 'profile') {
-    return null
+    return null;
   }
-  return profileStore.sortedProfiles.find((profile) => profile.id === identity.profileId) ?? null
+  return profileStore.sortedProfiles.find((profile) => profile.id === identity.profileId) ?? null;
 }
 
 function normalizeNonNegativeInt(value: number): number {
   if (!Number.isFinite(value)) {
-    return 0
+    return 0;
   }
-  return Math.max(0, Math.floor(value))
+  return Math.max(0, Math.floor(value));
 }
 
 function normalizeCash(value: number): number {
-  return normalizeNonNegativeInt(value)
+  return normalizeNonNegativeInt(value);
 }
 
 function buildCurrentDraft(): TradeSetupDraft {
@@ -136,134 +136,139 @@ function buildCurrentDraft(): TradeSetupDraft {
     marketStartingPrice: DEFAULT_MARKET_STOCK_STARTING_PRICE,
     p1Identity: p1Identity.value,
     p2Identity: p2Identity.value,
-  }
+  };
 }
 
 function syncDraftToStore(): void {
-  gameStore.setDraft(buildCurrentDraft())
+  gameStore.setDraft(buildCurrentDraft());
 }
 
 function setStartingCashMode(value: StartingCashMode): void {
-  startingCashMode.value = value
+  startingCashMode.value = value;
   if (value === 'same') {
-    const base = normalizeCash(sharedStartingCash.value || player1StartingCash.value || player2StartingCash.value)
-    sharedStartingCash.value = base
-    player1StartingCash.value = base
-    player2StartingCash.value = base
+    const base = normalizeCash(
+      sharedStartingCash.value || player1StartingCash.value || player2StartingCash.value,
+    );
+    sharedStartingCash.value = base;
+    player1StartingCash.value = base;
+    player2StartingCash.value = base;
   }
-  syncDraftToStore()
+  syncDraftToStore();
 }
 
 function setSharedCash(value: number): void {
-  const normalized = normalizeCash(value)
-  sharedStartingCash.value = normalized
+  const normalized = normalizeCash(value);
+  sharedStartingCash.value = normalized;
   if (startingCashMode.value === 'same') {
-    player1StartingCash.value = normalized
-    player2StartingCash.value = normalized
+    player1StartingCash.value = normalized;
+    player2StartingCash.value = normalized;
   }
-  syncDraftToStore()
+  syncDraftToStore();
 }
 
 function setPlayerCash(slot: PlayerSlot, value: number): void {
-  const normalized = normalizeCash(value)
+  const normalized = normalizeCash(value);
   if (slot === 'p1') {
-    player1StartingCash.value = normalized
+    player1StartingCash.value = normalized;
   } else {
-    player2StartingCash.value = normalized
+    player2StartingCash.value = normalized;
   }
-  syncDraftToStore()
+  syncDraftToStore();
 }
 
 function openPicker(slot: PlayerSlot): void {
-  pickerSlot.value = slot
-  isPickerOpen.value = true
+  pickerSlot.value = slot;
+  isPickerOpen.value = true;
 }
 
 function openCreate(slot: PlayerSlot): void {
-  createTargetSlot.value = slot
-  isCreateModalOpen.value = true
+  createTargetSlot.value = slot;
+  isCreateModalOpen.value = true;
 }
 
 function assignIdentity(slot: PlayerSlot, identity: PlayerIdentity): void {
   if (slot === 'p1') {
-    p1Identity.value = identity
+    p1Identity.value = identity;
   } else {
-    p2Identity.value = identity
+    p2Identity.value = identity;
   }
-  syncDraftToStore()
+  syncDraftToStore();
 }
 
 function handleSelectProfile(identity: PlayerIdentity): void {
   if (!pickerSlot.value) {
-    return
+    return;
   }
-  assignIdentity(pickerSlot.value, identity)
+  assignIdentity(pickerSlot.value, identity);
   if (identity.kind === 'profile') {
-    profileStore.selectProfile(identity.profileId)
+    profileStore.selectProfile(identity.profileId);
   }
-  statusMessage.value = ''
+  statusMessage.value = '';
 }
 
 function handleCreateProfileSubmit(payload: CreateTradeProfileInput): void {
-  const created = profileStore.createProfile(payload)
-  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
-  statusMessage.value = `${created.name} を作成して選択しました。`
+  const created = profileStore.createProfile(payload);
+  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id });
+  statusMessage.value = `${created.name} を作成して選択しました。`;
 }
 
 function handleCreateProfile(payload: CreateTradeProfileInput): void {
-  const created = profileStore.createProfile(payload)
-  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id })
-  statusMessage.value = `${created.name} を保存しました。`
+  const created = profileStore.createProfile(payload);
+  assignIdentity(createTargetSlot.value, { kind: 'profile', profileId: created.id });
+  statusMessage.value = `${created.name} を保存しました。`;
 }
 
 function resetSlotToGuest(slot: PlayerSlot): void {
-  assignIdentity(slot, createGuestIdentity(slot))
+  assignIdentity(slot, createGuestIdentity(slot));
 }
 
 function openStats(slot: PlayerSlot): void {
-  const identity = slot === 'p1' ? p1Identity.value : p2Identity.value
+  const identity = slot === 'p1' ? p1Identity.value : p2Identity.value;
   if (identity.kind !== 'profile') {
-    return
+    return;
   }
 
-  router.push({
-    name: 'menu-workspace-trade-profile-stats',
-    params: { profileId: identity.profileId },
-  }).catch(() => {
-    statusMessage.value = '戦績画面へ移動できませんでした。プロフィール一覧から再度開いてください。'
-  })
+  router
+    .push({
+      name: 'menu-workspace-trade-profile-stats',
+      params: { profileId: identity.profileId },
+    })
+    .catch(() => {
+      statusMessage.value =
+        '戦績画面へ移動できませんでした。プロフィール一覧から再度開いてください。';
+    });
 }
 
 function persistSelectedIdentities(): void {
   if (typeof window === 'undefined') {
-    return
+    return;
   }
 
   const payload: Record<PlayerSlot, SelectedPlayerPayload> = {
     p1: serializeIdentity(p1Identity.value),
     p2: serializeIdentity(p2Identity.value),
-  }
+  };
 
-  window.sessionStorage.setItem('trade:selectedIdentities', JSON.stringify(payload))
+  window.sessionStorage.setItem('trade:selectedIdentities', JSON.stringify(payload));
 }
 
 function serializeIdentity(identity: PlayerIdentity): SelectedPlayerPayload {
   if (identity.kind === 'profile') {
-    return { kind: 'profile', profileId: identity.profileId }
+    return { kind: 'profile', profileId: identity.profileId };
   }
-  return { kind: identity.kind, label: identity.label }
+  return { kind: identity.kind, label: identity.label };
 }
 
 function startLocalBattleSubmit(): void {
-  const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles)
-  gameStore.initializeGame(session)
+  const session = buildTradeSessionSnapshot(buildCurrentDraft(), profileStore.sortedProfiles);
+  gameStore.initializeGame(session);
 
   router.push({ name: 'menu-workspace-trade-battle' }).catch(() => {
-    statusMessage.value = 'バトル画面へ移動できませんでした。'
-  })
+    statusMessage.value = 'バトル画面へ移動できませんでした。';
+  });
 }
-void handleCreateProfile
-void persistSelectedIdentities
+void handleCreateProfile;
+void persistSelectedIdentities;
 </script>
 
 <template>
@@ -271,7 +276,11 @@ void persistSelectedIdentities
     <section class="hero-layout">
       <div class="hero-stage">
         <div class="hero-stage__visual-shell">
-          <img class="hero-stage__background" :src="startBackgroundUrl" alt="CLASH CAPITAL start background" />
+          <img
+            class="hero-stage__background"
+            :src="startBackgroundUrl"
+            alt="CLASH CAPITAL start background"
+          />
           <div class="hero-stage__shade"></div>
         </div>
 
@@ -285,12 +294,18 @@ void persistSelectedIdentities
                   <p class="hero-panel__eyebrow">設定を変更</p>
                   <h2>設定</h2>
                 </header>
-                <StartingCashSection :cash-mode="startingCashMode" :shared-cash="sharedStartingCash"
-                  :player1-cash="player1StartingCash" :player2-cash="player2StartingCash"
-                  :player1-name="resolvedPlayer1Name" :player2-name="resolvedPlayer2Name"
-                  @update:cash-mode="setStartingCashMode" @update:shared-cash="setSharedCash"
+                <StartingCashSection
+                  :cash-mode="startingCashMode"
+                  :shared-cash="sharedStartingCash"
+                  :player1-cash="player1StartingCash"
+                  :player2-cash="player2StartingCash"
+                  :player1-name="resolvedPlayer1Name"
+                  :player2-name="resolvedPlayer2Name"
+                  @update:cash-mode="setStartingCashMode"
+                  @update:shared-cash="setSharedCash"
                   @update:player1-cash="setPlayerCash('p1', $event)"
-                  @update:player2-cash="setPlayerCash('p2', $event)" />
+                  @update:player2-cash="setPlayerCash('p2', $event)"
+                />
               </div>
             </section>
 
@@ -302,8 +317,12 @@ void persistSelectedIdentities
                 </header>
 
                 <div class="flow-panel">
-                  <TurnOrderSection :model-value="firstPlayer" :player1-name="resolvedPlayer1Name"
-                    :player2-name="resolvedPlayer2Name" @update:model-value="firstPlayer = $event" />
+                  <TurnOrderSection
+                    :model-value="firstPlayer"
+                    :player1-name="resolvedPlayer1Name"
+                    :player2-name="resolvedPlayer2Name"
+                    @update:model-value="firstPlayer = $event"
+                  />
                 </div>
               </div>
             </section>
@@ -316,14 +335,13 @@ void persistSelectedIdentities
                 </header>
 
                 <div class="mode-panel">
-                  <p class="mode-panel__copy">
-                    いまは 2人対戦専用です。
-                  </p>
+                  <p class="mode-panel__copy">いまは 2人対戦専用です。</p>
                   <p class="mode-panel__copy">
                     先攻後攻を決めて、資金を持った状態で対戦を開始します。
                   </p>
                   <p class="mode-panel__copy">
-                    Player1 と Player2 の株価は {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円開始です。
+                    Player1 と Player2 の株価は
+                    {{ DEFAULT_PLAYER_STOCK_STARTING_PRICE.toLocaleString() }}円開始です。
                   </p>
                 </div>
               </div>
@@ -333,16 +351,27 @@ void persistSelectedIdentities
           <div class="hero-stage__profile-row">
             <section class="hero-profile-card" aria-label="繝励Ξ繧､繝､繝ｼ1繝励Ο繝輔ぅ繝ｼ繝ｫ">
               <div class="hero-profile-card__inner hero-profile-card__inner--blue">
-                <ProfileSlotCard slot="p1" :identity="p1Identity" :profile="p1Profile" :disabled="false"
-                  @select="openPicker('p1')" @create="openCreate('p1')" @reset-guest="resetSlotToGuest('p1')"
-                  @open-stats="openStats('p1')" />
+                <ProfileSlotCard
+                  slot="p1"
+                  :identity="p1Identity"
+                  :profile="p1Profile"
+                  :disabled="false"
+                  @select="openPicker('p1')"
+                  @create="openCreate('p1')"
+                  @reset-guest="resetSlotToGuest('p1')"
+                  @open-stats="openStats('p1')"
+                />
               </div>
             </section>
 
             <section class="hero-profile-hub" aria-label="battle actions">
               <div class="hero-profile-hub__inner">
                 <div class="hero-stage__actions" aria-label="start actions">
-                  <button type="button" class="hero-action hero-action--blue" @click="startLocalBattleSubmit">
+                  <button
+                    type="button"
+                    class="hero-action hero-action--blue"
+                    @click="startLocalBattleSubmit"
+                  >
                     対戦開始
                   </button>
                 </div>
@@ -352,9 +381,16 @@ void persistSelectedIdentities
 
             <section class="hero-profile-card" aria-label="繝励Ξ繧､繝､繝ｼ2繝励Ο繝輔ぅ繝ｼ繝ｫ">
               <div class="hero-profile-card__inner hero-profile-card__inner--red">
-                <ProfileSlotCard slot="p2" :identity="p2Identity" :profile="p2Profile" :disabled="false"
-                  @select="openPicker('p2')" @create="openCreate('p2')" @reset-guest="resetSlotToGuest('p2')"
-                  @open-stats="openStats('p2')" />
+                <ProfileSlotCard
+                  slot="p2"
+                  :identity="p2Identity"
+                  :profile="p2Profile"
+                  :disabled="false"
+                  @select="openPicker('p2')"
+                  @create="openCreate('p2')"
+                  @reset-guest="resetSlotToGuest('p2')"
+                  @open-stats="openStats('p2')"
+                />
               </div>
             </section>
           </div>
@@ -362,8 +398,13 @@ void persistSelectedIdentities
       </div>
     </section>
 
-    <ProfilePickerModal v-model="isPickerOpen" :slot="pickerSlot" :profiles="profileStore.sortedProfiles"
-      @select="handleSelectProfile" @create="openCreate(pickerSlot || 'p1')" />
+    <ProfilePickerModal
+      :slot="pickerSlot"
+      v-model="isPickerOpen"
+      :profiles="profileStore.sortedProfiles"
+      @select="handleSelectProfile"
+      @create="openCreate(pickerSlot || 'p1')"
+    />
 
     <ProfileCreateModal v-model="isCreateModalOpen" @create="handleCreateProfileSubmit" />
   </main>
@@ -415,8 +456,19 @@ void persistSelectedIdentities
 
 .hero-stage__shade {
   background:
-    linear-gradient(180deg, rgba(3, 6, 10, 0.01) 0%, rgba(3, 6, 10, 0.03) 48%, rgba(2, 4, 8, 0.14) 62%, rgba(2, 4, 8, 0.3) 100%),
-    radial-gradient(circle at bottom center, rgba(4, 8, 18, 0.08), rgba(2, 4, 8, 0.04) 40%, rgba(1, 2, 4, 0) 72%);
+    linear-gradient(
+      180deg,
+      rgba(3, 6, 10, 0.01) 0%,
+      rgba(3, 6, 10, 0.03) 48%,
+      rgba(2, 4, 8, 0.14) 62%,
+      rgba(2, 4, 8, 0.3) 100%
+    ),
+    radial-gradient(
+      circle at bottom center,
+      rgba(4, 8, 18, 0.08),
+      rgba(2, 4, 8, 0.04) 40%,
+      rgba(1, 2, 4, 0) 72%
+    );
   pointer-events: none;
 }
 
@@ -659,7 +711,10 @@ void persistSelectedIdentities
   letter-spacing: 0.04em;
   cursor: pointer;
   backdrop-filter: blur(12px);
-  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .hero-action:hover {
@@ -669,17 +724,23 @@ void persistSelectedIdentities
 
 .hero-action--blue {
   background: linear-gradient(180deg, rgba(77, 140, 255, 0.62), rgba(28, 72, 170, 0.72));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(56, 121, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 12px 30px rgba(56, 121, 255, 0.34);
 }
 
 .hero-action--green {
   background: linear-gradient(180deg, rgba(52, 190, 140, 0.62), rgba(23, 114, 90, 0.72));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(44, 181, 128, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 12px 30px rgba(44, 181, 128, 0.3);
 }
 
 .hero-action--violet {
   background: linear-gradient(180deg, rgba(157, 96, 255, 0.62), rgba(91, 46, 172, 0.74));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 12px 30px rgba(139, 86, 255, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 12px 30px rgba(139, 86, 255, 0.28);
 }
 
 .hero-panel :deep(.cash-section),

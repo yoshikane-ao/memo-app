@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import "../styles/index.css";
-import FeedbackBanner from "../../../shared/feedback/FeedbackBanner.vue";
+import '../styles/index.css';
+import FeedbackBanner from '../../../shared/feedback/FeedbackBanner.vue';
 import {
   MemoComposerContainer,
   MemoListContainer,
   MemoScopeTabs,
   MemoToolbar,
   useMemoHistoryCommands,
-} from "../features/memo";
-import { useMemoViewStore, type MemoViewScope } from "../features/view";
-import { useMemoPageSetup } from "./useMemoPageSetup";
+} from '../features/memo';
+import { useMemoViewStore, type MemoViewScope } from '../features/view';
+import { useMemoPageSetup } from './useMemoPageSetup';
 
 const commands = useMemoHistoryCommands();
 const viewStore = useMemoViewStore();
@@ -32,14 +32,14 @@ const handleScopeChange = (scope: MemoViewScope) => {
     <MemoComposerContainer />
     <MemoToolbar
       :keyword="keyword"
-      :searchType="searchType"
-      :sortOrder="sortOrder"
-      :selectedTags="selectedTags"
+      :search-type="searchType"
+      :sort-order="sortOrder"
+      :selected-tags="selectedTags"
       @update:keyword="keyword = $event"
-      @update:searchType="searchType = $event"
-      @update:sortOrder="sortOrder = $event"
-      @update:selectedTags="selectedTags = $event"
+      @update:search-type="searchType = $event"
+      @update:sort-order="sortOrder = $event"
+      @update:selected-tags="selectedTags = $event"
     />
-    <MemoListContainer :items="displayedMemos" :canReorder="canReorder" />
+    <MemoListContainer :items="displayedMemos" :can-reorder="canReorder" />
   </section>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { TagFilterSelect } from "../../../tag";
-import type { MemoSortOrder, MemoSearchType, MemoToolbarEmits, MemoToolbarProps } from "./types";
+import { TagFilterSelect } from '../../../tag';
+import type { MemoSortOrder, MemoSearchType, MemoToolbarEmits, MemoToolbarProps } from './types';
 
 withDefaults(defineProps<MemoToolbarProps>(), {
   showSortOrder: true,
@@ -14,7 +14,7 @@ const handleKeywordInput = (event: Event) => {
     return;
   }
 
-  emit("update:keyword", target.value);
+  emit('update:keyword', target.value);
 };
 
 const handleSearchTypeChange = (event: Event) => {
@@ -24,7 +24,7 @@ const handleSearchTypeChange = (event: Event) => {
     return;
   }
 
-  emit("update:searchType", target.value as MemoSearchType);
+  emit('update:searchType', target.value as MemoSearchType);
 };
 
 const handleSortOrderChange = (event: Event) => {
@@ -34,7 +34,7 @@ const handleSortOrderChange = (event: Event) => {
     return;
   }
 
-  emit("update:sortOrder", target.value as MemoSortOrder);
+  emit('update:sortOrder', target.value as MemoSortOrder);
 };
 </script>
 
@@ -68,8 +68,8 @@ const handleSortOrderChange = (event: Event) => {
     </div>
 
     <TagFilterSelect
-      :selectedTags="selectedTags"
-      @update:selectedTags="emit('update:selectedTags', $event)"
+      :selected-tags="selectedTags"
+      @update:selected-tags="emit('update:selectedTags', $event)"
       @tag-deleted="emit('tag-deleted', $event)"
     />
   </div>

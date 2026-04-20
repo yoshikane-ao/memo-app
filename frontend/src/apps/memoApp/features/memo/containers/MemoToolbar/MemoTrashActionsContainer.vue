@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import MemoTrashActionsBar from "../../ui/MemoToolbar/MemoTrashActionsBar.vue";
-import { useMemoHistoryCommands } from "../../application/useMemoCommands";
-import { useMemoStore } from "../../model/useMemoStore";
-import { getCommandErrorMessage } from "../../../../../../shared/command/commandResult";
-import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
+import { computed, ref } from 'vue';
+import MemoTrashActionsBar from '../../ui/MemoToolbar/MemoTrashActionsBar.vue';
+import { useMemoHistoryCommands } from '../../application/useMemoCommands';
+import { useMemoStore } from '../../model/useMemoStore';
+import { getCommandErrorMessage } from '../../../../../../shared/command/commandResult';
+import { useFeedbackStore } from '../../../../../../shared/feedback/useFeedbackStore';
 
 const commands = useMemoHistoryCommands();
 const memoStore = useMemoStore();
@@ -17,7 +17,7 @@ const handlePurgeAllRequested = async () => {
     return;
   }
 
-  const confirmed = window.confirm("ごみ箱のメモをすべて完全に削除しますか？");
+  const confirmed = window.confirm('ごみ箱のメモをすべて完全に削除しますか？');
   if (!confirmed) {
     return;
   }
@@ -26,8 +26,8 @@ const handlePurgeAllRequested = async () => {
 
   try {
     const purged = await commands.purgeAllTrash();
-    if (!purged.ok && purged.reason === "error") {
-      feedback.showError(getCommandErrorMessage(purged, "Failed to permanently delete trash."));
+    if (!purged.ok && purged.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(purged, 'Failed to permanently delete trash.'));
       return;
     }
 
@@ -36,7 +36,7 @@ const handlePurgeAllRequested = async () => {
     }
 
     const deletedCount = purged.value;
-    feedback.showInfo(`Deleted ${deletedCount} trashed memo${deletedCount === 1 ? "" : "s"}.`);
+    feedback.showInfo(`Deleted ${deletedCount} trashed memo${deletedCount === 1 ? '' : 's'}.`);
   } finally {
     isBusy.value = false;
   }
@@ -45,8 +45,8 @@ const handlePurgeAllRequested = async () => {
 
 <template>
   <MemoTrashActionsBar
-    :trashCount="trashCount"
-    :isBusy="isBusy"
+    :trash-count="trashCount"
+    :is-busy="isBusy"
     @purge-all-requested="void handlePurgeAllRequested()"
   />
 </template>

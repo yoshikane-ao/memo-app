@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import TagBadgeList from "../TagBadgeList.vue";
-import TagSearchPopover from "../TagSearchPopover.vue";
-import type { TagPickerFieldEmits, TagPickerFieldProps } from "../../types";
+import { computed, ref, watch } from 'vue';
+import TagBadgeList from '../TagBadgeList.vue';
+import TagSearchPopover from '../TagSearchPopover.vue';
+import type { TagPickerFieldEmits, TagPickerFieldProps } from '../../types';
 
 const props = withDefaults(defineProps<TagPickerFieldProps>(), {
   resetKey: 0,
@@ -22,7 +22,7 @@ watch(
   () => props.resetKey,
   () => {
     showTagSearch.value = false;
-  }
+  },
 );
 </script>
 
@@ -36,10 +36,10 @@ watch(
       <TagSearchPopover
         v-if="showTagSearch"
         :tags="availableTags"
-        :selectedTagIds="selectedTagIds"
-        :memoSources="memoSources"
-        :isCreating="isCreating"
-        :boundaryEl="dropdownWrapperRef"
+        :selected-tag-ids="selectedTagIds"
+        :memo-sources="memoSources"
+        :is-creating="isCreating"
+        :boundary-el="dropdownWrapperRef"
         @toggle-tag="emit('toggle-tag', $event)"
         @create-tag="emit('create-tag', $event)"
         @tag-deleted="emit('delete-tag', $event)"

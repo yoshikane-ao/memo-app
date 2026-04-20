@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
-import { useRouter } from "vue-router";
-import { useQuizAnswer } from "../application/useQuizAnswer";
-import QuizAnswerPanel from "../ui/QuizAnswerPanel.vue";
-import FourChoiceAnswerPanel from "../ui/FourChoiceAnswerPanel.vue";
-import TrueFalseAnswerPanel from "../ui/TrueFalseAnswerPanel.vue";
-import MultipleCorrectAnswerPanel from "../ui/MultipleCorrectAnswerPanel.vue";
-import MatchingAnswerPanel from "../ui/MatchingAnswerPanel.vue";
-import FillInBlankAnswerPanel from "../ui/FillInBlankAnswerPanel.vue";
-import WriteAnswerPanel from "../ui/WriteAnswerPanel.vue";
-import ErrorCorrectionAnswerPanel from "../ui/ErrorCorrectionAnswerPanel.vue";
-import BestAnswerAnswerPanel from "../ui/BestAnswerAnswerPanel.vue";
-import QuizResultPanel from "../ui/QuizResultPanel.vue";
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuizAnswer } from '../application/useQuizAnswer';
+import QuizAnswerPanel from '../ui/QuizAnswerPanel.vue';
+import FourChoiceAnswerPanel from '../ui/FourChoiceAnswerPanel.vue';
+import TrueFalseAnswerPanel from '../ui/TrueFalseAnswerPanel.vue';
+import MultipleCorrectAnswerPanel from '../ui/MultipleCorrectAnswerPanel.vue';
+import MatchingAnswerPanel from '../ui/MatchingAnswerPanel.vue';
+import FillInBlankAnswerPanel from '../ui/FillInBlankAnswerPanel.vue';
+import WriteAnswerPanel from '../ui/WriteAnswerPanel.vue';
+import ErrorCorrectionAnswerPanel from '../ui/ErrorCorrectionAnswerPanel.vue';
+import BestAnswerAnswerPanel from '../ui/BestAnswerAnswerPanel.vue';
+import QuizResultPanel from '../ui/QuizResultPanel.vue';
 
 const router = useRouter();
 const {
@@ -73,7 +73,7 @@ onMounted(() => {
 });
 
 const goHome = () => {
-  router.push({ name: "quiz-start" });
+  router.push({ name: 'quiz-start' });
 };
 </script>
 
@@ -82,17 +82,15 @@ const goHome = () => {
     <p class="quiz-answer-status__text">読み込み中...</p>
   </div>
   <div v-else-if="items.length === 0" class="quiz-answer-status">
-    <p class="quiz-answer-status__text">
-      問題が登録されていません。まずは問題を作成してください。
-    </p>
+    <p class="quiz-answer-status__text">問題が登録されていません。まずは問題を作成してください。</p>
   </div>
 
   <QuizResultPanel
     v-else-if="isFinished"
-    :correctCount="correctCount"
-    :totalCount="items.length"
+    :correct-count="correctCount"
+    :total-count="items.length"
     @retry="retry"
-    @goHome="goHome"
+    @go-home="goHome"
   />
 
   <template v-else-if="currentItem">
@@ -102,82 +100,82 @@ const goHome = () => {
       v-if="questionFormat === 'four-choice'"
       :prompt="prompt"
       :choices="choices"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :selectedChoice="userAnswer"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @selectChoice="submitChoice"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :selected-choice="userAnswer"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @select-choice="submitChoice"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <TrueFalseAnswerPanel
       v-else-if="questionFormat === 'true-false'"
       :prompt="prompt"
-      :shownAnswer="trueFalseShownAnswer"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
+      :shown-answer="trueFalseShownAnswer"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
       @answer="submitTrueFalse"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <MultipleCorrectAnswerPanel
       v-else-if="questionFormat === 'multiple-correct'"
       :pairs="multipleCorrectPairs"
       :selected="multipleCorrectSelected"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :isFavorite="currentItem.isFavorite"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :is-favorite="currentItem.isFavorite"
       @toggle="toggleMultipleCorrectSelection"
       @submit="submitMultipleCorrect"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <MatchingAnswerPanel
       v-else-if="questionFormat === 'matching'"
       :pairs="matchingPairs"
-      :shuffledAnswers="matchingShuffledAnswers"
-      :userPairs="matchingUserPairs"
-      :selectedPromptId="matchingSelectedPromptId"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :isFavorite="currentItem.isFavorite"
-      @selectPrompt="selectMatchingPrompt"
-      @selectAnswer="selectMatchingAnswer"
+      :shuffled-answers="matchingShuffledAnswers"
+      :user-pairs="matchingUserPairs"
+      :selected-prompt-id="matchingSelectedPromptId"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :is-favorite="currentItem.isFavorite"
+      @select-prompt="selectMatchingPrompt"
+      @select-answer="selectMatchingAnswer"
       @submit="submitMatching"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <BestAnswerAnswerPanel
       v-else-if="questionFormat === 'best-answer'"
       :prompt="prompt"
       :choices="bestAnswerChoices"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :selectedChoice="bestAnswerSelectedChoice"
-      :isRevealed="bestAnswerRevealed"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @selectChoice="selectBestAnswer"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :selected-choice="bestAnswerSelectedChoice"
+      :is-revealed="bestAnswerRevealed"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @select-choice="selectBestAnswer"
       @judge="judgeBestAnswer"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <!-- ── Written formats (self-judge) ── -->
@@ -186,59 +184,59 @@ const goHome = () => {
       v-else-if="questionFormat === 'fill-in-blank'"
       :prompt="prompt"
       :direction="effectiveDirection"
-      :blankDisplay="fillInBlankDisplay"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :userAnswer="userAnswer"
-      :isRevealed="isRevealed"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @update:userAnswer="userAnswer = $event"
+      :blank-display="fillInBlankDisplay"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :user-answer="userAnswer"
+      :is-revealed="isRevealed"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @update:user-answer="userAnswer = $event"
       @reveal="revealAnswer"
-      @selfJudge="selfJudge"
+      @self-judge="selfJudge"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <WriteAnswerPanel
       v-else-if="questionFormat === 'write-answer'"
       :prompt="prompt"
       :direction="effectiveDirection"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :userAnswer="userAnswer"
-      :isRevealed="isRevealed"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @update:userAnswer="userAnswer = $event"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :user-answer="userAnswer"
+      :is-revealed="isRevealed"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @update:user-answer="userAnswer = $event"
       @reveal="revealAnswer"
-      @selfJudge="selfJudge"
+      @self-judge="selfJudge"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <ErrorCorrectionAnswerPanel
       v-else-if="questionFormat === 'error-correction'"
       :prompt="prompt"
       :direction="effectiveDirection"
-      :wrongAnswer="errorCorrectionWrongAnswer"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :userAnswer="userAnswer"
-      :isRevealed="isRevealed"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @update:userAnswer="userAnswer = $event"
+      :wrong-answer="errorCorrectionWrongAnswer"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :user-answer="userAnswer"
+      :is-revealed="isRevealed"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @update:user-answer="userAnswer = $event"
       @reveal="revealAnswer"
-      @selfJudge="selfJudge"
+      @self-judge="selfJudge"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
 
     <!-- ── Fallback: text-input (auto-judge) ── -->
@@ -247,17 +245,17 @@ const goHome = () => {
       v-else
       :prompt="prompt"
       :direction="effectiveDirection"
-      :currentIndex="currentIndex"
-      :totalCount="items.length"
-      :userAnswer="userAnswer"
-      :isAnswered="isAnswered"
-      :isCorrect="isCorrect"
-      :correctAnswer="correctAnswer"
-      :isFavorite="currentItem.isFavorite"
-      @update:userAnswer="userAnswer = $event"
+      :current-index="currentIndex"
+      :total-count="items.length"
+      :user-answer="userAnswer"
+      :is-answered="isAnswered"
+      :is-correct="isCorrect"
+      :correct-answer="correctAnswer"
+      :is-favorite="currentItem.isFavorite"
+      @update:user-answer="userAnswer = $event"
       @submit="submitAnswer"
       @next="next"
-      @toggleFavorite="toggleCurrentFavorite"
+      @toggle-favorite="toggleCurrentFavorite"
     />
   </template>
 </template>

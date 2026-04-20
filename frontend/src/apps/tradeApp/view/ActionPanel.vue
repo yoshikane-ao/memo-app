@@ -1,193 +1,185 @@
 ﻿<script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, reactive, watch } from 'vue';
 import type {
   CompanyAction,
   PlayerState,
   StockKey,
   TradeAction,
   TradeMode,
-} from '../api/types/game'
-import {
-  COMPANY_ACTIONS,
-  MODE_LABELS,
-  TRADE_LABELS,
-} from '../api/types/game'
-import type {
-  BattleActionDraft,
-  BattleActionProjection,
-} from '../lib/tradeBattle'
-import { resolveTradeImpactPattern } from '../lib/tradeImpact'
+} from '../api/types/game';
+import { COMPANY_ACTIONS, MODE_LABELS, TRADE_LABELS } from '../api/types/game';
+import type { BattleActionDraft, BattleActionProjection } from '../lib/tradeBattle';
+import { resolveTradeImpactPattern } from '../lib/tradeImpact';
 
 const props = defineProps<{
-  currentPlayer: PlayerState
+  currentPlayer: PlayerState;
   playerNames: {
-    p1: string
-    p2: string
-  }
-  draft: BattleActionDraft
-  projection: BattleActionProjection
+    p1: string;
+    p2: string;
+  };
+  draft: BattleActionDraft;
+  projection: BattleActionProjection;
   pendingClose?: {
-    stockName: string
-    side: 'buy' | 'sell'
-    executionPriceText: string
-    projectedPnlText: string
-    returnedCashText: string
-  } | null
-}>()
+    stockName: string;
+    side: 'buy' | 'sell';
+    executionPriceText: string;
+    projectedPnlText: string;
+    returnedCashText: string;
+  } | null;
+}>();
 
 const emit = defineEmits<{
-  'update:draft': [draft: BattleActionDraft]
-  confirm: []
-}>()
+  'update:draft': [draft: BattleActionDraft];
+  confirm: [];
+}>();
 
 const form = reactive<BattleActionDraft>({
   ...props.draft,
-})
+});
 
-const quickAmounts = [1000, 5000, 10000] as const
+const quickAmounts = [1000, 5000, 10000] as const;
 
-let syncingFromProps = false
+let syncingFromProps = false;
 
 watch(
   () => props.draft,
   (draft) => {
-    syncingFromProps = true
-    Object.assign(form, draft)
-    syncingFromProps = false
+    syncingFromProps = true;
+    Object.assign(form, draft);
+    syncingFromProps = false;
   },
   { deep: true, immediate: true },
-)
+);
 
 watch(
   form,
   () => {
-    if (syncingFromProps) return
-    emit('update:draft', { ...form })
+    if (syncingFromProps) return;
+    emit('update:draft', { ...form });
   },
   { deep: true },
-)
+);
 
 const actionKind = computed({
   get: () => form.actionKind,
   set: (value: BattleActionDraft['actionKind']) => {
-    form.actionKind = value
+    form.actionKind = value;
   },
-})
+});
 
-const companyActions = computed(() => props.projection.companyActions)
-const visibleTradeActions = computed(() => props.projection.visibleTradeActions)
-const canSubmitTrade = computed(() => props.projection.canSubmitTrade)
-const canSubmitCompany = computed(() => props.projection.canSubmitCompany)
-const canSubmitWait = computed(() => props.projection.canSubmitWait)
-const canSubmit = computed(() => props.projection.canSubmit)
-const isClosePending = computed(() => props.pendingClose != null)
+const companyActions = computed(() => props.projection.companyActions);
+const visibleTradeActions = computed(() => props.projection.visibleTradeActions);
+const canSubmitTrade = computed(() => props.projection.canSubmitTrade);
+const canSubmitCompany = computed(() => props.projection.canSubmitCompany);
+const canSubmitWait = computed(() => props.projection.canSubmitWait);
+const canSubmit = computed(() => props.projection.canSubmit);
+const isClosePending = computed(() => props.pendingClose != null);
 
-type GuideTone = 'up-strong' | 'up' | 'down' | 'down-strong'
+type GuideTone = 'up-strong' | 'up' | 'down' | 'down-strong';
 
 type TradeGuideEffect = {
-  label: string
-  percentText: string
-  tone: GuideTone
-}
+  label: string;
+  percentText: string;
+  tone: GuideTone;
+};
 
 type TradeGuideItem = {
-  key: StockKey
-  title: string
-  effects: TradeGuideEffect[]
-}
+  key: StockKey;
+  title: string;
+  effects: TradeGuideEffect[];
+};
 
 function ownStockKey(): 'p1' | 'p2' {
-  return props.currentPlayer.id === 'player1' ? 'p1' : 'p2'
+  return props.currentPlayer.id === 'player1' ? 'p1' : 'p2';
 }
 
 function rivalStockKey(): 'p1' | 'p2' {
-  return ownStockKey() === 'p1' ? 'p2' : 'p1'
+  return ownStockKey() === 'p1' ? 'p2' : 'p1';
 }
 
 function nextCompanyAction(): CompanyAction {
-  return companyActions.value[0] ?? COMPANY_ACTIONS[0]
+  return companyActions.value[0] ?? COMPANY_ACTIONS[0];
 }
 
 function setActionKind(kind: 'trade' | 'company' | 'wait'): void {
-  actionKind.value = kind
+  actionKind.value = kind;
 
   if (kind === 'trade') {
-    form.companyAction = COMPANY_ACTIONS[0]
-    return
+    form.companyAction = COMPANY_ACTIONS[0];
+    return;
   }
 
   if (kind === 'wait') {
-    form.companyAction = COMPANY_ACTIONS[0]
-    form.quantity = 0
-    return
+    form.companyAction = COMPANY_ACTIONS[0];
+    form.quantity = 0;
+    return;
   }
 
-  form.stockKey = ownStockKey()
-  form.companyAction = nextCompanyAction()
+  form.stockKey = ownStockKey();
+  form.companyAction = nextCompanyAction();
 }
 
 function isTradeDisabled(action: TradeAction): boolean {
-  void action
-  return actionKind.value !== 'trade'
+  void action;
+  return actionKind.value !== 'trade';
 }
 
 function selectTradeAction(action: TradeAction): void {
-  if (isTradeDisabled(action)) return
-  form.tradeAction = action
+  if (isTradeDisabled(action)) return;
+  form.tradeAction = action;
 }
 
 function stepAmount(diff: number): void {
-  form.quantity = Math.max(0, props.projection.orderAmount + diff)
+  form.quantity = Math.max(0, props.projection.orderAmount + diff);
 }
 
 function addPreset(amount: number): void {
-  form.quantity = props.projection.orderAmount + amount
+  form.quantity = props.projection.orderAmount + amount;
 }
 
 function resetAmount(): void {
-  form.quantity = 0
+  form.quantity = 0;
 }
 
 function submitTurn(): void {
-  if (!isClosePending.value && !canSubmit.value) return
-  emit('confirm')
+  if (!isClosePending.value && !canSubmit.value) return;
+  emit('confirm');
 }
 
 function resolveGuideTitle(targetKey: StockKey): string {
   if (targetKey === 'market') {
-    return '\u5e02\u5834\u3092' + (form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b')
+    return '\u5e02\u5834\u3092' + (form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b');
   }
 
-  const playerName = props.playerNames[targetKey]
-  return `${playerName}\u3092${form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b'}`
+  const playerName = props.playerNames[targetKey];
+  return `${playerName}\u3092${form.tradeAction === 'buy' ? '\u8cb7\u3046' : '\u58f2\u308b'}`;
 }
 
 function resolveEffectLabel(effectKey: StockKey): string {
-  if (effectKey === 'market') return '\u5e02\u5834'
-  return props.playerNames[effectKey]
+  if (effectKey === 'market') return '\u5e02\u5834';
+  return props.playerNames[effectKey];
 }
 
 function resolveGuideTone(value: number): GuideTone {
-  if (value >= 1) return 'up-strong'
-  if (value > 0) return 'up'
-  if (value <= -1) return 'down-strong'
-  return 'down'
+  if (value >= 1) return 'up-strong';
+  if (value > 0) return 'up';
+  if (value <= -1) return 'down-strong';
+  return 'down';
 }
 
 function formatGuidePercent(value: number): string {
-  const percent = Math.round(value * 100)
-  return `${percent > 0 ? '+' : ''}${percent}%`
+  const percent = Math.round(value * 100);
+  return `${percent > 0 ? '+' : ''}${percent}%`;
 }
 
 const tradeGuideItems = computed<TradeGuideItem[]>(() => {
-  const playerTargets: [StockKey, StockKey] = ownStockKey() === 'p1'
-    ? ['p1', rivalStockKey()]
-    : [rivalStockKey(), 'p2']
-  const targets: StockKey[] = [...playerTargets, 'market']
-  const effectOrder: StockKey[] = [...playerTargets, 'market']
+  const playerTargets: [StockKey, StockKey] =
+    ownStockKey() === 'p1' ? ['p1', rivalStockKey()] : [rivalStockKey(), 'p2'];
+  const targets: StockKey[] = [...playerTargets, 'market'];
+  const effectOrder: StockKey[] = [...playerTargets, 'market'];
 
   return targets.map((targetKey) => {
-    const pattern = resolveTradeImpactPattern(props.currentPlayer.id, targetKey, form.tradeAction)
+    const pattern = resolveTradeImpactPattern(props.currentPlayer.id, targetKey, form.tradeAction);
 
     return {
       key: targetKey,
@@ -197,78 +189,102 @@ const tradeGuideItems = computed<TradeGuideItem[]>(() => {
         percentText: formatGuidePercent(pattern[effectKey]),
         tone: resolveGuideTone(pattern[effectKey]),
       })),
-    }
-  })
-})
+    };
+  });
+});
 
 const tradeSummaryTitle = computed(() => {
   if (isClosePending.value) {
-    return `${props.pendingClose?.stockName ?? ''}\u306e${props.pendingClose?.side === 'buy' ? '\u8cb7\u3044' : '\u58f2\u308a'}\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u6c7a\u6e08`
+    return `${props.pendingClose?.stockName ?? ''}\u306e${props.pendingClose?.side === 'buy' ? '\u8cb7\u3044' : '\u58f2\u308a'}\u30dd\u30b8\u30b7\u30e7\u30f3\u3092\u6c7a\u6e08`;
   }
 
-  return `${props.currentPlayer.name}\u306e\u30bf\u30fc\u30f3`
-})
+  return `${props.currentPlayer.name}\u306e\u30bf\u30fc\u30f3`;
+});
 
 const tradeHint = computed(() => {
   if (isClosePending.value) {
-    return `\u60f3\u5b9a\u7d04\u5b9a ${props.pendingClose?.executionPriceText ?? ''} / \u56de\u53ce ${props.pendingClose?.returnedCashText ?? ''} / \u640d\u76ca ${props.pendingClose?.projectedPnlText ?? ''}`
+    return `\u60f3\u5b9a\u7d04\u5b9a ${props.pendingClose?.executionPriceText ?? ''} / \u56de\u53ce ${props.pendingClose?.returnedCashText ?? ''} / \u640d\u76ca ${props.pendingClose?.projectedPnlText ?? ''}`;
   }
 
-  return ''
-})
+  return '';
+});
 
 const confirmButtonLabel = computed(() => {
-  if (isClosePending.value) return '\u30dd\u30b8\u30b7\u30e7\u30f3\u6c7a\u6e08\u3092\u78ba\u5b9a'
-  if (actionKind.value === 'trade' && props.projection.isCashInsufficient) return '\u6b8b\u9ad8\u4e0d\u8db3'
-  return '\u884c\u52d5\u3092\u6c7a\u5b9a'
-})
+  if (isClosePending.value) return '\u30dd\u30b8\u30b7\u30e7\u30f3\u6c7a\u6e08\u3092\u78ba\u5b9a';
+  if (actionKind.value === 'trade' && props.projection.isCashInsufficient)
+    return '\u6b8b\u9ad8\u4e0d\u8db3';
+  return '\u884c\u52d5\u3092\u6c7a\u5b9a';
+});
 
 const companySummaryTitle = computed(() => {
-  return isClosePending.value ? tradeSummaryTitle.value : '\u3053\u306e\u5185\u5bb9\u3067\u81ea\u793e\u884c\u52d5\u3092\u5b9f\u884c'
-})
+  return isClosePending.value
+    ? tradeSummaryTitle.value
+    : '\u3053\u306e\u5185\u5bb9\u3067\u81ea\u793e\u884c\u52d5\u3092\u5b9f\u884c';
+});
 
 const companySummaryHint = computed(() => {
-  return isClosePending.value ? tradeHint.value : '\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u4e2d\u306e\u884c\u52d5\u306f\u9078\u3079\u307e\u305b\u3093\u3002'
-})
+  return isClosePending.value
+    ? tradeHint.value
+    : '\u30af\u30fc\u30eb\u30c0\u30a6\u30f3\u4e2d\u306e\u884c\u52d5\u306f\u9078\u3079\u307e\u305b\u3093\u3002';
+});
 
 const waitSummaryTitle = computed(() => {
-  return isClosePending.value ? tradeSummaryTitle.value : '\u3053\u306e\u30bf\u30fc\u30f3\u306f\u5f85\u6a5f\u3059\u308b'
-})
+  return isClosePending.value
+    ? tradeSummaryTitle.value
+    : '\u3053\u306e\u30bf\u30fc\u30f3\u306f\u5f85\u6a5f\u3059\u308b';
+});
 
 const waitSummaryHint = computed(() => {
-  return isClosePending.value ? tradeHint.value : '\u30dd\u30b8\u30b7\u30e7\u30f3\u306f\u305d\u306e\u307e\u307e\u3067\u3001\u6b21\u306e\u624b\u756a\u306b\u5099\u3048\u307e\u3059\u3002'
-})
+  return isClosePending.value
+    ? tradeHint.value
+    : '\u30dd\u30b8\u30b7\u30e7\u30f3\u306f\u305d\u306e\u307e\u307e\u3067\u3001\u6b21\u306e\u624b\u756a\u306b\u5099\u3048\u307e\u3059\u3002';
+});
 
 watch(
   () => props.currentPlayer.id,
   () => {
     if (actionKind.value === 'company') {
-      form.stockKey = ownStockKey()
+      form.stockKey = ownStockKey();
     }
   },
-)
+);
 </script>
 
 <template>
-  <section class="action-panel" :class="[currentPlayer.id, `mode-${actionKind}`, { 'is-close-pending': isClosePending }]"
-    :data-current-player="currentPlayer.id">
+  <section
+    class="action-panel"
+    :class="[currentPlayer.id, `mode-${actionKind}`, { 'is-close-pending': isClosePending }]"
+    :data-current-player="currentPlayer.id"
+  >
     <div :key="currentPlayer.id" class="turn-strip" :class="currentPlayer.id" data-turn-strip>
       <span class="turn-strip__label">ACTIVE</span>
       <strong class="turn-strip__name">{{ currentPlayer.name }}</strong>
       <span class="turn-strip__meta">が行動中</span>
     </div>
 
-    <div class="panel-grid trade-grid" v-if="actionKind === 'trade'">
+    <div v-if="actionKind === 'trade'" class="panel-grid trade-grid">
       <article class="card kind-card kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
-          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('trade')">
+          <button
+            type="button"
+            class="segment-button small-kind-button selected"
+            @click="setActionKind('trade')"
+          >
             売買
           </button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('company')"
+          >
             自社行動
           </button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('wait')"
+          >
             待機
           </button>
         </div>
@@ -306,7 +322,7 @@ watch(
         <div class="stack-group">
           <div class="segment segment-2">
             <button
-              v-for="mode in (['investment', 'speculation'] as TradeMode[])"
+              v-for="mode in ['investment', 'speculation'] as TradeMode[]"
               :key="mode"
               type="button"
               class="segment-button"
@@ -353,7 +369,13 @@ watch(
 
         <div class="amount-box">
           <button type="button" class="amount-step" @click="stepAmount(-1000)">-</button>
-          <input v-model.number="form.quantity" type="number" min="0" step="1000" class="amount-input" />
+          <input
+            v-model.number="form.quantity"
+            type="number"
+            min="0"
+            step="1000"
+            class="amount-input"
+          />
           <button type="button" class="amount-step" @click="stepAmount(1000)">+</button>
         </div>
       </article>
@@ -375,13 +397,31 @@ watch(
       </article>
     </div>
 
-    <div class="panel-grid company-grid" v-else-if="actionKind === 'company'">
+    <div v-else-if="actionKind === 'company'" class="panel-grid company-grid">
       <article class="card kind-card company-kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
-          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('company')">自社行動</button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('wait')">待機</button>
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('trade')"
+          >
+            売買
+          </button>
+          <button
+            type="button"
+            class="segment-button small-kind-button selected"
+            @click="setActionKind('company')"
+          >
+            自社行動
+          </button>
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('wait')"
+          >
+            待機
+          </button>
         </div>
       </article>
 
@@ -419,13 +459,31 @@ watch(
       </article>
     </div>
 
-    <div class="panel-grid wait-grid" v-else>
+    <div v-else class="panel-grid wait-grid">
       <article class="card kind-card wait-kind-span">
         <div class="card-title-row"><span class="step">1</span><span>行動</span></div>
         <div class="segment vertical-segment">
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('trade')">売買</button>
-          <button type="button" class="segment-button small-kind-button" @click="setActionKind('company')">自社行動</button>
-          <button type="button" class="segment-button small-kind-button selected" @click="setActionKind('wait')">待機</button>
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('trade')"
+          >
+            売買
+          </button>
+          <button
+            type="button"
+            class="segment-button small-kind-button"
+            @click="setActionKind('company')"
+          >
+            自社行動
+          </button>
+          <button
+            type="button"
+            class="segment-button small-kind-button selected"
+            @click="setActionKind('wait')"
+          >
+            待機
+          </button>
         </div>
       </article>
 
@@ -1123,4 +1181,3 @@ watch(
   }
 }
 </style>
-

@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import "../styles/index.css";
-import FeedbackBanner from "../../../shared/feedback/FeedbackBanner.vue";
+import '../styles/index.css';
+import FeedbackBanner from '../../../shared/feedback/FeedbackBanner.vue';
 import {
   MemoScopeTabs,
   MemoToolbar,
   MemoTrashActionsContainer,
   MemoTrashListContainer,
   useMemoHistoryCommands,
-} from "../features/memo";
-import { useMemoViewStore, type MemoViewScope } from "../features/view";
-import { useMemoPageSetup } from "./useMemoPageSetup";
+} from '../features/memo';
+import { useMemoViewStore, type MemoViewScope } from '../features/view';
+import { useMemoPageSetup } from './useMemoPageSetup';
 
 const commands = useMemoHistoryCommands();
 const viewStore = useMemoViewStore();
 const { keyword, searchType, sortOrder, selectedTags, displayedMemos } = useMemoPageSetup({
-  scope: "trash",
+  scope: 'trash',
   listView: {
     allowManualReorder: false,
-    defaultSortOrder: "newest",
-    sortTimestamp: "deletedAt",
+    defaultSortOrder: 'newest',
+    sortTimestamp: 'deletedAt',
   },
 });
 
@@ -38,14 +38,14 @@ const handleScopeChange = (scope: MemoViewScope) => {
     <MemoTrashActionsContainer />
     <MemoToolbar
       :keyword="keyword"
-      :searchType="searchType"
-      :sortOrder="sortOrder"
-      :selectedTags="selectedTags"
-      :showSortOrder="false"
+      :search-type="searchType"
+      :sort-order="sortOrder"
+      :selected-tags="selectedTags"
+      :show-sort-order="false"
       @update:keyword="keyword = $event"
-      @update:searchType="searchType = $event"
-      @update:sortOrder="sortOrder = $event"
-      @update:selectedTags="selectedTags = $event"
+      @update:search-type="searchType = $event"
+      @update:sort-order="sortOrder = $event"
+      @update:selected-tags="selectedTags = $event"
     />
     <MemoTrashListContainer :items="displayedMemos" />
   </section>

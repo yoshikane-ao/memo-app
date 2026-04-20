@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { watch } from "vue";
-import MemoComposerForm from "../../ui/MemoComposer/MemoComposerForm.vue";
-import type { MemoComposerContainerEmits } from "../../ui/MemoComposer/types";
-import { useMemoComposerDraft } from "./useMemoComposerDraft";
-import { useMemoHistoryCommands } from "../../application/useMemoCommands";
-import { useMemoComposerDefaultsStore } from "../../model/useMemoComposerDefaultsStore";
-import { getCommandErrorMessage } from "../../../../../../shared/command/commandResult";
-import { useFeedbackStore } from "../../../../../../shared/feedback/useFeedbackStore";
-import { useTagStore, type TagItem } from "../../../tag";
+import { watch } from 'vue';
+import MemoComposerForm from '../../ui/MemoComposer/MemoComposerForm.vue';
+import type { MemoComposerContainerEmits } from '../../ui/MemoComposer/types';
+import { useMemoComposerDraft } from './useMemoComposerDraft';
+import { useMemoHistoryCommands } from '../../application/useMemoCommands';
+import { useMemoComposerDefaultsStore } from '../../model/useMemoComposerDefaultsStore';
+import { getCommandErrorMessage } from '../../../../../../shared/command/commandResult';
+import { useFeedbackStore } from '../../../../../../shared/feedback/useFeedbackStore';
+import { useTagStore, type TagItem } from '../../../tag';
 
 const emit = defineEmits<MemoComposerContainerEmits>();
 
@@ -77,7 +77,7 @@ watch(
       setSelectedTags(resolvedFixedTags);
     }
   },
-  { deep: true, immediate: true }
+  { deep: true, immediate: true },
 );
 
 const handleSubmit = async () => {
@@ -92,18 +92,18 @@ const handleSubmit = async () => {
   });
 
   if (!createdMemo.ok) {
-    if (createdMemo.reason === "error") {
-      feedback.showError(getCommandErrorMessage(createdMemo, "Failed to create memo."));
+    if (createdMemo.reason === 'error') {
+      feedback.showError(getCommandErrorMessage(createdMemo, 'Failed to create memo.'));
     }
     return;
   }
 
   resetDraft(defaults.keepTags ? selectedTags.value : []);
-  emit("memo-created", createdMemo.value.id);
+  emit('memo-created', createdMemo.value.id);
 };
 
 const handleTagDeleted = (tagId: number) => {
-  emit("tag-deleted", tagId);
+  emit('tag-deleted', tagId);
 };
 </script>
 
@@ -111,14 +111,14 @@ const handleTagDeleted = (tagId: number) => {
   <MemoComposerForm
     :title="draft.title"
     :content="draft.content"
-    :isSubmitDisabled="isSubmitDisabled"
-    :selectedTags="selectedTags"
-    :tagSelectionResetKey="tagSelectionResetKey"
-    :keepTags="defaults.keepTags"
+    :is-submit-disabled="isSubmitDisabled"
+    :selected-tags="selectedTags"
+    :tag-selection-reset-key="tagSelectionResetKey"
+    :keep-tags="defaults.keepTags"
     @update:title="updateTitle"
     @update:content="updateContent"
-    @update:selectedTags="handleSelectedTagsUpdate"
-    @update:keepTags="handleKeepTagsUpdate"
+    @update:selected-tags="handleSelectedTagsUpdate"
+    @update:keep-tags="handleKeepTagsUpdate"
     @submit="handleSubmit"
     @tag-deleted="handleTagDeleted"
   />
