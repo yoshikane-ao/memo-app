@@ -1,10 +1,11 @@
-import cors from "cors";
-import express from "express";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import { config } from "./config";
-import { memosRouter, tagsRouter } from "./features/memo";
-import { quizRouter } from "./features/quiz";
+import cors from 'cors';
+import express from 'express';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { config } from './config';
+import { memosRouter, tagsRouter } from './features/memo';
+import { quizRouter } from './features/quiz';
+import { requestLogger } from './shared/http/requestLogger';
 // import { tradeAppRoutes } from "./tradeApp/routes"
 
 const createRateLimiter = () =>
@@ -14,13 +15,13 @@ const createRateLimiter = () =>
   });
 
 const registerRoutes = (app: express.Express) => {
-  app.get("/health", (_req, res) => {
-    res.status(200).json({ status: "ok" });
+  app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
   });
 
-  app.use("/memos", memosRouter);
-  app.use("/tags", tagsRouter);
-  app.use("/quiz", quizRouter);
+  app.use('/memos', memosRouter);
+  app.use('/tags', tagsRouter);
+  app.use('/quiz', quizRouter);
   // app.use("/quizTag", quizTagRouter);
   // app.use("/trade", tradeAppRoutes);
 };
@@ -28,6 +29,7 @@ const registerRoutes = (app: express.Express) => {
 export function buildApp() {
   const app = express();
 
+  app.use(requestLogger);
   app.use(cors());
   app.use(helmet());
   app.use(createRateLimiter());
@@ -37,4 +39,3 @@ export function buildApp() {
 
   return app;
 }
-
