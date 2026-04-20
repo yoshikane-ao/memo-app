@@ -12,6 +12,12 @@ export type AuthConfig = {
   cookieDomain: string | undefined;
 };
 
+export type DemoConfig = {
+  email: string | null;
+  password: string | null;
+  displayName: string;
+};
+
 export type AppConfig = {
   host: string;
   port: number;
@@ -19,6 +25,7 @@ export type AppConfig = {
   rateLimitMaxRequests: number;
   logLevel: LogLevel;
   auth: AuthConfig;
+  demo: DemoConfig;
 };
 
 const parsePositiveInt = (value: string | undefined, fallback: number) => {
@@ -77,6 +84,11 @@ export const createConfig = (env: Record<string, string | undefined> = process.e
     refreshTokenTtl: env.JWT_REFRESH_TTL?.trim() || '7d',
     cookieSecure: parseBool(env.COOKIE_SECURE, env.NODE_ENV === 'production'),
     cookieDomain: env.COOKIE_DOMAIN?.trim() || undefined,
+  },
+  demo: {
+    email: env.DEMO_EMAIL?.trim() || null,
+    password: env.DEMO_PASSWORD?.trim() || null,
+    displayName: env.DEMO_DISPLAY_NAME?.trim() || 'デモユーザー',
   },
 });
 

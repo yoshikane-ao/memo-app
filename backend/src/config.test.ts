@@ -15,6 +15,11 @@ describe('createConfig', () => {
         cookieSecure: false,
         cookieDomain: undefined,
       },
+      demo: {
+        email: null,
+        password: null,
+        displayName: 'デモユーザー',
+      },
     });
     // Dev fallback が 32 文字以上であることだけ確認し、値そのものはテストしない。
     expect(cfg.auth.jwtSecret.length).toBeGreaterThanOrEqual(32);
@@ -32,6 +37,9 @@ describe('createConfig', () => {
       JWT_REFRESH_TTL: '14d',
       COOKIE_SECURE: 'true',
       COOKIE_DOMAIN: 'example.com',
+      DEMO_EMAIL: 'demo@example.com',
+      DEMO_PASSWORD: 'demo12345',
+      DEMO_DISPLAY_NAME: 'Demo',
     });
     expect(cfg).toEqual({
       host: '127.0.0.1',
@@ -45,6 +53,11 @@ describe('createConfig', () => {
         refreshTokenTtl: '14d',
         cookieSecure: true,
         cookieDomain: 'example.com',
+      },
+      demo: {
+        email: 'demo@example.com',
+        password: 'demo12345',
+        displayName: 'Demo',
       },
     });
   });
