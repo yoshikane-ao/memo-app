@@ -168,7 +168,7 @@ jobs:
             [ "${DB_STATUS}" = "healthy" ]
 
             echo "== cleanup failed migration records =="
-            sudo docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" || true
+            sudo docker compose exec -T db psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "DELETE FROM _prisma_migrations WHERE finished_at IS NULL;" </dev/null || true
 
             echo "== migrate =="
             sudo docker compose run -T --rm api npx prisma migrate deploy < /dev/null
