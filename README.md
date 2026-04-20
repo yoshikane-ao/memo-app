@@ -2,7 +2,7 @@
 
 Vue 3 / Express / Prisma / PostgreSQL で組んだフルスタックのメモアプリ（個人制作）。feature 単位のクリーンアーキテクチャと、CI で自動検証する層間依存ルールが特徴。
 
-> **🚀 ライブデモ:** <!-- TODO: デプロイ先 URL を記入 -->  
+> **🚀 ライブデモ:** http://3.104.123.11/  
 > **📖 アーキテクチャ:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ／ **🛠 セットアップ:** [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
 
 ![デスクトップ版スクリーンショット](docs/screenshots/desktop.png)
