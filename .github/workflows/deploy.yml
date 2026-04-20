@@ -85,8 +85,13 @@ jobs:
             git reset --hard origin/main
             git clean -fd
 
-            echo "== remove stale compose env =="
-            rm -f .env
+            echo "== write compose env from GitHub Secrets =="
+            umask 077
+            printf 'POSTGRES_USER=%s\nPOSTGRES_PASSWORD=%s\nPOSTGRES_DB=%s\n' \
+              '${{ secrets.POSTGRES_USER }}' \
+              '${{ secrets.POSTGRES_PASSWORD }}' \
+              '${{ secrets.POSTGRES_DB }}' > .env
+            chmod 600 .env
 
             echo "== docker status =="
             sudo systemctl start docker || true
