@@ -1214,6 +1214,7 @@ export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof User
 
 export const MemosScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   orderIndex: 'orderIndex',
   width: 'width',
   height: 'height',
@@ -1239,6 +1240,7 @@ export type MemoHistoriesScalarFieldEnum =
 
 export const TagsScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   title: 'title',
 } as const;
 

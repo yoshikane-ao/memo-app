@@ -1,5 +1,5 @@
-import type { Prisma } from "../../../generated/prisma/client";
-import { prisma } from "../../../db";
+import type { Prisma } from '../../../generated/prisma/client';
+import { prisma } from '../../../db';
 import type {
   CreateMemoInput,
   MemoDeletionState,
@@ -12,8 +12,8 @@ import type {
   ReorderMemoItem,
   UpdateMemoLayoutInput,
   UpdateMemoInput,
-} from "../application/memoPorts";
-import type { TagRecord } from "../application/tagPorts";
+} from '../application/memoPorts';
+import type { TagRecord } from '../application/tagPorts';
 
 const memoWithTagsInclude = {
   memo_tags: {
@@ -63,34 +63,35 @@ const toMemoWithTags = (memo: PrismaMemoWithTags): MemoWithTags => ({
   })),
 });
 
-const buildMemoListWhere = (scope: MemoScope): Prisma.MemosWhereInput => {
+const buildMemoListWhere = (userId: number, scope: MemoScope): Prisma.MemosWhereInput => {
+  const base: Prisma.MemosWhereInput = { userId };
   switch (scope) {
-    case "trash":
-      return { deletedAt: { not: null } };
-    case "all":
-      return {};
+    case 'trash':
+      return { ...base, deletedAt: { not: null } };
+    case 'all':
+      return base;
     default:
-      return { deletedAt: null };
+      return { ...base, deletedAt: null };
   }
 };
 
 const getMemoListOrderBy = (scope: MemoScope): Prisma.MemosOrderByWithRelationInput[] => {
-  if (scope === "trash") {
-    return [{ deletedAt: "desc" }, { id: "desc" }];
+  if (scope === 'trash') {
+    return [{ deletedAt: 'desc' }, { id: 'desc' }];
   }
 
-  return [{ orderIndex: "asc" }, { id: "desc" }];
+  return [{ orderIndex: 'asc' }, { id: 'desc' }];
 };
 
 const buildSearchWhere = (query: string, type: MemoSearchType): Prisma.MemosWhereInput => {
   const searchCondition = { contains: query };
 
   switch (type) {
-    case "title":
+    case 'title':
       return { title: searchCondition };
-    case "content":
+    case 'content':
       return { content: searchCondition };
-    case "tag":
+    case 'tag':
       return {
         memo_tags: {
           some: {
@@ -113,9 +114,9 @@ const buildSearchWhere = (query: string, type: MemoSearchType): Prisma.MemosWher
 
 const buildSearchScopeWhere = (scope: MemoSearchScope): Prisma.MemosWhereInput => {
   switch (scope) {
-    case "trash":
+    case 'trash':
       return { deletedAt: { not: null } };
-    case "all":
+    case 'all':
       return {};
     default:
       return { deletedAt: null };
@@ -123,9 +124,9 @@ const buildSearchScopeWhere = (scope: MemoSearchScope): Prisma.MemosWhereInput =
 };
 
 export const createMemoRepository = (): MemoRepository => ({
-  async list(scope: MemoScope) {
+  async list(userId: number, scope: MemoScope) {
     const memos = await prisma.memos.findMany({
-      where: buildMemoListWhere(scope),
+      where: buildMemoListWhere(userId, scope),
       orderBy: getMemoListOrderBy(scope),
       include: memoWithTagsInclude,
     });
@@ -133,12 +134,12 @@ export const createMemoRepository = (): MemoRepository => ({
     return memos.map(toMemoWithTags);
   },
 
-  async search(query: string, type: MemoSearchType, scope: MemoSearchScope) {
+  async search(userId: number, query: string, type: MemoSearchType, scope: MemoSearchScope) {
     const memos = await prisma.memos.findMany({
       where: {
-        AND: [buildSearchScopeWhere(scope), buildSearchWhere(query, type)],
+        AND: [{ userId }, buildSearchScopeWhere(scope), buildSearchWhere(query, type)],
       },
-      orderBy: { id: "asc" },
+      orderBy: { id: 'asc' },
       include: memoWithTagsInclude,
     });
 
@@ -148,6 +149,7 @@ export const createMemoRepository = (): MemoRepository => ({
   async create(input: CreateMemoInput) {
     const memo = await prisma.memos.create({
       data: {
+        userId: input.userId,
         title: input.title,
         content: input.content,
         memo_tags:
@@ -156,8 +158,8 @@ export const createMemoRepository = (): MemoRepository => ({
                 create: input.tags.map((tagName) => ({
                   tag: {
                     connectOrCreate: {
-                      where: { title: tagName },
-                      create: { title: tagName },
+                      where: { userId_title: { userId: input.userId, title: tagName } },
+                      create: { userId: input.userId, title: tagName },
                     },
                   },
                 })),
@@ -184,15 +186,23 @@ export const createMemoRepository = (): MemoRepository => ({
       updateData.height = input.height;
     }
 
-    const memo = await prisma.memos.update({
-      where: { id: input.id },
+    const result = await prisma.memos.updateMany({
+      where: { id: input.id, userId: input.userId },
       data: updateData,
     });
 
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+
+    const memo = await prisma.memos.findUniqueOrThrow({ where: { id: input.id } });
     return toMemoRecord(memo);
   },
 
-  createHistory(id: number, title: string, content: string) {
+  createHistory(userId: number, id: number, title: string, content: string) {
+    // 呼び出し元が updateMemo なので、userId で所有権を既に検証済み。
+    // memoId は cascade で user を辿れる。
+    void userId;
     return prisma.memoHistories
       .create({
         data: { title, content, memoId: id },
@@ -200,45 +210,54 @@ export const createMemoRepository = (): MemoRepository => ({
       .then(() => undefined);
   },
 
-  async moveToTrash(id: number) {
-    const memo = await prisma.memos.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-      },
-      include: memoWithTagsInclude,
+  async moveToTrash(userId: number, id: number) {
+    const result = await prisma.memos.updateMany({
+      where: { id, userId },
+      data: { deletedAt: new Date() },
     });
 
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+
+    const memo = await prisma.memos.findUniqueOrThrow({
+      where: { id },
+      include: memoWithTagsInclude,
+    });
     return toMemoWithTags(memo);
   },
 
-  async restore(id: number) {
-    const memo = await prisma.memos.update({
-      where: { id },
-      data: {
-        deletedAt: null,
-      },
-      include: memoWithTagsInclude,
+  async restore(userId: number, id: number) {
+    const result = await prisma.memos.updateMany({
+      where: { id, userId },
+      data: { deletedAt: null },
     });
 
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+
+    const memo = await prisma.memos.findUniqueOrThrow({
+      where: { id },
+      include: memoWithTagsInclude,
+    });
     return toMemoWithTags(memo);
   },
 
-  deleteManyTrashed() {
+  deleteManyTrashed(userId: number) {
     return prisma.memos
       .deleteMany({
         where: {
-          deletedAt: {
-            not: null,
-          },
+          userId,
+          deletedAt: { not: null },
         },
       })
       .then((result) => result.count);
   },
 
-  async findById(id: number) {
-    const memo = await prisma.memos.findUnique({
-      where: { id },
+  async findById(userId: number, id: number) {
+    const memo = await prisma.memos.findFirst({
+      where: { id, userId },
       select: { id: true, deletedAt: true },
     });
 
@@ -252,37 +271,45 @@ export const createMemoRepository = (): MemoRepository => ({
     return deletionState;
   },
 
-  async purge(id: number) {
-    const memo = await prisma.memos.delete({
-      where: { id },
+  async purge(userId: number, id: number) {
+    const memo = await prisma.memos.findFirst({
+      where: { id, userId },
       include: memoWithTagsInclude,
     });
-
+    if (!memo) {
+      throw { code: 'P2025' };
+    }
+    await prisma.memos.delete({ where: { id } });
     return toMemoWithTags(memo);
   },
 
-  reorder(items: ReorderMemoItem[]) {
+  reorder(userId: number, items: ReorderMemoItem[]) {
     return prisma
       .$transaction(
         items.map((item) =>
-          prisma.memos.update({
-            where: { id: item.id },
+          prisma.memos.updateMany({
+            where: { id: item.id, userId },
             data: { orderIndex: item.orderIndex },
-          })
-        )
+          }),
+        ),
       )
       .then(() => undefined);
   },
 
   async updateLayout(input: UpdateMemoLayoutInput) {
-    const memo = await prisma.memos.update({
-      where: { id: input.memoId },
+    const result = await prisma.memos.updateMany({
+      where: { id: input.memoId, userId: input.userId },
       data: {
         width: input.width ?? null,
         height: input.height ?? null,
       },
     });
 
+    if (result.count === 0) {
+      throw { code: 'P2025' };
+    }
+
+    const memo = await prisma.memos.findUniqueOrThrow({ where: { id: input.memoId } });
     return toMemoRecord(memo);
   },
 });

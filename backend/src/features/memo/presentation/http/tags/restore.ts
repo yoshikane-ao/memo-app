@@ -1,12 +1,13 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   arrayField,
   handleRouteError,
   parseBody,
   positiveIntField,
   stringField,
-} from "../../../../../shared/http/requestValidation";
-import type { TagUseCases } from "../../../application/tagUseCases";
+} from '../../../../../shared/http/requestValidation';
+import { requireUserId } from '../../../../../shared/http/authContext';
+import type { TagUseCases } from '../../../application/tagUseCases';
 
 const parseRestoreTagBody = (value: unknown) =>
   parseBody(value, {
@@ -19,13 +20,14 @@ const parseRestoreTagBody = (value: unknown) =>
     }),
   });
 
-export const createTagRestoreRouter = ({ restoreTag }: Pick<TagUseCases, "restoreTag">) => {
+export const createTagRestoreRouter = ({ restoreTag }: Pick<TagUseCases, 'restoreTag'>) => {
   const restoreRouter = Router();
 
-  restoreRouter.post("/", async (req, res) => {
+  restoreRouter.post('/', async (req, res) => {
     try {
       const body = parseRestoreTagBody(req.body);
       const restoredTag = await restoreTag({
+        userId: requireUserId(req),
         id: body.id,
         title: body.title,
         linkedMemoIds: body.linkedMemoIds ?? [],
@@ -33,7 +35,7 @@ export const createTagRestoreRouter = ({ restoreTag }: Pick<TagUseCases, "restor
 
       res.status(201).json(restoredTag);
     } catch (error) {
-      return handleRouteError(res, error, "Failed to restore tag.");
+      return handleRouteError(res, error, 'Failed to restore tag.');
     }
   });
 

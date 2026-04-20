@@ -1,9 +1,9 @@
-import type { TagRecord } from "./tagPorts";
+import type { TagRecord } from './tagPorts';
 
-export const memoScopes = ["active", "trash", "all"] as const;
+export const memoScopes = ['active', 'trash', 'all'] as const;
 export type MemoScope = (typeof memoScopes)[number];
 
-export const memoSearchTypes = ["all", "title", "content", "tag"] as const;
+export const memoSearchTypes = ['all', 'title', 'content', 'tag'] as const;
 export type MemoSearchType = (typeof memoSearchTypes)[number];
 
 export const memoSearchScopes = memoScopes;
@@ -37,12 +37,14 @@ export interface MemoDeletionState {
 }
 
 export type CreateMemoInput = {
+  userId: number;
   title: string;
   content: string;
   tags?: string[];
 };
 
 export type UpdateMemoInput = {
+  userId: number;
   id: number;
   title: string;
   content: string;
@@ -56,22 +58,28 @@ export type ReorderMemoItem = {
 };
 
 export type UpdateMemoLayoutInput = {
+  userId: number;
   memoId: number;
   width?: number;
   height?: number;
 };
 
 export interface MemoRepository {
-  list(scope: MemoScope): Promise<MemoWithTags[]>;
-  search(query: string, type: MemoSearchType, scope: MemoSearchScope): Promise<MemoWithTags[]>;
+  list(userId: number, scope: MemoScope): Promise<MemoWithTags[]>;
+  search(
+    userId: number,
+    query: string,
+    type: MemoSearchType,
+    scope: MemoSearchScope,
+  ): Promise<MemoWithTags[]>;
   create(input: CreateMemoInput): Promise<MemoWithTags>;
   update(input: UpdateMemoInput): Promise<MemoRecord>;
-  createHistory(id: number, title: string, content: string): Promise<void>;
-  moveToTrash(id: number): Promise<MemoWithTags>;
-  restore(id: number): Promise<MemoWithTags>;
-  deleteManyTrashed(): Promise<number>;
-  findById(id: number): Promise<MemoDeletionState | null>;
-  purge(id: number): Promise<MemoWithTags>;
-  reorder(items: ReorderMemoItem[]): Promise<void>;
+  createHistory(userId: number, id: number, title: string, content: string): Promise<void>;
+  moveToTrash(userId: number, id: number): Promise<MemoWithTags>;
+  restore(userId: number, id: number): Promise<MemoWithTags>;
+  deleteManyTrashed(userId: number): Promise<number>;
+  findById(userId: number, id: number): Promise<MemoDeletionState | null>;
+  purge(userId: number, id: number): Promise<MemoWithTags>;
+  reorder(userId: number, items: ReorderMemoItem[]): Promise<void>;
   updateLayout(input: UpdateMemoLayoutInput): Promise<MemoRecord>;
 }

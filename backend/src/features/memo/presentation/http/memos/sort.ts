@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router } from 'express';
 import {
   arrayField,
   handleRouteError,
@@ -6,8 +6,9 @@ import {
   objectField,
   parseBody,
   positiveIntField,
-} from "../../../../../shared/http/requestValidation";
-import type { MemoUseCases } from "../../../application/memoUseCases";
+} from '../../../../../shared/http/requestValidation';
+import { requireUserId } from '../../../../../shared/http/authContext';
+import type { MemoUseCases } from '../../../application/memoUseCases';
 
 const parseSortBody = (value: unknown) =>
   parseBody(value, {
@@ -15,21 +16,21 @@ const parseSortBody = (value: unknown) =>
       objectField({
         id: positiveIntField(),
         orderIndex: nonNegativeIntField(),
-      })
+      }),
     ),
   });
 
 export const createSortRouter = ({ reorderMemos }: MemoUseCases) => {
   const sortRouter = Router();
 
-  sortRouter.put("/", async (req, res) => {
+  sortRouter.put('/', async (req, res) => {
     try {
       const { items } = parseSortBody(req.body);
-      await reorderMemos(items);
+      await reorderMemos(requireUserId(req), items);
 
-      res.status(200).json({ message: "Memo order updated." });
+      res.status(200).json({ message: 'Memo order updated.' });
     } catch (error) {
-      return handleRouteError(res, error, "Failed to update memo order.", "Memo not found.");
+      return handleRouteError(res, error, 'Failed to update memo order.', 'Memo not found.');
     }
   });
 
