@@ -1,15 +1,20 @@
 ﻿<script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import type {
+  BattleActionDraft,
+  BattleActionProjection,
   CompanyAction,
   PlayerState,
   StockKey,
   TradeAction,
   TradeMode,
-} from '../api/types/game';
-import { COMPANY_ACTIONS, MODE_LABELS, TRADE_LABELS } from '../api/types/game';
-import type { BattleActionDraft, BattleActionProjection } from '../lib/tradeBattle';
-import { resolveTradeImpactPattern } from '../lib/tradeImpact';
+} from '../features/trade';
+import {
+  COMPANY_ACTIONS,
+  MODE_LABELS,
+  TRADE_LABELS,
+  resolveTradeImpactPattern,
+} from '../features/trade';
 
 const props = defineProps<{
   currentPlayer: PlayerState;

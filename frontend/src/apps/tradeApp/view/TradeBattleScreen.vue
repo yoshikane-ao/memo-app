@@ -5,29 +5,34 @@ import StockBoard from './StockBoard.vue';
 import PlayerPanel from './PlayerPanel.vue';
 import ActionPanel from './ActionPanel.vue';
 
-import { createInitialGameState } from '../api/data/mockGame';
 import { useTradeGameStore } from '../store/useTradeGameStore';
-import type { PlayerId, PlayerState, StockKey, StockState } from '../api/types/game';
-import { calculatePlayerVictoryValue, formatCurrency } from '../api/utils/gameCalculations';
+import type {
+  BattleActionDraft,
+  BattleClosePreview,
+  ChartOrderMarker,
+  PlayerId,
+  PlayerState,
+  StockKey,
+  StockState,
+} from '../features/trade';
 import {
+  MAX_BATTLE_TURNS as MAX_TURNS,
+  buildActivePositionMarkers,
   buildBattleActionProjection,
   buildBattleConfirmedAction,
-  createDefaultBattleActionDraft,
-  type BattleActionDraft,
-} from '../lib/tradeBattle';
-import { findPlayerById, MAX_BATTLE_TURNS as MAX_TURNS } from '../lib/tradeBattleState';
-import { createTradeBattleFlow } from '../application';
-import {
-  buildActivePositionMarkers,
   buildBattleResult,
   buildPendingClosePreview,
   buildPendingCloseSummary,
   buildProjectedBoardPrices,
+  calculatePlayerVictoryValue,
   cloneStockSnapshots,
+  createDefaultBattleActionDraft,
+  createInitialGameState,
+  findPlayerById,
+  formatCurrency,
   hasProjectedChartMovement,
-  type BattleClosePreview,
-  type ChartOrderMarker,
-} from '../domain/tradeBattle/tradeBattleSelectors';
+} from '../features/trade';
+import { createTradeBattleFlow } from '../application';
 import { useTradeButtonSound } from '../composables/useTradeButtonSound';
 
 import '../css/style.css';

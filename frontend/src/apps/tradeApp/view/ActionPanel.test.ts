@@ -1,17 +1,15 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import type { PlayerState, StockState } from '../api/types/game'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import type { PlayerState, StockState } from '../features/trade';
 import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
-  CAPITAL_INCREASE_ACTION,
-  FACILITY_INVESTMENT_ACTION,
-} from '../api/types/game'
-import {
   buildBattleActionProjection,
+  CAPITAL_INCREASE_ACTION,
   createDefaultBattleActionDraft,
-} from '../lib/tradeBattle'
-import ActionPanel from './ActionPanel.vue'
+  FACILITY_INVESTMENT_ACTION,
+} from '../features/trade';
+import ActionPanel from './ActionPanel.vue';
 
 function createStocks(): StockState[] {
   return [
@@ -51,7 +49,7 @@ function createStocks(): StockState[] {
       shortInterest: 0,
       correlationNote: '',
     },
-  ]
+  ];
 }
 
 function createPlayer(): PlayerState {
@@ -85,26 +83,26 @@ function createPlayer(): PlayerState {
     marketBias: 0,
     lastSnapshotAssets: 20000,
     lastSnapshotCash: 20000,
-  }
+  };
 }
 
 function createPlayerNames() {
   return {
     p1: 'PLAYER 1',
     p2: 'PLAYER 2',
-  }
+  };
 }
 
 function normalizedText(wrapper: ReturnType<typeof mount>): string {
-  return wrapper.text().replace(/\s+/g, '')
+  return wrapper.text().replace(/\s+/g, '');
 }
 
 describe('ActionPanel', () => {
   it('renders all trade input blocks and the current turn summary without stock meta pills', () => {
-    const currentPlayer = createPlayer()
-    const draft = createDefaultBattleActionDraft()
-    draft.quantity = 10000
-    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+    const currentPlayer = createPlayer();
+    const draft = createDefaultBattleActionDraft();
+    draft.quantity = 10000;
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft);
 
     const wrapper = mount(ActionPanel, {
       props: {
@@ -113,27 +111,27 @@ describe('ActionPanel', () => {
         draft,
         projection,
       },
-    })
-    const text = normalizedText(wrapper)
+    });
+    const text = normalizedText(wrapper);
 
-    expect(wrapper.findAll('.trade-grid > .card')).toHaveLength(5)
-    expect(text).toContain('1行動')
-    expect(text).toContain('2対象レート')
-    expect(text).toContain('3売買/取引')
-    expect(text).toContain('4注文額')
-    expect(text).toContain('5確認')
-    expect(text).toContain('PLAYER1のターン')
-    expect(wrapper.find('.meta-pills').exists()).toBe(false)
-    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false)
-    expect(wrapper.find('.trade-summary .summary-banner-sub').exists()).toBe(false)
-    expect(wrapper.find('[data-turn-strip]').exists()).toBe(true)
-    expect(wrapper.find('.action-panel').attributes('data-current-player')).toBe('player1')
-  })
+    expect(wrapper.findAll('.trade-grid > .card')).toHaveLength(5);
+    expect(text).toContain('1行動');
+    expect(text).toContain('2対象レート');
+    expect(text).toContain('3売買/取引');
+    expect(text).toContain('4注文額');
+    expect(text).toContain('5確認');
+    expect(text).toContain('PLAYER1のターン');
+    expect(wrapper.find('.meta-pills').exists()).toBe(false);
+    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false);
+    expect(wrapper.find('.trade-summary .summary-banner-sub').exists()).toBe(false);
+    expect(wrapper.find('[data-turn-strip]').exists()).toBe(true);
+    expect(wrapper.find('.action-panel').attributes('data-current-player')).toBe('player1');
+  });
 
   it('renders pending close confirmation summary', () => {
-    const currentPlayer = createPlayer()
-    const draft = createDefaultBattleActionDraft()
-    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+    const currentPlayer = createPlayer();
+    const draft = createDefaultBattleActionDraft();
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft);
 
     const wrapper = mount(ActionPanel, {
       props: {
@@ -149,23 +147,23 @@ describe('ActionPanel', () => {
           returnedCashText: '10,500円',
         },
       },
-    })
+    });
 
-    const text = normalizedText(wrapper)
+    const text = normalizedText(wrapper);
 
-    expect(text).toContain('マーケットの買いポジションを決済')
-    expect(text).toContain('想定約定9,500円')
-    expect(text).toContain('回収10,500円')
-    expect(text).toContain('損益+500円')
-    expect(text).toContain('ポジション決済を確定')
-  })
+    expect(text).toContain('マーケットの買いポジションを決済');
+    expect(text).toContain('想定約定9,500円');
+    expect(text).toContain('回収10,500円');
+    expect(text).toContain('損益+500円');
+    expect(text).toContain('ポジション決済を確定');
+  });
 
   it('shows player1 and player2 target buttons in fixed left-to-center order and keeps stock selection aligned', async () => {
-    const currentPlayer = createPlayer()
-    currentPlayer.id = 'player2'
-    currentPlayer.name = 'PLAYER 2'
-    const draft = createDefaultBattleActionDraft()
-    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+    const currentPlayer = createPlayer();
+    currentPlayer.id = 'player2';
+    currentPlayer.name = 'PLAYER 2';
+    const draft = createDefaultBattleActionDraft();
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft);
 
     const wrapper = mount(ActionPanel, {
       props: {
@@ -174,27 +172,29 @@ describe('ActionPanel', () => {
         draft,
         projection,
       },
-    })
+    });
 
-    const targetButtons = wrapper.findAll('.stock-choice-list .stock-choice')
-    const targetLabels = wrapper.findAll('.stock-choice-list .stock-choice-main').map((node) => node.text())
+    const targetButtons = wrapper.findAll('.stock-choice-list .stock-choice');
+    const targetLabels = wrapper
+      .findAll('.stock-choice-list .stock-choice-main')
+      .map((node) => node.text());
 
-    expect(targetLabels[0]).toBe('PLAYER 1を買う')
-    expect(targetLabels[1]).toBe('PLAYER 2を買う')
+    expect(targetLabels[0]).toBe('PLAYER 1を買う');
+    expect(targetLabels[1]).toBe('PLAYER 2を買う');
 
-    await targetButtons[0]?.trigger('click')
-    await targetButtons[1]?.trigger('click')
+    await targetButtons[0]?.trigger('click');
+    await targetButtons[1]?.trigger('click');
 
-    const updates = wrapper.emitted('update:draft') ?? []
-    expect(updates[0]?.[0]).toMatchObject({ stockKey: 'p1' })
-    expect(updates[1]?.[0]).toMatchObject({ stockKey: 'p2' })
-  })
+    const updates = wrapper.emitted('update:draft') ?? [];
+    expect(updates[0]?.[0]).toMatchObject({ stockKey: 'p1' });
+    expect(updates[1]?.[0]).toMatchObject({ stockKey: 'p2' });
+  });
 
   it('allows selecting sell even when a buy position remains open', async () => {
-    const currentPlayer = createPlayer()
-    currentPlayer.holdings.market = { quantity: 1, avgPrice: 10000 }
-    const draft = createDefaultBattleActionDraft()
-    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+    const currentPlayer = createPlayer();
+    currentPlayer.holdings.market = { quantity: 1, avgPrice: 10000 };
+    const draft = createDefaultBattleActionDraft();
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft);
 
     const wrapper = mount(ActionPanel, {
       props: {
@@ -203,28 +203,28 @@ describe('ActionPanel', () => {
         draft,
         projection,
       },
-    })
+    });
 
-    const tradeActionSegments = wrapper.findAll('.mode-card .segment.segment-2')
-    const tradeActionButtons = tradeActionSegments[1]?.findAll('button') ?? []
-    const sellButton = tradeActionButtons[1]
+    const tradeActionSegments = wrapper.findAll('.mode-card .segment.segment-2');
+    const tradeActionButtons = tradeActionSegments[1]?.findAll('button') ?? [];
+    const sellButton = tradeActionButtons[1];
 
-    expect(sellButton).toBeDefined()
-    expect(sellButton?.attributes('disabled')).toBeUndefined()
+    expect(sellButton).toBeDefined();
+    expect(sellButton?.attributes('disabled')).toBeUndefined();
 
-    await sellButton?.trigger('click')
+    await sellButton?.trigger('click');
 
-    const updates = wrapper.emitted('update:draft') ?? []
-    expect(updates.length).toBeGreaterThan(0)
-    expect(updates.at(-1)?.[0]).toMatchObject({ tradeAction: 'sell' })
-  })
+    const updates = wrapper.emitted('update:draft') ?? [];
+    expect(updates.length).toBeGreaterThan(0);
+    expect(updates.at(-1)?.[0]).toMatchObject({ tradeAction: 'sell' });
+  });
 
   it('shows insufficient balance on the confirm button when the order exceeds cash', () => {
-    const currentPlayer = createPlayer()
-    currentPlayer.cash = 5000
-    const draft = createDefaultBattleActionDraft()
-    draft.quantity = 10000
-    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft)
+    const currentPlayer = createPlayer();
+    currentPlayer.cash = 5000;
+    const draft = createDefaultBattleActionDraft();
+    draft.quantity = 10000;
+    const projection = buildBattleActionProjection(currentPlayer, createStocks(), draft);
 
     const wrapper = mount(ActionPanel, {
       props: {
@@ -233,10 +233,10 @@ describe('ActionPanel', () => {
         draft,
         projection,
       },
-    })
+    });
 
-    expect(wrapper.find('.trade-grid .confirm-button').text()).toBe('残高不足')
-    expect(wrapper.find('.trade-grid .confirm-button').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false)
-  })
-})
+    expect(wrapper.find('.trade-grid .confirm-button').text()).toBe('残高不足');
+    expect(wrapper.find('.trade-grid .confirm-button').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('.amount-card .helper-line').exists()).toBe(false);
+  });
+});

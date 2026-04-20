@@ -1,22 +1,23 @@
-import { reactive } from 'vue'
-import { defineStore } from 'pinia'
-import type { PlayerIdentity, PlayerSlot } from '../types/playerIdentity'
-import { createGuestIdentity } from '../types/playerIdentity'
+import { reactive } from 'vue';
+import { defineStore } from 'pinia';
+import type {
+  BattleMode,
+  FirstPlayer,
+  PlayerIdentity,
+  PlayerSlot,
+  StartingCashMode,
+  TradeSessionSnapshot,
+  TradeSetupDraft,
+} from '../features/trade';
 import {
   createDefaultTradeSetupDraft,
+  createGuestIdentity,
   normalizeCash,
   normalizeCpuCount,
   normalizeMarketStartingPrice,
   normalizeNonNegativeInt,
   syncIdentitiesForBattleMode,
-} from '../lib/tradeSetup'
-import type {
-  BattleMode,
-  FirstPlayer,
-  TradeSessionSnapshot,
-  TradeSetupDraft,
-  StartingCashMode,
-} from '../lib/tradeSetup'
+} from '../features/trade';
 
 export type {
   BattleMode,
@@ -27,158 +28,155 @@ export type {
   StartingCashMode,
   TradeSessionSnapshot,
   TradeSetupDraft,
-} from '../lib/tradeSetup'
+} from '../features/trade';
 
 type TradeGameStoreState = {
-  isInitialized: boolean
-  draft: TradeSetupDraft
-  session: TradeSessionSnapshot | null
-}
+  isInitialized: boolean;
+  draft: TradeSetupDraft;
+  session: TradeSessionSnapshot | null;
+};
 
 export const useTradeGameStore = defineStore('tradeGame', () => {
   const state = reactive<TradeGameStoreState>({
     isInitialized: false,
     draft: createDefaultTradeSetupDraft(),
     session: null,
-  })
+  });
 
   function setBattleMode(mode: BattleMode): void {
-    state.draft.battleMode = mode
+    state.draft.battleMode = mode;
 
     const synced = syncIdentitiesForBattleMode(
       mode,
       state.draft.p1Identity,
       state.draft.p2Identity,
-    )
+    );
 
-    state.draft.p1Identity = synced.p1Identity
-    state.draft.p2Identity = synced.p2Identity
+    state.draft.p1Identity = synced.p1Identity;
+    state.draft.p2Identity = synced.p2Identity;
   }
 
   function setFirstPlayer(firstPlayer: FirstPlayer): void {
-    state.draft.firstPlayer = firstPlayer
+    state.draft.firstPlayer = firstPlayer;
   }
 
   function setStartingCashMode(mode: StartingCashMode): void {
-    state.draft.startingCashMode = mode
+    state.draft.startingCashMode = mode;
 
     if (mode !== 'same') {
-      return
+      return;
     }
 
     const base = normalizeCash(
-      state.draft.sharedStartingCash
-        || state.draft.player1StartingCash
-        || state.draft.player2StartingCash,
-    )
+      state.draft.sharedStartingCash ||
+        state.draft.player1StartingCash ||
+        state.draft.player2StartingCash,
+    );
 
-    state.draft.sharedStartingCash = base
-    state.draft.player1StartingCash = base
-    state.draft.player2StartingCash = base
+    state.draft.sharedStartingCash = base;
+    state.draft.player1StartingCash = base;
+    state.draft.player2StartingCash = base;
   }
 
   function setSharedCash(value: number): void {
-    const normalized = normalizeCash(value)
-    state.draft.sharedStartingCash = normalized
+    const normalized = normalizeCash(value);
+    state.draft.sharedStartingCash = normalized;
 
     if (state.draft.startingCashMode !== 'same') {
-      return
+      return;
     }
 
-    state.draft.player1StartingCash = normalized
-    state.draft.player2StartingCash = normalized
+    state.draft.player1StartingCash = normalized;
+    state.draft.player2StartingCash = normalized;
   }
 
   function setPlayerCash(slot: PlayerSlot, value: number): void {
-    const normalized = normalizeCash(value)
+    const normalized = normalizeCash(value);
 
     if (slot === 'p1') {
-      state.draft.player1StartingCash = normalized
-      return
+      state.draft.player1StartingCash = normalized;
+      return;
     }
 
-    state.draft.player2StartingCash = normalized
+    state.draft.player2StartingCash = normalized;
   }
 
   function adjustCpu(target: 'weak' | 'strong', delta: number): void {
-    const currentValue =
-      target === 'weak'
-        ? state.draft.weakCpuCount
-        : state.draft.strongCpuCount
+    const currentValue = target === 'weak' ? state.draft.weakCpuCount : state.draft.strongCpuCount;
 
-    setCpuCount(target, currentValue + delta)
+    setCpuCount(target, currentValue + delta);
   }
 
   function setCpuCount(target: 'weak' | 'strong', value: number): void {
-    const normalized = normalizeNonNegativeInt(value)
+    const normalized = normalizeNonNegativeInt(value);
 
     if (target === 'weak') {
-      state.draft.weakCpuCount = normalized
-      return
+      state.draft.weakCpuCount = normalized;
+      return;
     }
 
-    state.draft.strongCpuCount = normalized
+    state.draft.strongCpuCount = normalized;
   }
 
   function assignIdentity(slot: PlayerSlot, identity: PlayerIdentity): void {
     if (state.draft.battleMode === 'cvc') {
-      return
+      return;
     }
 
     if (state.draft.battleMode === 'pvc' && slot === 'p2') {
-      return
+      return;
     }
 
     if (slot === 'p1') {
-      state.draft.p1Identity = identity
+      state.draft.p1Identity = identity;
     } else {
-      state.draft.p2Identity = identity
+      state.draft.p2Identity = identity;
     }
 
     const synced = syncIdentitiesForBattleMode(
       state.draft.battleMode,
       state.draft.p1Identity,
       state.draft.p2Identity,
-    )
+    );
 
-    state.draft.p1Identity = synced.p1Identity
-    state.draft.p2Identity = synced.p2Identity
+    state.draft.p1Identity = synced.p1Identity;
+    state.draft.p2Identity = synced.p2Identity;
   }
 
   function resetSlotToGuest(slot: PlayerSlot): void {
-    assignIdentity(slot, createGuestIdentity(slot))
+    assignIdentity(slot, createGuestIdentity(slot));
   }
 
   function setDraft(nextDraft: TradeSetupDraft): void {
-    state.draft = nextDraft
+    state.draft = nextDraft;
 
     const synced = syncIdentitiesForBattleMode(
       state.draft.battleMode,
       state.draft.p1Identity,
       state.draft.p2Identity,
-    )
+    );
 
-    state.draft.p1Identity = synced.p1Identity
-    state.draft.p2Identity = synced.p2Identity
-    state.draft.sharedStartingCash = normalizeCash(state.draft.sharedStartingCash)
-    state.draft.player1StartingCash = normalizeCash(state.draft.player1StartingCash)
-    state.draft.player2StartingCash = normalizeCash(state.draft.player2StartingCash)
-    state.draft.weakCpuCount = normalizeCpuCount(state.draft.weakCpuCount)
-    state.draft.strongCpuCount = normalizeCpuCount(state.draft.strongCpuCount)
-    state.draft.marketStartingPrice = normalizeMarketStartingPrice(state.draft.marketStartingPrice)
+    state.draft.p1Identity = synced.p1Identity;
+    state.draft.p2Identity = synced.p2Identity;
+    state.draft.sharedStartingCash = normalizeCash(state.draft.sharedStartingCash);
+    state.draft.player1StartingCash = normalizeCash(state.draft.player1StartingCash);
+    state.draft.player2StartingCash = normalizeCash(state.draft.player2StartingCash);
+    state.draft.weakCpuCount = normalizeCpuCount(state.draft.weakCpuCount);
+    state.draft.strongCpuCount = normalizeCpuCount(state.draft.strongCpuCount);
+    state.draft.marketStartingPrice = normalizeMarketStartingPrice(state.draft.marketStartingPrice);
   }
 
   function initializeGame(session: TradeSessionSnapshot): void {
-    state.session = session
-    state.isInitialized = true
+    state.session = session;
+    state.isInitialized = true;
   }
 
   function resetGame(clearDraft = false): void {
-    state.isInitialized = false
-    state.session = null
+    state.isInitialized = false;
+    state.session = null;
 
     if (clearDraft) {
-      state.draft = createDefaultTradeSetupDraft()
+      state.draft = createDefaultTradeSetupDraft();
     }
   }
 
@@ -196,5 +194,5 @@ export const useTradeGameStore = defineStore('tradeGame', () => {
     setDraft,
     initializeGame,
     resetGame,
-  }
-})
+  };
+});

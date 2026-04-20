@@ -1,14 +1,14 @@
-import { mount } from '@vue/test-utils'
-import { describe, expect, it } from 'vitest'
-import type { PlayerState, StockState } from '../api/types/game'
+import { mount } from '@vue/test-utils';
+import { describe, expect, it } from 'vitest';
+import type { PlayerState, StockState } from '../features/trade';
 import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
   FACILITY_INVESTMENT_ACTION,
-} from '../api/types/game'
-import { formatSignedCurrency } from '../api/utils/gameCalculations'
-import PlayerPanel from './PlayerPanel.vue'
+  formatSignedCurrency,
+} from '../features/trade';
+import PlayerPanel from './PlayerPanel.vue';
 
 function createStocks(): StockState[] {
   return [
@@ -48,7 +48,7 @@ function createStocks(): StockState[] {
       shortInterest: 0,
       correlationNote: '',
     },
-  ]
+  ];
 }
 
 function createPlayer(): PlayerState {
@@ -92,11 +92,11 @@ function createPlayer(): PlayerState {
     marketBias: 0,
     lastSnapshotAssets: 20000,
     lastSnapshotCash: 20000,
-  }
+  };
 }
 
 function normalizedText(wrapper: ReturnType<typeof mount>): string {
-  return wrapper.text().replace(/\s+/g, '')
+  return wrapper.text().replace(/\s+/g, '');
 }
 
 describe('PlayerPanel', () => {
@@ -117,23 +117,23 @@ describe('PlayerPanel', () => {
         victoryValue: 20000,
         victoryDiff: 0,
       },
-    })
+    });
 
-    const text = normalizedText(wrapper)
+    const text = normalizedText(wrapper);
 
-    expect(text).toContain('総資産')
-    expect(text).toContain('決済保留中')
-    expect(text).toContain('決済損益')
-    expect(text).toContain(formatSignedCurrency(0).replace(/\s+/g, ''))
-    expect(text).toContain('保留解除')
-    expect(text).not.toContain('行動後価格')
-    expect(text).not.toContain('決済価格')
-    expect(text).not.toContain(formatSignedCurrency(-500).replace(/\s+/g, ''))
-    expect(wrapper.find('[data-turn-flag]').exists()).toBe(true)
-  })
+    expect(text).toContain('総資産');
+    expect(text).toContain('決済保留中');
+    expect(text).toContain('決済損益');
+    expect(text).toContain(formatSignedCurrency(0).replace(/\s+/g, ''));
+    expect(text).toContain('保留解除');
+    expect(text).not.toContain('行動後価格');
+    expect(text).not.toContain('決済価格');
+    expect(text).not.toContain(formatSignedCurrency(-500).replace(/\s+/g, ''));
+    expect(wrapper.find('[data-turn-flag]').exists()).toBe(true);
+  });
 
   it('ignores pending close projected pnl and keeps the current pnl for sell positions', () => {
-    const player = createPlayer()
+    const player = createPlayer();
     player.positions = [
       {
         id: 'position-2',
@@ -144,7 +144,7 @@ describe('PlayerPanel', () => {
         orderAmount: 10000,
         openedTurn: 1,
       },
-    ]
+    ];
 
     const wrapper = mount(PlayerPanel, {
       props: {
@@ -159,17 +159,17 @@ describe('PlayerPanel', () => {
         victoryValue: 20000,
         victoryDiff: 0,
       },
-    })
+    });
 
-    const text = normalizedText(wrapper)
+    const text = normalizedText(wrapper);
 
-    expect(text).toContain('決済損益')
-    expect(text).toContain(formatSignedCurrency(200).replace(/\s+/g, ''))
-    expect(text).not.toContain(formatSignedCurrency(500).replace(/\s+/g, ''))
-  })
+    expect(text).toContain('決済損益');
+    expect(text).toContain(formatSignedCurrency(200).replace(/\s+/g, ''));
+    expect(text).not.toContain(formatSignedCurrency(500).replace(/\s+/g, ''));
+  });
 
   it('shows a 5000 yen projected loss on million-yen charts without doubling it', () => {
-    const player = createPlayer()
+    const player = createPlayer();
     player.positions = [
       {
         id: 'position-1',
@@ -180,19 +180,19 @@ describe('PlayerPanel', () => {
         orderAmount: 5000,
         openedTurn: 1,
       },
-    ]
+    ];
 
     const stocks = createStocks().map((stock) =>
       stock.key === 'market'
         ? {
-          ...stock,
-          basePrice: 1000000,
-          currentPrice: 1005000,
-          previousPrice: 1005000,
-          history: [1005000],
-        }
+            ...stock,
+            basePrice: 1000000,
+            currentPrice: 1005000,
+            previousPrice: 1005000,
+            history: [1005000],
+          }
         : stock,
-    )
+    );
 
     const wrapper = mount(PlayerPanel, {
       props: {
@@ -205,13 +205,13 @@ describe('PlayerPanel', () => {
         victoryValue: 20000,
         victoryDiff: 0,
       },
-    })
+    });
 
-    const text = normalizedText(wrapper)
+    const text = normalizedText(wrapper);
 
-    expect(text).toContain('行動後')
-    expect(text).not.toContain('行動後価格')
-    expect(text).toContain('-5,000円')
-    expect(wrapper.find('[data-turn-flag]').exists()).toBe(false)
-  })
-})
+    expect(text).toContain('行動後');
+    expect(text).not.toContain('行動後価格');
+    expect(text).toContain('-5,000円');
+    expect(wrapper.find('[data-turn-flag]').exists()).toBe(false);
+  });
+});
