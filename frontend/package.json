@@ -21,7 +21,6 @@
     "@sentry/vue": "^10.49.0",
     "@tailwindcss/vite": "^4.2.2",
     "axios": "^1.13.6",
-    "cors": "^2.8.6",
     "pinia": "^3.0.4",
     "tailwindcss": "^4.2.2",
     "vue": "^3.5.30",
