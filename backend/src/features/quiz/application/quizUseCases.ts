@@ -3,15 +3,11 @@ import type {
   CreateQuizInput,
   QuizRepository,
   UpdateQuizInput,
-} from "./quizPorts";
+} from './quizPorts';
 
-export const createQuizUseCases = ({
-  quizRepository,
-}: {
-  quizRepository: QuizRepository;
-}) => ({
-  listQuizzes() {
-    return quizRepository.list();
+export const createQuizUseCases = ({ quizRepository }: { quizRepository: QuizRepository }) => ({
+  listQuizzes(userId: number) {
+    return quizRepository.list(userId);
   },
 
   createQuiz(input: CreateQuizInput) {
@@ -26,25 +22,25 @@ export const createQuizUseCases = ({
     return quizRepository.bulkUpdateLabels(input);
   },
 
-  async removeQuiz(id: number) {
-    await quizRepository.remove(id);
+  async removeQuiz(userId: number, id: number) {
+    await quizRepository.remove(userId, id);
   },
 
-  listQuizTags() {
-    return quizRepository.listTags();
+  listQuizTags(userId: number) {
+    return quizRepository.listTags(userId);
   },
 
-  async deleteQuizTag(tagName: string) {
-    const tag = await quizRepository.findTagByName(tagName);
+  async deleteQuizTag(userId: number, tagName: string) {
+    const tag = await quizRepository.findTagByName(userId, tagName);
     if (!tag) {
-      throw { code: "P2025" };
+      throw { code: 'P2025' };
     }
 
-    await quizRepository.deleteTagById(tag.id);
+    await quizRepository.deleteTagById(userId, tag.id);
   },
 
-  async listQuizGroups() {
-    const rows = await quizRepository.listGroupNameRows();
+  async listQuizGroups(userId: number) {
+    const rows = await quizRepository.listGroupNameRows(userId);
     const groupSet = new Set<string>();
 
     for (const row of rows) {
@@ -52,9 +48,9 @@ export const createQuizUseCases = ({
         continue;
       }
 
-      for (const groupName of row.groupName.split(",")) {
+      for (const groupName of row.groupName.split(',')) {
         const normalizedGroup = groupName.trim();
-        if (normalizedGroup !== "") {
+        if (normalizedGroup !== '') {
           groupSet.add(normalizedGroup);
         }
       }
@@ -63,18 +59,18 @@ export const createQuizUseCases = ({
     return [...groupSet].sort();
   },
 
-  async deleteQuizGroup(targetGroup: string) {
-    const rows = await quizRepository.listGroupNameRows();
+  async deleteQuizGroup(userId: number, targetGroup: string) {
+    const rows = await quizRepository.listGroupNameRows(userId);
     const updates = rows
       .map((row) => {
-        const groups = (row.groupName ?? "")
-          .split(",")
+        const groups = (row.groupName ?? '')
+          .split(',')
           .map((groupName) => groupName.trim())
-          .filter((groupName) => groupName !== "" && groupName !== targetGroup);
+          .filter((groupName) => groupName !== '' && groupName !== targetGroup);
 
         return {
           id: row.id,
-          groupName: groups.length > 0 ? groups.join(",") : null,
+          groupName: groups.length > 0 ? groups.join(',') : null,
         };
       })
       .filter((update) => {
@@ -86,16 +82,18 @@ export const createQuizUseCases = ({
       return;
     }
 
-    await Promise.all(updates.map((update) => quizRepository.updateGroupName(update.id, update.groupName)));
+    await Promise.all(
+      updates.map((update) => quizRepository.updateGroupName(userId, update.id, update.groupName)),
+    );
   },
 
-  async toggleQuizFavorite(id: number) {
-    const quiz = await quizRepository.findById(id);
+  async toggleQuizFavorite(userId: number, id: number) {
+    const quiz = await quizRepository.findById(userId, id);
     if (!quiz) {
-      throw { code: "P2025" };
+      throw { code: 'P2025' };
     }
 
-    return quizRepository.toggleFavorite(id, !quiz.isFavorite);
+    return quizRepository.toggleFavorite(userId, id, !quiz.isFavorite);
   },
 });
 

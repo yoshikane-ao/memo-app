@@ -131,6 +131,7 @@ export type Memo_tagsScalarFieldEnum =
 
 export const QuizsScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   word: 'word',
   mean: 'mean',
   questionText: 'questionText',
@@ -154,6 +155,7 @@ export type QuizChoiceScalarFieldEnum =
 
 export const QuizTagScalarFieldEnum = {
   id: 'id',
+  userId: 'userId',
   tagName: 'tagName',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',

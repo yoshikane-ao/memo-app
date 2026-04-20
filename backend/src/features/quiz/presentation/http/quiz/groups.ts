@@ -1,27 +1,28 @@
-import { Router } from "express";
-import { handleRouteError } from "../../../../../shared/http/requestValidation";
-import type { QuizUseCases } from "../../../application/quizUseCases";
-import { parseGroupNameParams } from "./requestParsing";
+import { Router } from 'express';
+import { handleRouteError } from '../../../../../shared/http/requestValidation';
+import { requireUserId } from '../../../../../shared/http/authContext';
+import type { QuizUseCases } from '../../../application/quizUseCases';
+import { parseGroupNameParams } from './requestParsing';
 
 export const createGroupsRouter = ({ deleteQuizGroup, listQuizGroups }: QuizUseCases) => {
   const groupsRouter = Router();
 
-  groupsRouter.get("/", async (_req, res) => {
+  groupsRouter.get('/', async (req, res) => {
     try {
-      const groups = await listQuizGroups();
+      const groups = await listQuizGroups(requireUserId(req));
       res.status(200).json(groups);
     } catch (error) {
-      return handleRouteError(res, error, "Failed to load groups.");
+      return handleRouteError(res, error, 'Failed to load groups.');
     }
   });
 
-  groupsRouter.delete("/:groupName", async (req, res) => {
+  groupsRouter.delete('/:groupName', async (req, res) => {
     try {
       const { groupName } = parseGroupNameParams(req.params);
-      await deleteQuizGroup(groupName);
-      res.status(200).json({ message: "Group deleted." });
+      await deleteQuizGroup(requireUserId(req), groupName);
+      res.status(200).json({ message: 'Group deleted.' });
     } catch (error) {
-      return handleRouteError(res, error, "Failed to delete group.");
+      return handleRouteError(res, error, 'Failed to delete group.');
     }
   });
 
