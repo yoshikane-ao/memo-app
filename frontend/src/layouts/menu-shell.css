@@ -8,9 +8,7 @@
   padding: 14px 16px;
   border: 1px solid var(--menu-border);
   border-radius: 18px;
-  background:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.14), transparent 30%),
-    linear-gradient(180deg, rgba(26, 26, 30, 0.96), rgba(12, 12, 14, 0.96));
+  background: var(--menu-header-bg);
   box-shadow: var(--menu-shadow);
   backdrop-filter: blur(14px);
   animation: menu-fade-up 0.48s ease both;
@@ -55,8 +53,8 @@
   gap: 8px;
   padding: 7px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--menu-chip-bg);
+  border: 1px solid var(--menu-chip-border);
   color: var(--menu-text-soft);
   font-size: 0.76rem;
 }
@@ -66,7 +64,8 @@
 }
 
 .menu-shell-breadcrumb-separator {
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--menu-text-muted);
+  opacity: 0.5;
 }
 
 .menu-shell-breadcrumb-app {
@@ -111,7 +110,24 @@
 
 .menu-shell-compact-nav {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.menu-shell-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.menu-shell-floating-actions {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 30;
 }
 
 .menu-shell-compact-link {
@@ -120,7 +136,7 @@
   padding: 8px 12px;
   border-radius: 999px;
   border: 1px solid var(--menu-border);
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--menu-compact-bg);
   color: var(--menu-text);
   text-decoration: none;
   font-size: 0.82rem;
@@ -133,12 +149,27 @@
 
 .menu-shell-compact-link:hover {
   color: var(--menu-accent-strong);
-  border-color: rgba(200, 106, 56, 0.24);
-  background: rgba(200, 106, 56, 0.08);
+  border-color: rgba(200, 106, 56, 0.32);
+  background: var(--menu-compact-hover-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .menu-shell-compact-link {
     transition: none;
   }
+}
+
+.menu-shell-footer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 14px 16px;
+  margin-top: 18px;
+  border-top: 1px solid var(--menu-footer-border);
+  color: var(--menu-text-muted);
+}
+
+.menu-shell-footer-copy {
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
 }

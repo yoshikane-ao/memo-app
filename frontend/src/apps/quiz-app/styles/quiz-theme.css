@@ -1,13 +1,47 @@
 .quiz-app {
   --quiz-bg: var(--app-shell-bg);
+  --quiz-surface: #ffffff;
+  --quiz-surface-strong: #f5eee3;
+  --quiz-surface-soft: #efe7d8;
+  --quiz-surface-input: #ffffff;
+  --quiz-text: var(--app-shell-text);
+  --quiz-text-soft: #4b4740;
+  --quiz-text-muted: #7a7366;
+  --quiz-accent: #c86a38;
+  --quiz-accent-strong: #a55427;
+  --quiz-accent-soft: rgba(200, 106, 56, 0.12);
+  --quiz-accent-glow: rgba(200, 106, 56, 0.14);
+  --quiz-success: #1f8a4c;
+  --quiz-success-soft: rgba(31, 138, 76, 0.12);
+  --quiz-danger: #c32f2f;
+  --quiz-danger-soft: rgba(195, 47, 47, 0.1);
+  --quiz-border: rgba(30, 20, 10, 0.12);
+  --quiz-border-focus: rgba(200, 106, 56, 0.55);
+  --quiz-shadow: 0 16px 40px rgba(60, 40, 20, 0.08);
+  --quiz-hero-bg:
+    radial-gradient(circle at top right, rgba(200, 106, 56, 0.12), transparent 30%),
+    linear-gradient(135deg, #ffffff, #f5eee3);
+  --quiz-hero-bg-vertical:
+    radial-gradient(circle at top right, rgba(200, 106, 56, 0.1), transparent 30%),
+    linear-gradient(180deg, #ffffff, #f4ece0);
+  --quiz-radius: 12px;
+  --quiz-radius-sm: 8px;
+  --quiz-radius-pill: 999px;
+  --quiz-transition: 0.18s ease;
+  --quiz-font: var(--app-shell-font);
+
+  color: var(--quiz-text);
+  font-family: var(--quiz-font);
+  min-width: 0;
+}
+
+[data-theme="dark"] .quiz-app {
   --quiz-surface: #121214;
   --quiz-surface-strong: #17171a;
   --quiz-surface-soft: #1d1d22;
   --quiz-surface-input: #0d0d0d;
-  --quiz-text: var(--app-shell-text);
   --quiz-text-soft: #c4bbb0;
   --quiz-text-muted: #8f867b;
-  --quiz-accent: #c86a38;
   --quiz-accent-strong: #ee8b57;
   --quiz-accent-soft: rgba(200, 106, 56, 0.14);
   --quiz-accent-glow: rgba(200, 106, 56, 0.08);
@@ -18,15 +52,12 @@
   --quiz-border: rgba(255, 255, 255, 0.08);
   --quiz-border-focus: rgba(200, 106, 56, 0.45);
   --quiz-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
-  --quiz-radius: 12px;
-  --quiz-radius-sm: 8px;
-  --quiz-radius-pill: 999px;
-  --quiz-transition: 0.18s ease;
-  --quiz-font: var(--app-shell-font);
-
-  color: var(--quiz-text);
-  font-family: var(--quiz-font);
-  min-width: 0;
+  --quiz-hero-bg:
+    radial-gradient(circle at top right, rgba(200, 106, 56, 0.14), transparent 30%),
+    linear-gradient(135deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
+  --quiz-hero-bg-vertical:
+    radial-gradient(circle at top right, rgba(200, 106, 56, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
 }
 
 /* ── Shared keyframes ── */
@@ -173,7 +204,7 @@
 .quiz-app .btn-danger:hover {
   background: var(--quiz-danger-soft);
   border-color: rgba(232, 85, 85, 0.45);
-  color: #ff9999;
+  color: var(--quiz-danger);
 }
 
 /* ── Shared input style ── */

@@ -1,7 +1,16 @@
 :root {
+  --app-shell-bg: #faf7f1;
+  --app-shell-text: #1f1d1a;
+  --app-shell-overlay: rgba(200, 106, 56, 0.06);
+  --app-shell-color-scheme: light;
+  --app-shell-font: "BIZ UDPGothic", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+}
+
+[data-theme="dark"] {
   --app-shell-bg: #0a0a0b;
   --app-shell-text: #f4efe8;
-  --app-shell-font: "BIZ UDPGothic", "Noto Sans JP", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --app-shell-overlay: rgba(200, 106, 56, 0.08);
+  --app-shell-color-scheme: dark;
 }
 
 *,
@@ -13,7 +22,7 @@
 html {
   min-height: 100%;
   background: var(--app-shell-bg);
-  color-scheme: dark;
+  color-scheme: var(--app-shell-color-scheme);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -22,7 +31,7 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(200, 106, 56, 0.08), transparent 36%),
+    radial-gradient(circle at top, var(--app-shell-overlay), transparent 36%),
     var(--app-shell-bg);
   color: var(--app-shell-text);
   font-family: var(--app-shell-font);

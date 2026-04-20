@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import BaseButton from "../../../../../shared/ui/BaseButton.vue";
+import { computed, ref } from 'vue';
+import BaseButton from '../../../../../shared/ui/BaseButton.vue';
 import type {
   AnswerMethod,
   QuestionFormatCategory,
   QuizDirection,
   QuizScope,
   QuizSettings,
-} from "../model/quiz.types";
+} from '../model/quiz.types';
 import {
   FORMAT_CATEGORY_LABELS,
   QUESTION_COUNT_OPTIONS,
   QUESTION_FORMAT_OPTIONS,
-} from "../model/quiz.types";
-import QuizToggleGroup from "./QuizToggleGroup.vue";
+} from '../model/quiz.types';
+import QuizToggleGroup from './QuizToggleGroup.vue';
 
 const props = defineProps<{
   settings: QuizSettings;
@@ -25,67 +25,70 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (event: "update", key: keyof QuizSettings, value: QuizSettings[keyof QuizSettings]): void;
-  (event: "start"): void;
+  (event: 'update', key: keyof QuizSettings, value: QuizSettings[keyof QuizSettings]): void;
+  (event: 'start'): void;
 }>();
 
-const customCount = ref("");
+const customCount = ref('');
 
 const scopeOptions: { value: QuizScope; label: string }[] = [
-  { value: "all", label: "すべて" },
-  { value: "favorite", label: "\u2605 お気に入り" },
-  { value: "tag", label: "タグ指定" },
-  { value: "group", label: "グループ指定" },
+  { value: 'all', label: 'すべて' },
+  { value: 'favorite', label: '\u2605 お気に入り' },
+  { value: 'tag', label: 'タグ指定' },
+  { value: 'group', label: 'グループ指定' },
 ];
 
 const directionOptions: { value: QuizDirection; label: string }[] = [
-  { value: "word-to-meaning", label: "単語 → 意味" },
-  { value: "meaning-to-word", label: "意味 → 単語" },
-  { value: "random", label: "ランダム" },
+  { value: 'word-to-meaning', label: '単語 → 意味' },
+  { value: 'meaning-to-word', label: '意味 → 単語' },
+  { value: 'random', label: 'ランダム' },
 ];
 
-const formatCategories: QuestionFormatCategory[] = ["selection", "written"];
+const formatCategories: QuestionFormatCategory[] = ['selection', 'written'];
 
 const formatsByCategory = computed(() => {
   const map = new Map<QuestionFormatCategory, typeof QUESTION_FORMAT_OPTIONS>();
   for (const cat of formatCategories) {
-    map.set(cat, QUESTION_FORMAT_OPTIONS.filter((f) => f.category === cat));
+    map.set(
+      cat,
+      QUESTION_FORMAT_OPTIONS.filter((f) => f.category === cat),
+    );
   }
   return map;
 });
 
-const selectedFormatOption = computed(
-  () => QUESTION_FORMAT_OPTIONS.find((f) => f.value === props.settings.questionFormat),
+const selectedFormatOption = computed(() =>
+  QUESTION_FORMAT_OPTIONS.find((f) => f.value === props.settings.questionFormat),
 );
 
 const answerMethodLabels: Record<AnswerMethod, string> = {
-  tap: "タップ選択",
-  swipe: "スワイプ",
-  "text-input": "テキスト入力",
+  tap: 'タップ選択',
+  swipe: 'スワイプ',
+  'text-input': 'テキスト入力',
 };
 
 const countOptions = computed(() =>
   QUESTION_COUNT_OPTIONS.map((v) => ({
     value: v,
-    label: v === "all" ? "すべて" : `${v}問`,
+    label: v === 'all' ? 'すべて' : `${v}問`,
   })),
 );
 
 const isCustomCount = computed(
   () =>
-    typeof props.settings.questionCount === "number" &&
+    typeof props.settings.questionCount === 'number' &&
     !QUESTION_COUNT_OPTIONS.includes(props.settings.questionCount as never),
 );
 
-const handleCountSelect = (value: number | "all") => {
-  customCount.value = "";
-  emit("update", "questionCount", value);
+const handleCountSelect = (value: number | 'all') => {
+  customCount.value = '';
+  emit('update', 'questionCount', value);
 };
 
 const handleCustomCount = () => {
   const num = parseInt(customCount.value, 10);
   if (num > 0) {
-    emit("update", "questionCount", num);
+    emit('update', 'questionCount', num);
   }
 };
 
@@ -93,10 +96,10 @@ const canStart = computed(
   () =>
     !props.isLoading &&
     props.quizCount > 0 &&
-    (props.settings.scope === "all" ||
-      props.settings.scope === "favorite" ||
-      (props.settings.scope === "tag" && props.settings.selectedTags.length > 0) ||
-      (props.settings.scope === "group" && props.settings.selectedGroups.length > 0)),
+    (props.settings.scope === 'all' ||
+      props.settings.scope === 'favorite' ||
+      (props.settings.scope === 'tag' && props.settings.selectedTags.length > 0) ||
+      (props.settings.scope === 'group' && props.settings.selectedGroups.length > 0)),
 );
 </script>
 
@@ -107,9 +110,7 @@ const canStart = computed(
       <div class="qs__glow" />
       <p class="qs__kicker">QUIZ APP</p>
       <h1 class="qs__title">出題設定</h1>
-      <p class="qs__description">
-        出題方法・問題形式・回答方法を設定して、クイズを始めましょう。
-      </p>
+      <p class="qs__description">出題方法・問題形式・回答方法を設定して、クイズを始めましょう。</p>
       <div class="qs__stats">
         <span class="qs__pill">{{ quizCount }} 問 登録済み</span>
       </div>
@@ -178,11 +179,7 @@ const canStart = computed(
       <!-- 3. Question Format (categorized) -->
       <fieldset class="qs__fieldset">
         <legend class="qs__legend">問題形式</legend>
-        <div
-          v-for="cat in formatCategories"
-          :key="cat"
-          class="qs__format-category"
-        >
+        <div v-for="cat in formatCategories" :key="cat" class="qs__format-category">
           <span class="qs__category-label">{{ FORMAT_CATEGORY_LABELS[cat] }}</span>
           <div class="qs__chip-row qs__chip-row--tight">
             <button
@@ -330,20 +327,13 @@ const canStart = computed(
 
     <!-- Start button -->
     <div class="qs__actions">
-      <BaseButton
-        class="btn-primary qs__start-btn"
-        :disabled="!canStart"
-        @click="emit('start')"
-      >
+      <BaseButton class="btn-primary qs__start-btn" :disabled="!canStart" @click="emit('start')">
         クイズを開始する
       </BaseButton>
       <p v-if="quizCount === 0" class="qs__hint">
         ※ クイズが登録されていません。まず問題を作成してください。
       </p>
-      <p
-        v-else-if="settings.scope !== 'all' && !canStart && !isLoading"
-        class="qs__hint"
-      >
+      <p v-else-if="settings.scope !== 'all' && !canStart && !isLoading" class="qs__hint">
         ※ タグまたはグループを1つ以上選択してください。
       </p>
     </div>
@@ -369,10 +359,7 @@ const canStart = computed(
   padding: 28px 24px;
   border-radius: 22px;
   border: 1px solid var(--quiz-border);
-  background:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.16), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.04), transparent 32%),
-    linear-gradient(135deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
+  background: var(--quiz-hero-bg);
   box-shadow: var(--quiz-shadow);
   overflow: hidden;
 }
@@ -391,8 +378,12 @@ const canStart = computed(
 }
 
 @keyframes quiz-orbit {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(-12px, 16px, 0) scale(1.08); }
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-12px, 16px, 0) scale(1.08);
+  }
 }
 
 .qs__kicker {

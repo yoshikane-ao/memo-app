@@ -1,9 +1,18 @@
-import type { RouteRecordRaw } from "vue-router";
+import type { RouteRecordRaw } from 'vue-router';
 
 export type MenuSection = {
   slug: string;
   label: string;
   description: string;
+};
+
+export type MenuAppPortfolio = {
+  thumbnail: string;
+  highlights: string[];
+  languages: string[];
+  frameworks: string[];
+  databases: string[];
+  period: string;
 };
 
 export type MenuAppEntry = {
@@ -14,6 +23,7 @@ export type MenuAppEntry = {
   ctaLabel: string;
   section: MenuSection;
   keywords: string[];
+  portfolio?: MenuAppPortfolio;
 };
 
 export type MenuAppDefinition = {
