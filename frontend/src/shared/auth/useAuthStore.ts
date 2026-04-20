@@ -56,7 +56,10 @@ export const useAuthStore = defineStore('auth', {
       try {
         await authApi.logout();
       } finally {
+        // hydrated も落とすことで、次回 hydrate() が再度 /auth/me を叩き
+        // 他ユーザーの残像が入ったまま走ることを防ぐ。
         this.user = null;
+        this.hydrated = false;
       }
     },
   },
