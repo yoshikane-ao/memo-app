@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ApiRequestError } from '../../shared/api/apiError';
-import { useAuthStore } from '../../shared/auth';
+import { sanitizeRedirect, useAuthStore } from '../../shared/auth';
 
 const DEMO_EMAIL = 'demo@example.com';
 const DEMO_PASSWORD = 'demo12345';
@@ -16,8 +16,7 @@ const password = ref('');
 const errorMessage = ref<string | null>(null);
 
 const finishLogin = async () => {
-  const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : '/menu';
-  await router.push(redirect);
+  await router.push(sanitizeRedirect(route.query.redirect));
 };
 
 const submit = async () => {
