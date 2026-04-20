@@ -11,6 +11,7 @@ import { quizRouter } from './features/quiz';
 import { requestLogger } from './shared/http/requestLogger';
 import { metricsMiddleware } from './shared/http/metricsMiddleware';
 import { registry as metricsRegistry } from './shared/metrics';
+import { createDocsRouter } from './shared/openapi/docsRouter';
 import { registerSentryErrorHandler } from './shared/sentry';
 // import { tradeAppRoutes } from "./tradeApp/routes"
 
@@ -44,6 +45,8 @@ const registerRoutes = (app: express.Express) => {
   app.use('/memos', authMiddleware, memosRouter);
   app.use('/tags', authMiddleware, tagsRouter);
   app.use('/quiz', authMiddleware, quizRouter);
+  // OpenAPI ドキュメント。認証不要（公開 API 仕様として閲覧可能）。
+  app.use('/api', createDocsRouter());
   // app.use("/quizTag", quizTagRouter);
   // app.use("/trade", tradeAppRoutes);
 };

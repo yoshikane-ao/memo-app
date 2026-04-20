@@ -22,7 +22,8 @@ const isApiRequest = (pathname) =>
   pathname.startsWith('/memos') ||
   pathname.startsWith('/tags') ||
   pathname.startsWith('/auth') ||
-  pathname.startsWith('/quiz');
+  pathname.startsWith('/quiz') ||
+  pathname.startsWith('/api');
 
 const sendJson = (res, statusCode, payload) => {
   res.writeHead(statusCode, { 'content-type': 'application/json; charset=utf-8' });

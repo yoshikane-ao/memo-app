@@ -1,36 +1,38 @@
 import { Router } from 'express';
-import {
-  arrayField,
-  handleRouteError,
-  parseBody,
-  positiveIntField,
-  stringField,
-} from '../../../../../shared/http/requestValidation';
+import { handleRouteError } from '../../../../../shared/http/requestValidation';
+import { openApiRegistry } from '../../../../../shared/openapi/registry';
 import { requireUserId } from '../../../../../shared/http/authContext';
 import type { TagUseCases } from '../../../application/tagUseCases';
+import { RestoreTagBodySchema, TagSchema } from '../schemas';
 
-const parseRestoreTagBody = (value: unknown) =>
-  parseBody(value, {
-    id: positiveIntField(),
-    title: stringField(),
-    linkedMemoIds: arrayField(positiveIntField(), {
-      optional: true,
-      defaultValue: [],
-      dedupeBy: (memoId) => memoId,
-    }),
-  });
+openApiRegistry.registerPath({
+  method: 'post',
+  path: '/tags/restore',
+  tags: ['tag'],
+  summary: '削除されたタグを元の ID で復元し、関連 memo_tags を再作成',
+  security: [{ CookieAuth: [] }],
+  request: {
+    body: { content: { 'application/json': { schema: RestoreTagBodySchema } } },
+  },
+  responses: {
+    201: {
+      description: '復元されたタグ',
+      content: { 'application/json': { schema: TagSchema } },
+    },
+  },
+});
 
 export const createTagRestoreRouter = ({ restoreTag }: Pick<TagUseCases, 'restoreTag'>) => {
   const restoreRouter = Router();
 
   restoreRouter.post('/', async (req, res) => {
     try {
-      const body = parseRestoreTagBody(req.body);
+      const body = RestoreTagBodySchema.parse(req.body);
       const restoredTag = await restoreTag({
         userId: requireUserId(req),
         id: body.id,
         title: body.title,
-        linkedMemoIds: body.linkedMemoIds ?? [],
+        linkedMemoIds: body.linkedMemoIds,
       });
 
       res.status(201).json(restoredTag);

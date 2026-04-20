@@ -1,10 +1,7 @@
 import { Router, type CookieOptions, type Request, type Response } from 'express';
 import type { AuthConfig } from '../../../../config';
-import {
-  parseBody,
-  stringField,
-  handleRouteError,
-} from '../../../../shared/http/requestValidation';
+import { handleRouteError } from '../../../../shared/http/requestValidation';
+import { openApiRegistry } from '../../../../shared/openapi/registry';
 import {
   AuthError,
   type AuthResult,
@@ -14,6 +11,12 @@ import {
 import type { AuthUseCases } from '../../application/authUseCases';
 import { ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH } from './cookieNames';
 import { createAuthMiddleware, isAuthenticatedRequest } from './authMiddleware';
+import {
+  AuthResponseSchema,
+  ErrorResponseSchema,
+  LoginBodySchema,
+  RegisterBodySchema,
+} from './schemas';
 
 const ACCESS_COOKIE_MAX_AGE_MS = 15 * 60 * 1000; // 15m に合わせる
 const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7d に合わせる
@@ -74,6 +77,81 @@ const sendAuthError = (res: Response, error: unknown) => {
   throw error;
 };
 
+const jsonContent = <T extends object>(schema: T) => ({
+  'application/json': { schema },
+});
+
+openApiRegistry.registerPath({
+  method: 'post',
+  path: '/auth/register',
+  tags: ['auth'],
+  summary: '新規ユーザー登録',
+  request: {
+    body: {
+      content: jsonContent(RegisterBodySchema),
+    },
+  },
+  responses: {
+    201: { description: '作成成功', content: jsonContent(AuthResponseSchema) },
+    400: { description: 'バリデーションエラー', content: jsonContent(ErrorResponseSchema) },
+    409: { description: 'email 重複', content: jsonContent(ErrorResponseSchema) },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: 'post',
+  path: '/auth/login',
+  tags: ['auth'],
+  summary: 'ログイン',
+  request: {
+    body: {
+      content: jsonContent(LoginBodySchema),
+    },
+  },
+  responses: {
+    200: { description: 'ログイン成功', content: jsonContent(AuthResponseSchema) },
+    400: { description: 'バリデーションエラー', content: jsonContent(ErrorResponseSchema) },
+    401: { description: '認証失敗', content: jsonContent(ErrorResponseSchema) },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: 'post',
+  path: '/auth/refresh',
+  tags: ['auth'],
+  summary: 'アクセストークン再発行',
+  security: [{ CookieAuth: [] }],
+  responses: {
+    200: { description: '再発行成功', content: jsonContent(AuthResponseSchema) },
+    401: {
+      description: 'refresh token 無効 / 期限切れ',
+      content: jsonContent(ErrorResponseSchema),
+    },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: 'post',
+  path: '/auth/logout',
+  tags: ['auth'],
+  summary: 'ログアウト（cookie 破棄）',
+  responses: {
+    204: { description: 'ログアウト成功' },
+  },
+});
+
+openApiRegistry.registerPath({
+  method: 'get',
+  path: '/auth/me',
+  tags: ['auth'],
+  summary: '認証中ユーザー情報の取得',
+  security: [{ CookieAuth: [] }],
+  responses: {
+    200: { description: '取得成功', content: jsonContent(AuthResponseSchema) },
+    401: { description: '未認証', content: jsonContent(ErrorResponseSchema) },
+  },
+});
+
 export interface AuthRouterDeps {
   authUseCases: AuthUseCases;
   tokenService: TokenService;
@@ -86,14 +164,8 @@ export const createAuthRouter = ({ authUseCases, tokenService, authConfig }: Aut
 
   router.post('/register', async (req, res) => {
     try {
-      const body = parseBody(req.body, {
-        email: stringField(),
-        password: stringField({ trim: false }),
-      });
-      const displayName =
-        typeof req.body?.displayName === 'string' ? req.body.displayName : undefined;
-
-      const result = await authUseCases.register({ ...body, displayName });
+      const body = RegisterBodySchema.parse(req.body);
+      const result = await authUseCases.register(body);
       setAuthCookies(res, authConfig, result);
       return res.status(201).json({
         user: {
@@ -113,10 +185,7 @@ export const createAuthRouter = ({ authUseCases, tokenService, authConfig }: Aut
 
   router.post('/login', async (req, res) => {
     try {
-      const body = parseBody(req.body, {
-        email: stringField(),
-        password: stringField({ trim: false }),
-      });
+      const body = LoginBodySchema.parse(req.body);
       const result = await authUseCases.login(body);
       setAuthCookies(res, authConfig, result);
       return respondWithUser(res, result.user);

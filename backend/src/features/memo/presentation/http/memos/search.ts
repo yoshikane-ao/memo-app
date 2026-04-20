@@ -1,28 +1,38 @@
 import { Router } from 'express';
-import {
-  handleRouteError,
-  optionalEnumField,
-  parseQuery,
-  stringField,
-} from '../../../../../shared/http/requestValidation';
+import { handleRouteError } from '../../../../../shared/http/requestValidation';
+import { openApiRegistry } from '../../../../../shared/openapi/registry';
 import { requireUserId } from '../../../../../shared/http/authContext';
-import { memoSearchScopes, memoSearchTypes } from '../../../application/memoPorts';
 import { type MemoUseCases } from '../../../application/memoUseCases';
+import { ErrorResponseSchema, MemoListResponseSchema, SearchMemoQuerySchema } from '../schemas';
 
-const parseSearchQuery = (value: unknown) =>
-  parseQuery(value, {
-    q: stringField(),
-    type: optionalEnumField(memoSearchTypes, { defaultValue: 'all' }),
-    scope: optionalEnumField(memoSearchScopes, { defaultValue: 'active' }),
-  });
+openApiRegistry.registerPath({
+  method: 'get',
+  path: '/memos/search',
+  tags: ['memo'],
+  summary: 'メモを検索',
+  security: [{ CookieAuth: [] }],
+  request: {
+    query: SearchMemoQuerySchema,
+  },
+  responses: {
+    200: {
+      description: '検索結果',
+      content: { 'application/json': { schema: MemoListResponseSchema } },
+    },
+    400: {
+      description: 'クエリ不正',
+      content: { 'application/json': { schema: ErrorResponseSchema } },
+    },
+  },
+});
 
 export const createSearchRouter = ({ searchMemos }: MemoUseCases) => {
   const searchRouter = Router();
 
   searchRouter.get('/', async (req, res) => {
     try {
-      const { q, type, scope } = parseSearchQuery(req.query);
-      const memos = await searchMemos(requireUserId(req), q, type ?? 'all', scope ?? 'active');
+      const { q, type, scope } = SearchMemoQuerySchema.parse(req.query);
+      const memos = await searchMemos(requireUserId(req), q, type, scope);
 
       res.status(200).json({ items: memos });
     } catch (error) {
