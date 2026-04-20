@@ -1,12 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { RouterLink, useRoute } from 'vue-router';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { findMenuAppById, menuHomePath } from '../app/router/appRegistry';
 import ThemeToggle from '../shared/theme/ThemeToggle.vue';
+import { useAuthStore } from '../shared/auth';
 import '../styles/menu-theme.css';
 import './menu-shell.css';
 
 const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
+
+const handleLogout = async () => {
+  await authStore.logout();
+  await router.push('/login');
+};
 
 const activeApp = computed(() => {
   const menuAppId = route.meta.menuAppId;
@@ -44,6 +52,17 @@ const currentYear = new Date().getFullYear();
             <span class="menu-shell-breadcrumb-app">{{ activeApp.name }}</span>
           </div>
           <ThemeToggle />
+          <template v-if="authStore.isAuthenticated">
+            <span class="menu-shell-user">
+              {{ authStore.user?.displayName || authStore.user?.email }}
+            </span>
+            <button type="button" class="menu-shell-auth-button" @click="handleLogout">
+              ログアウト
+            </button>
+          </template>
+          <template v-else>
+            <RouterLink to="/login" class="menu-shell-auth-button">ログイン</RouterLink>
+          </template>
         </div>
       </div>
 
@@ -62,6 +81,17 @@ const currentYear = new Date().getFullYear();
         ポートフォリオへ戻る
       </RouterLink>
       <ThemeToggle />
+      <template v-if="authStore.isAuthenticated">
+        <span class="menu-shell-user">
+          {{ authStore.user?.displayName || authStore.user?.email }}
+        </span>
+        <button type="button" class="menu-shell-auth-button" @click="handleLogout">
+          ログアウト
+        </button>
+      </template>
+      <template v-else>
+        <RouterLink to="/login" class="menu-shell-auth-button">ログイン</RouterLink>
+      </template>
     </div>
 
     <div v-else-if="isTradeBattleRoute" class="menu-shell-floating-actions">

@@ -43,6 +43,9 @@ export const memoAppDefinition: MenuAppDefinition = {
     {
       path: `${memoEntry.section.slug}/${memoEntry.slug}`,
       component: loadMemoAppShell,
+      meta: {
+        requiresAuth: true,
+      },
       children: [
         {
           path: '',
@@ -52,6 +55,7 @@ export const memoAppDefinition: MenuAppDefinition = {
             pageTitle: `${memoEntry.name} | アプリ一覧`,
             menuAppId: memoEntry.id,
             menuSectionSlug: memoEntry.section.slug,
+            requiresAuth: true,
           },
         },
         {
@@ -62,6 +66,7 @@ export const memoAppDefinition: MenuAppDefinition = {
             pageTitle: `ごみ箱 | ${memoEntry.name}`,
             menuAppId: memoEntry.id,
             menuSectionSlug: memoEntry.section.slug,
+            requiresAuth: true,
           },
         },
       ],
