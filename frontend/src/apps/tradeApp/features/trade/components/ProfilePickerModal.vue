@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
+import { createGuestIdentity, type PlayerIdentity, type PlayerSlot } from '../model/playerIdentity';
 import {
-  createGuestIdentity,
-  type PlayerIdentity,
-  type PlayerSlot,
+  useTradeProfileStore,
   type TradeProfile,
   type TradeProfileIcon,
-  useTradeProfileStore,
-} from '../features/trade';
+} from '../model/useTradeProfileStore';
 
 const props = defineProps<{
   modelValue: boolean;

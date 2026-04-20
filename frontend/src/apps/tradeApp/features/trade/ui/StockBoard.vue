@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import type { PlayerId, StockKey, StockState } from '../features/trade';
-import chartBackdrop from '../assets/trade-chart-background.png';
+import type { PlayerId, StockKey, StockState } from '../types';
+import chartBackdrop from '../../../assets/trade-chart-background.png';
 
 type OrderMarker = {
   id: string;

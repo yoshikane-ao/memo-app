@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createInitialGameState } from '../infrastructure/mockGame';
+import { createInitialGameState } from './mockGame';
 import { AD_CAMPAIGN_ACTION, type StockKey } from '../types';
 import { buildBattleActionProjection, createDefaultBattleActionDraft } from './tradeBattle';
 import { findPlayerById, initializeBattleState } from './tradeBattleState';

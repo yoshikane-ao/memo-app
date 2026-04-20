@@ -1,14 +1,13 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import type { PlayerState, StockState } from '../features/trade';
+import type { PlayerState, StockState } from '../types';
 import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
-  buildBattleActionProjection,
   CAPITAL_INCREASE_ACTION,
-  createDefaultBattleActionDraft,
   FACILITY_INVESTMENT_ACTION,
-} from '../features/trade';
+} from '../types';
+import { buildBattleActionProjection, createDefaultBattleActionDraft } from '../model/tradeBattle';
 import ActionPanel from './ActionPanel.vue';
 
 function createStocks(): StockState[] {

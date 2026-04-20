@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import type { PlayerState, StockKey, StockState, TradePositionEntry } from '../features/trade';
-import { calculateTradePositionPnL, formatCurrency, formatSignedCurrency } from '../features/trade';
+import type { PlayerState, StockKey, StockState, TradePositionEntry } from '../types';
+import {
+  calculateTradePositionPnL,
+  formatCurrency,
+  formatSignedCurrency,
+} from '../model/gameCalculations';
 
 const props = defineProps<{
   player: PlayerState;

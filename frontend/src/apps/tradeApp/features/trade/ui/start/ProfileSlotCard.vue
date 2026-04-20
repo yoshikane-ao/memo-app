@@ -1,74 +1,77 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { TradeProfile } from '../../store/useTradeProfileStore'
-import type { PlayerIdentity, PlayerSlot } from '../../types/playerIdentity'
+import { computed } from 'vue';
+import type { TradeProfile } from '../../model/useTradeProfileStore';
+import type { PlayerIdentity, PlayerSlot } from '../../model/playerIdentity';
 
-const props = withDefaults(defineProps<{
-  slot: PlayerSlot
-  identity: PlayerIdentity
-  profile?: TradeProfile | null
-  disabled?: boolean
-}>(), {
-  profile: null,
-  disabled: false,
-})
+const props = withDefaults(
+  defineProps<{
+    slot: PlayerSlot;
+    identity: PlayerIdentity;
+    profile?: TradeProfile | null;
+    disabled?: boolean;
+  }>(),
+  {
+    profile: null,
+    disabled: false,
+  },
+);
 
 const emit = defineEmits<{
-  (e: 'select'): void
-  (e: 'create'): void
-  (e: 'reset-guest'): void
-  (e: 'open-stats'): void
-}>()
+  (e: 'select'): void;
+  (e: 'create'): void;
+  (e: 'reset-guest'): void;
+  (e: 'open-stats'): void;
+}>();
 
-const slotLabel = computed(() => (props.slot === 'p1' ? 'PLAYER 1' : 'PLAYER 2'))
-const slotAccentClass = computed(() => (props.slot === 'p1' ? 'slot-card--p1' : 'slot-card--p2'))
+const slotLabel = computed(() => (props.slot === 'p1' ? 'PLAYER 1' : 'PLAYER 2'));
+const slotAccentClass = computed(() => (props.slot === 'p1' ? 'slot-card--p1' : 'slot-card--p2'));
 
 const badgeLabel = computed(() => {
   switch (props.identity.kind) {
     case 'guest':
-      return 'GUEST'
+      return 'GUEST';
     case 'profile':
-      return 'PROFILE'
+      return 'PROFILE';
     case 'cpu':
-      return 'CPU'
+      return 'CPU';
   }
-})
+});
 
 const displayName = computed(() => {
   if (props.identity.kind === 'profile') {
-    return props.profile?.name ?? 'プロフィール不明'
+    return props.profile?.name ?? 'プロフィール不明';
   }
 
-  return props.identity.label
-})
+  return props.identity.label;
+});
 
 const subtitle = computed(() => {
   if (props.identity.kind === 'profile') {
-    return props.profile?.title || props.profile?.tagline || '戦績を保存するキャラクター'
+    return props.profile?.title || props.profile?.tagline || '戦績を保存するキャラクター';
   }
 
   if (props.identity.kind === 'guest') {
-    return 'ゲスト / 成績は保存されません'
+    return 'ゲスト / 成績は保存されません';
   }
 
-  return '自動参加'
-})
+  return '自動参加';
+});
 
 const iconText = computed(() => {
   if (props.identity.kind === 'cpu') {
-    return 'CPU'
+    return 'CPU';
   }
 
   if (props.identity.kind === 'guest') {
-    return props.slot === 'p1' ? 'G1' : 'G2'
+    return props.slot === 'p1' ? 'G1' : 'G2';
   }
 
-  return props.profile?.name.slice(0, 1).toUpperCase() || '?'
-})
+  return props.profile?.name.slice(0, 1).toUpperCase() || '?';
+});
 
 const stats = computed(() => {
   if (props.identity.kind !== 'profile' || !props.profile) {
-    return null
+    return null;
   }
 
   return [
@@ -85,18 +88,21 @@ const stats = computed(() => {
       value: formatCurrency(props.profile.stats.currentAssets),
       negative: props.profile.stats.currentAssets < 0,
     },
-  ]
-})
+  ];
+});
 
 function formatCurrency(value: number): string {
-  const rounded = Math.round(value)
-  const prefix = rounded < 0 ? '-¥' : '¥'
-  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`
+  const rounded = Math.round(value);
+  const prefix = rounded < 0 ? '-¥' : '¥';
+  return `${prefix}${Math.abs(rounded).toLocaleString('ja-JP')}`;
 }
 </script>
 
 <template>
-  <article class="slot-card" :class="[slotAccentClass, `slot-card--${identity.kind}`, { 'is-disabled': disabled }]">
+  <article
+    class="slot-card"
+    :class="[slotAccentClass, `slot-card--${identity.kind}`, { 'is-disabled': disabled }]"
+  >
     <header class="slot-card__header">
       <span class="slot-card__slot">{{ slotLabel }}</span>
       <span class="slot-card__badge">{{ badgeLabel }}</span>
@@ -110,7 +116,10 @@ function formatCurrency(value: number): string {
       <div class="slot-card__main">
         <div class="slot-card__name-row">
           <h3 class="slot-card__name">{{ displayName }}</h3>
-          <span v-if="identity.kind === 'profile' && profile?.stats.totalBattles" class="slot-card__battle-count">
+          <span
+            v-if="identity.kind === 'profile' && profile?.stats.totalBattles"
+            class="slot-card__battle-count"
+          >
             {{ profile.stats.totalBattles }}戦
           </span>
         </div>
@@ -118,7 +127,12 @@ function formatCurrency(value: number): string {
         <p class="slot-card__subtitle">{{ subtitle }}</p>
 
         <div v-if="stats" class="slot-card__stats">
-          <div v-for="item in stats" :key="item.label" class="slot-card__stat" :class="{ 'is-negative': item.negative }">
+          <div
+            v-for="item in stats"
+            :key="item.label"
+            class="slot-card__stat"
+            :class="{ 'is-negative': item.negative }"
+          >
             <span class="slot-card__stat-label">{{ item.label }}</span>
             <strong class="slot-card__stat-value">{{ item.value }}</strong>
           </div>
@@ -128,7 +142,12 @@ function formatCurrency(value: number): string {
 
     <footer v-if="identity.kind !== 'cpu'" class="slot-card__actions">
       <div class="slot-card__action-primary">
-        <button type="button" class="slot-card__button slot-card__button--primary" :disabled="disabled" @click="emit('select')">
+        <button
+          type="button"
+          class="slot-card__button slot-card__button--primary"
+          :disabled="disabled"
+          @click="emit('select')"
+        >
           選択
         </button>
         <button
@@ -143,7 +162,12 @@ function formatCurrency(value: number): string {
       </div>
 
       <div class="slot-card__action-secondary">
-        <button type="button" class="slot-card__button slot-card__button--secondary" :disabled="disabled" @click="emit('create')">
+        <button
+          type="button"
+          class="slot-card__button slot-card__button--secondary"
+          :disabled="disabled"
+          @click="emit('create')"
+        >
           新規作成
         </button>
         <button
@@ -170,7 +194,9 @@ function formatCurrency(value: number): string {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: linear-gradient(180deg, rgba(10, 17, 33, 0.95), rgba(6, 12, 24, 0.98));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 16px 34px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 34px rgba(0, 0, 0, 0.28);
   overflow: hidden;
 }
 
@@ -346,7 +372,11 @@ function formatCurrency(value: number): string {
   border-radius: 12px;
   font: inherit;
   cursor: pointer;
-  transition: transform 0.18s ease, opacity 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    opacity 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease;
 }
 
 .slot-card__button:hover,
