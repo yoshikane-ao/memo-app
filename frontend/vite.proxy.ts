@@ -38,6 +38,10 @@ export const createApiProxy = (target: string): Record<string, ProxyOptions> => 
     target,
     changeOrigin: true,
   },
+  '/api': {
+    target,
+    changeOrigin: true,
+  },
 
   '/trade': {
     target,
