@@ -5,7 +5,6 @@ import StockBoard from './StockBoard.vue';
 import PlayerPanel from './PlayerPanel.vue';
 import ActionPanel from './ActionPanel.vue';
 
-import { useTradeGameStore } from '../store/useTradeGameStore';
 import type {
   BattleActionDraft,
   BattleClosePreview,
@@ -28,12 +27,13 @@ import {
   cloneStockSnapshots,
   createDefaultBattleActionDraft,
   createInitialGameState,
+  createTradeBattleFlow,
   findPlayerById,
   formatCurrency,
   hasProjectedChartMovement,
+  useTradeButtonSound,
+  useTradeGameStore,
 } from '../features/trade';
-import { createTradeBattleFlow } from '../application';
-import { useTradeButtonSound } from '../composables/useTradeButtonSound';
 
 import '../css/style.css';
 

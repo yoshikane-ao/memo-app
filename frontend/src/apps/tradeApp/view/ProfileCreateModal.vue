@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
-import profileCreateBackgroundUrl from '../assets/profile-create-background.png'
+import { computed, reactive, watch } from 'vue';
+import profileCreateBackgroundUrl from '../assets/profile-create-background.png';
 import type {
   CreateTradeProfileInput,
   TradeProfileIcon,
   TradeProfileTheme,
-} from '../store/useTradeProfileStore'
+} from '../features/trade';
 
 const props = defineProps<{
-  modelValue: boolean
-}>()
+  modelValue: boolean;
+}>();
 
 const emit = defineEmits<{
-  (event: 'update:modelValue', value: boolean): void
-  (event: 'create', payload: CreateTradeProfileInput): void
-}>()
+  (event: 'update:modelValue', value: boolean): void;
+  (event: 'create', payload: CreateTradeProfileInput): void;
+}>();
 
 const form = reactive<CreateTradeProfileInput>({
   name: '',
   icon: 'bull',
   theme: 'blue',
   tagline: '',
-})
+});
 
 const iconOptions: Array<{ value: TradeProfileIcon; label: string; glyph: string }> = [
   { value: 'bull', label: '牛', glyph: '🐂' },
@@ -32,37 +32,37 @@ const iconOptions: Array<{ value: TradeProfileIcon; label: string; glyph: string
   { value: 'crown', label: '王冠', glyph: '👑' },
   { value: 'flame', label: '炎', glyph: '🔥' },
   { value: 'shield', label: '盾', glyph: '🛡️' },
-]
+];
 
 const themeOptions: Array<{ value: TradeProfileTheme; label: string }> = [
   { value: 'blue', label: '青' },
   { value: 'red', label: '赤' },
   { value: 'gold', label: '金' },
   { value: 'violet', label: '紫' },
-]
+];
 
-const canSave = computed(() => form.name.trim().length >= 1)
+const canSave = computed(() => form.name.trim().length >= 1);
 
 watch(
   () => props.modelValue,
   (opened) => {
     if (!opened) {
-      return
+      return;
     }
-    form.name = ''
-    form.icon = 'bull'
-    form.theme = 'blue'
-    form.tagline = ''
+    form.name = '';
+    form.icon = 'bull';
+    form.theme = 'blue';
+    form.tagline = '';
   },
-)
+);
 
 function close(): void {
-  emit('update:modelValue', false)
+  emit('update:modelValue', false);
 }
 
 function handleSubmit(): void {
   if (!canSave.value) {
-    return
+    return;
   }
 
   emit('create', {
@@ -70,8 +70,8 @@ function handleSubmit(): void {
     icon: form.icon,
     theme: form.theme,
     tagline: form.tagline,
-  })
-  close()
+  });
+  close();
 }
 </script>
 
@@ -112,7 +112,12 @@ function handleSubmit(): void {
 
               <label>
                 <span>一言コメント</span>
-                <input v-model="form.tagline" type="text" maxlength="40" placeholder="例: 買いで押し切る" />
+                <input
+                  v-model="form.tagline"
+                  type="text"
+                  maxlength="40"
+                  placeholder="例: 買いで押し切る"
+                />
               </label>
             </div>
 
@@ -153,7 +158,9 @@ function handleSubmit(): void {
 
         <footer class="profile-modal__footer">
           <button type="button" class="ghost" @click="close">キャンセル</button>
-          <button type="button" class="primary" :disabled="!canSave" @click="handleSubmit">保存して開始</button>
+          <button type="button" class="primary" :disabled="!canSave" @click="handleSubmit">
+            保存して開始
+          </button>
         </footer>
       </section>
     </div>
@@ -278,10 +285,18 @@ function handleSubmit(): void {
   line-height: 1.35;
 }
 
-.profile-modal__preview.theme-blue { box-shadow: inset 0 0 0 1px rgba(101, 180, 255, 0.16); }
-.profile-modal__preview.theme-red { box-shadow: inset 0 0 0 1px rgba(255, 116, 116, 0.16); }
-.profile-modal__preview.theme-gold { box-shadow: inset 0 0 0 1px rgba(255, 208, 122, 0.16); }
-.profile-modal__preview.theme-violet { box-shadow: inset 0 0 0 1px rgba(198, 144, 255, 0.16); }
+.profile-modal__preview.theme-blue {
+  box-shadow: inset 0 0 0 1px rgba(101, 180, 255, 0.16);
+}
+.profile-modal__preview.theme-red {
+  box-shadow: inset 0 0 0 1px rgba(255, 116, 116, 0.16);
+}
+.profile-modal__preview.theme-gold {
+  box-shadow: inset 0 0 0 1px rgba(255, 208, 122, 0.16);
+}
+.profile-modal__preview.theme-violet {
+  box-shadow: inset 0 0 0 1px rgba(198, 144, 255, 0.16);
+}
 
 .profile-modal__preview-icon {
   display: grid;
@@ -382,10 +397,18 @@ function handleSubmit(): void {
   box-shadow: 0 0 0 1px rgba(117, 184, 255, 0.16);
 }
 
-.profile-modal__theme-button.blue.is-active { background: rgba(63, 126, 234, 0.25); }
-.profile-modal__theme-button.red.is-active { background: rgba(225, 70, 70, 0.25); }
-.profile-modal__theme-button.gold.is-active { background: rgba(226, 161, 54, 0.24); }
-.profile-modal__theme-button.violet.is-active { background: rgba(152, 84, 227, 0.24); }
+.profile-modal__theme-button.blue.is-active {
+  background: rgba(63, 126, 234, 0.25);
+}
+.profile-modal__theme-button.red.is-active {
+  background: rgba(225, 70, 70, 0.25);
+}
+.profile-modal__theme-button.gold.is-active {
+  background: rgba(226, 161, 54, 0.24);
+}
+.profile-modal__theme-button.violet.is-active {
+  background: rgba(152, 84, 227, 0.24);
+}
 
 .profile-modal__footer {
   justify-content: flex-end;

@@ -1,23 +1,19 @@
 import type { Ref } from 'vue';
 
-import type {
-  BattleActionDraft,
-  BattleStockHistoryRuntime,
-  GameStartSettings,
-  GameState,
-  LogEntry,
-  TurnActionPayload,
-} from '../features/trade';
+import type { GameState, LogEntry, TurnActionPayload } from '../types';
+import { NO_COMPANY_ACTION } from '../types';
+import type { BattleActionDraft } from '../model/tradeBattle';
+import { createDefaultBattleActionDraft } from '../model/tradeBattle';
+import type { BattleStockHistoryRuntime } from '../model/tradeBattleState';
 import {
   advanceBattleTurnState,
-  createDefaultBattleActionDraft,
-  createTradeBattleRuntime,
   findPlayerById,
   initializeBattleState,
   MAX_BATTLE_TURNS,
-  NO_COMPANY_ACTION,
   reducePlayerCooldowns as reduceCooldowns,
-} from '../features/trade';
+} from '../model/tradeBattleState';
+import { createTradeBattleRuntime } from '../model/tradeBattleRuntime';
+import type { GameStartSettings } from '../model/tradeSetup';
 
 export type TurnActionWithWait = TurnActionPayload & {
   metaAction?: 'wait';

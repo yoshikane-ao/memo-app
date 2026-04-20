@@ -1,56 +1,58 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import ProfileCard from './profile/ProfileCard.vue'
-import ProfileCreateModal from './profile/ProfileCreateModal.vue'
-import { useTradeProfileStore } from '../store/useTradeProfileStore'
+import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import ProfileCard from './profile/ProfileCard.vue';
+import ProfileCreateModal from './profile/ProfileCreateModal.vue';
+import { useTradeProfileStore } from '../features/trade';
 
-const router = useRouter()
-const profileStore = useTradeProfileStore()
-const isCreateModalOpen = ref(false)
+const router = useRouter();
+const profileStore = useTradeProfileStore();
+const isCreateModalOpen = ref(false);
 
 onMounted(() => {
-  profileStore.seedIfEmpty()
-})
+  profileStore.seedIfEmpty();
+});
 
-const selectedProfileId = ref<string | null>(profileStore.activeProfileId ?? null)
+const selectedProfileId = ref<string | null>(profileStore.activeProfileId ?? null);
 
 const selectedProfile = computed(() => {
-  return profileStore.sortedProfiles.find((profile) => profile.id === selectedProfileId.value) ?? null
-})
+  return (
+    profileStore.sortedProfiles.find((profile) => profile.id === selectedProfileId.value) ?? null
+  );
+});
 
 function handleSelect(profileId: string): void {
-  selectedProfileId.value = profileId
+  selectedProfileId.value = profileId;
 }
 
 function handleCreate(payload: {
-  name: string
-  icon: Parameters<typeof profileStore.createProfile>[0]['icon']
-  theme: Parameters<typeof profileStore.createProfile>[0]['theme']
-  tagline: string
+  name: string;
+  icon: Parameters<typeof profileStore.createProfile>[0]['icon'];
+  theme: Parameters<typeof profileStore.createProfile>[0]['theme'];
+  tagline: string;
 }): void {
-  const created = profileStore.createProfile(payload)
-  selectedProfileId.value = created.id
+  const created = profileStore.createProfile(payload);
+  selectedProfileId.value = created.id;
 }
 
 function handleStart(): void {
   if (!selectedProfile.value) {
-    return
+    return;
   }
 
-  profileStore.selectProfile(selectedProfile.value.id)
-  router.push({ name: 'menu-workspace-trade' })
+  profileStore.selectProfile(selectedProfile.value.id);
+  router.push({ name: 'menu-workspace-trade' });
 }
 
 function handleViewStats(): void {
   if (!selectedProfile.value) {
-    return
+    return;
   }
 
   router.push({
     name: 'menu-workspace-trade-profile-stats',
     params: { profileId: selectedProfile.value.id },
-  })
+  });
 }
 </script>
 

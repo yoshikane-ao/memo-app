@@ -1,7 +1,7 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import TradeStartPage from '@/apps/tradeApp/view/TradeStartPage.vue'
-import TradeBattlePage from '@/apps/tradeApp/view/TradeBattlePage.vue'
-import { useTradeGameStore } from '../store/useTradeGameStore'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
+import TradeStartPage from '@/apps/tradeApp/view/TradeStartPage.vue';
+import TradeBattlePage from '@/apps/tradeApp/view/TradeBattlePage.vue';
+import { useTradeGameStore } from '../features/trade';
 
 const routes: RouteRecordRaw[] = [
   {
@@ -22,21 +22,19 @@ const routes: RouteRecordRaw[] = [
     name: 'trade-battle',
     component: TradeBattlePage,
     beforeEnter: () => {
-      const gameStore = useTradeGameStore()
-      return gameStore.state.isInitialized
-        ? true
-        : { name: 'trade-start' }
+      const gameStore = useTradeGameStore();
+      return gameStore.state.isInitialized ? true : { name: 'trade-start' };
     },
   },
   {
     path: '/:pathMatch(.*)*',
     redirect: { name: 'trade-start' },
   },
-]
+];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
+});
 
-export default router
+export default router;

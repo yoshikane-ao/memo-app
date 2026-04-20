@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import TradeWorkspaceShell from './TradeWorkspaceShell.vue'
-import TradeBattleScreen from './TradeBattleScreen.vue'
-import { useTradeGameStore } from '../store/useTradeGameStore'
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import TradeWorkspaceShell from './TradeWorkspaceShell.vue';
+import TradeBattleScreen from './TradeBattleScreen.vue';
+import { useTradeGameStore } from '../features/trade';
 
-const router = useRouter()
-const gameStore = useTradeGameStore()
-const isInitialized = computed(() => gameStore.state.isInitialized)
+const router = useRouter();
+const gameStore = useTradeGameStore();
+const isInitialized = computed(() => gameStore.state.isInitialized);
 
 onMounted(() => {
   if (!isInitialized.value) {
-    router.replace({ name: 'menu-workspace-trade' })
+    router.replace({ name: 'menu-workspace-trade' });
   }
-})
+});
 </script>
 
 <template>
