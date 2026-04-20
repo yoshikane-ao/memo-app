@@ -51,6 +51,8 @@ model MemoHistories {
   content   String?
   createdAt DateTime @default(now()) @map("created_at")
   memo      Memos    @relation(fields: [memoId], references: [id], onDelete: Cascade)
+
+  @@index([memoId])
 }
 
 model Tags {
