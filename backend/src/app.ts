@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { prisma } from './db';
-import { authRouter } from './features/auth';
+import { authMiddleware, authRouter } from './features/auth';
 import { memosRouter, tagsRouter } from './features/memo';
 import { quizRouter } from './features/quiz';
 import { requestLogger } from './shared/http/requestLogger';
@@ -41,8 +41,9 @@ const registerRoutes = (app: express.Express) => {
   });
 
   app.use('/auth', authRouter);
-  app.use('/memos', memosRouter);
-  app.use('/tags', tagsRouter);
+  app.use('/memos', authMiddleware, memosRouter);
+  app.use('/tags', authMiddleware, tagsRouter);
+  // NOTE: /quiz は Session 2b で authMiddleware 適用予定（現時点では未保護）
   app.use('/quiz', quizRouter);
   // app.use("/quizTag", quizTagRouter);
   // app.use("/trade", tradeAppRoutes);

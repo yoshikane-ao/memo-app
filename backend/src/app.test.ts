@@ -83,4 +83,20 @@ describe('buildApp', () => {
 
     expect(response.status).toBe(404);
   });
+
+  it('rejects /memos without auth', async () => {
+    const app = buildApp();
+    const response = await request(app).get('/memos/list');
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBeTruthy();
+  });
+
+  it('rejects /tags without auth', async () => {
+    const app = buildApp();
+    const response = await request(app).get('/tags/list');
+
+    expect(response.status).toBe(401);
+    expect(response.body.message).toBeTruthy();
+  });
 });

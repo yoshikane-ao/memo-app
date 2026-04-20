@@ -1,4 +1,4 @@
-import { RequestValidationError } from "../../../shared/http/requestValidation";
+import { RequestValidationError } from '../../../shared/http/requestValidation';
 import type {
   CreateMemoInput,
   MemoRepository,
@@ -8,19 +8,15 @@ import type {
   ReorderMemoItem,
   UpdateMemoInput,
   UpdateMemoLayoutInput,
-} from "./memoPorts";
+} from './memoPorts';
 
-export const createMemoUseCases = ({
-  memoRepository,
-}: {
-  memoRepository: MemoRepository;
-}) => ({
-  listMemos(scope: MemoScope) {
-    return memoRepository.list(scope);
+export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRepository }) => ({
+  listMemos(userId: number, scope: MemoScope) {
+    return memoRepository.list(userId, scope);
   },
 
-  searchMemos(query: string, type: MemoSearchType, scope: MemoSearchScope) {
-    return memoRepository.search(query, type, scope);
+  searchMemos(userId: number, query: string, type: MemoSearchType, scope: MemoSearchScope) {
+    return memoRepository.search(userId, query, type, scope);
   },
 
   createMemo(input: CreateMemoInput) {
@@ -29,38 +25,38 @@ export const createMemoUseCases = ({
 
   async updateMemo(input: UpdateMemoInput) {
     const updatedMemo = await memoRepository.update(input);
-    await memoRepository.createHistory(input.id, input.title, input.content);
+    await memoRepository.createHistory(input.userId, input.id, input.title, input.content);
     return updatedMemo;
   },
 
-  moveMemoToTrash(id: number) {
-    return memoRepository.moveToTrash(id);
+  moveMemoToTrash(userId: number, id: number) {
+    return memoRepository.moveToTrash(userId, id);
   },
 
-  restoreMemo(id: number) {
-    return memoRepository.restore(id);
+  restoreMemo(userId: number, id: number) {
+    return memoRepository.restore(userId, id);
   },
 
-  purgeAllTrashMemos() {
-    return memoRepository.deleteManyTrashed();
+  purgeAllTrashMemos(userId: number) {
+    return memoRepository.deleteManyTrashed(userId);
   },
 
-  async purgeMemo(id: number) {
-    const existingMemo = await memoRepository.findById(id);
+  async purgeMemo(userId: number, id: number) {
+    const existingMemo = await memoRepository.findById(userId, id);
 
     if (!existingMemo) {
-      throw { code: "P2025" };
+      throw { code: 'P2025' };
     }
 
     if (existingMemo.deletedAt == null) {
-      throw new RequestValidationError("Only trashed memos can be permanently deleted.");
+      throw new RequestValidationError('Only trashed memos can be permanently deleted.');
     }
 
-    return memoRepository.purge(id);
+    return memoRepository.purge(userId, id);
   },
 
-  reorderMemos(items: ReorderMemoItem[]) {
-    return memoRepository.reorder(items);
+  reorderMemos(userId: number, items: ReorderMemoItem[]) {
+    return memoRepository.reorder(userId, items);
   },
 
   updateMemoLayout(input: UpdateMemoLayoutInput) {

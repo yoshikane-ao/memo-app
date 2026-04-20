@@ -27,6 +27,7 @@ export type AggregateMemos = {
 
 export type MemosAvgAggregateOutputType = {
   id: number | null;
+  userId: number | null;
   orderIndex: number | null;
   width: number | null;
   height: number | null;
@@ -34,6 +35,7 @@ export type MemosAvgAggregateOutputType = {
 
 export type MemosSumAggregateOutputType = {
   id: number | null;
+  userId: number | null;
   orderIndex: number | null;
   width: number | null;
   height: number | null;
@@ -41,6 +43,7 @@ export type MemosSumAggregateOutputType = {
 
 export type MemosMinAggregateOutputType = {
   id: number | null;
+  userId: number | null;
   orderIndex: number | null;
   width: number | null;
   height: number | null;
@@ -53,6 +56,7 @@ export type MemosMinAggregateOutputType = {
 
 export type MemosMaxAggregateOutputType = {
   id: number | null;
+  userId: number | null;
   orderIndex: number | null;
   width: number | null;
   height: number | null;
@@ -65,6 +69,7 @@ export type MemosMaxAggregateOutputType = {
 
 export type MemosCountAggregateOutputType = {
   id: number;
+  userId: number;
   orderIndex: number;
   width: number;
   height: number;
@@ -78,6 +83,7 @@ export type MemosCountAggregateOutputType = {
 
 export type MemosAvgAggregateInputType = {
   id?: true;
+  userId?: true;
   orderIndex?: true;
   width?: true;
   height?: true;
@@ -85,6 +91,7 @@ export type MemosAvgAggregateInputType = {
 
 export type MemosSumAggregateInputType = {
   id?: true;
+  userId?: true;
   orderIndex?: true;
   width?: true;
   height?: true;
@@ -92,6 +99,7 @@ export type MemosSumAggregateInputType = {
 
 export type MemosMinAggregateInputType = {
   id?: true;
+  userId?: true;
   orderIndex?: true;
   width?: true;
   height?: true;
@@ -104,6 +112,7 @@ export type MemosMinAggregateInputType = {
 
 export type MemosMaxAggregateInputType = {
   id?: true;
+  userId?: true;
   orderIndex?: true;
   width?: true;
   height?: true;
@@ -116,6 +125,7 @@ export type MemosMaxAggregateInputType = {
 
 export type MemosCountAggregateInputType = {
   id?: true;
+  userId?: true;
   orderIndex?: true;
   width?: true;
   height?: true;
@@ -216,6 +226,7 @@ export type MemosGroupByArgs<
 
 export type MemosGroupByOutputType = {
   id: number;
+  userId: number;
   orderIndex: number;
   width: number | null;
   height: number | null;
@@ -248,6 +259,7 @@ export type MemosWhereInput = {
   OR?: Prisma.MemosWhereInput[];
   NOT?: Prisma.MemosWhereInput | Prisma.MemosWhereInput[];
   id?: Prisma.IntFilter<'Memos'> | number;
+  userId?: Prisma.IntFilter<'Memos'> | number;
   orderIndex?: Prisma.IntFilter<'Memos'> | number;
   width?: Prisma.IntNullableFilter<'Memos'> | number | null;
   height?: Prisma.IntNullableFilter<'Memos'> | number | null;
@@ -256,12 +268,14 @@ export type MemosWhereInput = {
   deletedAt?: Prisma.DateTimeNullableFilter<'Memos'> | Date | string | null;
   createdAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
+  user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>;
   histories?: Prisma.MemoHistoriesListRelationFilter;
   memo_tags?: Prisma.Memo_tagsListRelationFilter;
 };
 
 export type MemosOrderByWithRelationInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrderInput | Prisma.SortOrder;
   height?: Prisma.SortOrderInput | Prisma.SortOrder;
@@ -270,6 +284,7 @@ export type MemosOrderByWithRelationInput = {
   deletedAt?: Prisma.SortOrderInput | Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
+  user?: Prisma.UserOrderByWithRelationInput;
   histories?: Prisma.MemoHistoriesOrderByRelationAggregateInput;
   memo_tags?: Prisma.memo_tagsOrderByRelationAggregateInput;
 };
@@ -280,6 +295,7 @@ export type MemosWhereUniqueInput = Prisma.AtLeast<
     AND?: Prisma.MemosWhereInput | Prisma.MemosWhereInput[];
     OR?: Prisma.MemosWhereInput[];
     NOT?: Prisma.MemosWhereInput | Prisma.MemosWhereInput[];
+    userId?: Prisma.IntFilter<'Memos'> | number;
     orderIndex?: Prisma.IntFilter<'Memos'> | number;
     width?: Prisma.IntNullableFilter<'Memos'> | number | null;
     height?: Prisma.IntNullableFilter<'Memos'> | number | null;
@@ -288,6 +304,7 @@ export type MemosWhereUniqueInput = Prisma.AtLeast<
     deletedAt?: Prisma.DateTimeNullableFilter<'Memos'> | Date | string | null;
     createdAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
+    user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>;
     histories?: Prisma.MemoHistoriesListRelationFilter;
     memo_tags?: Prisma.Memo_tagsListRelationFilter;
   },
@@ -296,6 +313,7 @@ export type MemosWhereUniqueInput = Prisma.AtLeast<
 
 export type MemosOrderByWithAggregationInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrderInput | Prisma.SortOrder;
   height?: Prisma.SortOrderInput | Prisma.SortOrder;
@@ -316,6 +334,7 @@ export type MemosScalarWhereWithAggregatesInput = {
   OR?: Prisma.MemosScalarWhereWithAggregatesInput[];
   NOT?: Prisma.MemosScalarWhereWithAggregatesInput | Prisma.MemosScalarWhereWithAggregatesInput[];
   id?: Prisma.IntWithAggregatesFilter<'Memos'> | number;
+  userId?: Prisma.IntWithAggregatesFilter<'Memos'> | number;
   orderIndex?: Prisma.IntWithAggregatesFilter<'Memos'> | number;
   width?: Prisma.IntNullableWithAggregatesFilter<'Memos'> | number | null;
   height?: Prisma.IntNullableWithAggregatesFilter<'Memos'> | number | null;
@@ -335,12 +354,14 @@ export type MemosCreateInput = {
   deletedAt?: Date | string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  user: Prisma.UserCreateNestedOneWithoutMemosInput;
   histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput;
   memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput;
 };
 
 export type MemosUncheckedCreateInput = {
   id?: number;
+  userId: number;
   orderIndex?: number;
   width?: number | null;
   height?: number | null;
@@ -362,12 +383,14 @@ export type MemosUpdateInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  user?: Prisma.UserUpdateOneRequiredWithoutMemosNestedInput;
   histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput;
   memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput;
 };
 
 export type MemosUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number;
+  userId?: Prisma.IntFieldUpdateOperationsInput | number;
   orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
@@ -382,6 +405,7 @@ export type MemosUncheckedUpdateInput = {
 
 export type MemosCreateManyInput = {
   id?: number;
+  userId: number;
   orderIndex?: number;
   width?: number | null;
   height?: number | null;
@@ -405,6 +429,7 @@ export type MemosUpdateManyMutationInput = {
 
 export type MemosUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number;
+  userId?: Prisma.IntFieldUpdateOperationsInput | number;
   orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
@@ -415,8 +440,19 @@ export type MemosUncheckedUpdateManyInput = {
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
 };
 
+export type MemosListRelationFilter = {
+  every?: Prisma.MemosWhereInput;
+  some?: Prisma.MemosWhereInput;
+  none?: Prisma.MemosWhereInput;
+};
+
+export type MemosOrderByRelationAggregateInput = {
+  _count?: Prisma.SortOrder;
+};
+
 export type MemosCountOrderByAggregateInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrder;
   height?: Prisma.SortOrder;
@@ -429,6 +465,7 @@ export type MemosCountOrderByAggregateInput = {
 
 export type MemosAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrder;
   height?: Prisma.SortOrder;
@@ -436,6 +473,7 @@ export type MemosAvgOrderByAggregateInput = {
 
 export type MemosMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrder;
   height?: Prisma.SortOrder;
@@ -448,6 +486,7 @@ export type MemosMaxOrderByAggregateInput = {
 
 export type MemosMinOrderByAggregateInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrder;
   height?: Prisma.SortOrder;
@@ -460,6 +499,7 @@ export type MemosMinOrderByAggregateInput = {
 
 export type MemosSumOrderByAggregateInput = {
   id?: Prisma.SortOrder;
+  userId?: Prisma.SortOrder;
   orderIndex?: Prisma.SortOrder;
   width?: Prisma.SortOrder;
   height?: Prisma.SortOrder;
@@ -468,6 +508,80 @@ export type MemosSumOrderByAggregateInput = {
 export type MemosScalarRelationFilter = {
   is?: Prisma.MemosWhereInput;
   isNot?: Prisma.MemosWhereInput;
+};
+
+export type MemosCreateNestedManyWithoutUserInput = {
+  create?:
+    | Prisma.XOR<Prisma.MemosCreateWithoutUserInput, Prisma.MemosUncheckedCreateWithoutUserInput>
+    | Prisma.MemosCreateWithoutUserInput[]
+    | Prisma.MemosUncheckedCreateWithoutUserInput[];
+  connectOrCreate?:
+    | Prisma.MemosCreateOrConnectWithoutUserInput
+    | Prisma.MemosCreateOrConnectWithoutUserInput[];
+  createMany?: Prisma.MemosCreateManyUserInputEnvelope;
+  connect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+};
+
+export type MemosUncheckedCreateNestedManyWithoutUserInput = {
+  create?:
+    | Prisma.XOR<Prisma.MemosCreateWithoutUserInput, Prisma.MemosUncheckedCreateWithoutUserInput>
+    | Prisma.MemosCreateWithoutUserInput[]
+    | Prisma.MemosUncheckedCreateWithoutUserInput[];
+  connectOrCreate?:
+    | Prisma.MemosCreateOrConnectWithoutUserInput
+    | Prisma.MemosCreateOrConnectWithoutUserInput[];
+  createMany?: Prisma.MemosCreateManyUserInputEnvelope;
+  connect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+};
+
+export type MemosUpdateManyWithoutUserNestedInput = {
+  create?:
+    | Prisma.XOR<Prisma.MemosCreateWithoutUserInput, Prisma.MemosUncheckedCreateWithoutUserInput>
+    | Prisma.MemosCreateWithoutUserInput[]
+    | Prisma.MemosUncheckedCreateWithoutUserInput[];
+  connectOrCreate?:
+    | Prisma.MemosCreateOrConnectWithoutUserInput
+    | Prisma.MemosCreateOrConnectWithoutUserInput[];
+  upsert?:
+    | Prisma.MemosUpsertWithWhereUniqueWithoutUserInput
+    | Prisma.MemosUpsertWithWhereUniqueWithoutUserInput[];
+  createMany?: Prisma.MemosCreateManyUserInputEnvelope;
+  set?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  disconnect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  delete?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  connect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  update?:
+    | Prisma.MemosUpdateWithWhereUniqueWithoutUserInput
+    | Prisma.MemosUpdateWithWhereUniqueWithoutUserInput[];
+  updateMany?:
+    | Prisma.MemosUpdateManyWithWhereWithoutUserInput
+    | Prisma.MemosUpdateManyWithWhereWithoutUserInput[];
+  deleteMany?: Prisma.MemosScalarWhereInput | Prisma.MemosScalarWhereInput[];
+};
+
+export type MemosUncheckedUpdateManyWithoutUserNestedInput = {
+  create?:
+    | Prisma.XOR<Prisma.MemosCreateWithoutUserInput, Prisma.MemosUncheckedCreateWithoutUserInput>
+    | Prisma.MemosCreateWithoutUserInput[]
+    | Prisma.MemosUncheckedCreateWithoutUserInput[];
+  connectOrCreate?:
+    | Prisma.MemosCreateOrConnectWithoutUserInput
+    | Prisma.MemosCreateOrConnectWithoutUserInput[];
+  upsert?:
+    | Prisma.MemosUpsertWithWhereUniqueWithoutUserInput
+    | Prisma.MemosUpsertWithWhereUniqueWithoutUserInput[];
+  createMany?: Prisma.MemosCreateManyUserInputEnvelope;
+  set?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  disconnect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  delete?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  connect?: Prisma.MemosWhereUniqueInput | Prisma.MemosWhereUniqueInput[];
+  update?:
+    | Prisma.MemosUpdateWithWhereUniqueWithoutUserInput
+    | Prisma.MemosUpdateWithWhereUniqueWithoutUserInput[];
+  updateMany?:
+    | Prisma.MemosUpdateManyWithWhereWithoutUserInput
+    | Prisma.MemosUpdateManyWithWhereWithoutUserInput[];
+  deleteMany?: Prisma.MemosScalarWhereInput | Prisma.MemosScalarWhereInput[];
 };
 
 export type NullableIntFieldUpdateOperationsInput = {
@@ -534,6 +648,87 @@ export type MemosUpdateOneRequiredWithoutMemo_tagsNestedInput = {
   >;
 };
 
+export type MemosCreateWithoutUserInput = {
+  orderIndex?: number;
+  width?: number | null;
+  height?: number | null;
+  title: string;
+  content: string;
+  deletedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput;
+  memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput;
+};
+
+export type MemosUncheckedCreateWithoutUserInput = {
+  id?: number;
+  orderIndex?: number;
+  width?: number | null;
+  height?: number | null;
+  title: string;
+  content: string;
+  deletedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  histories?: Prisma.MemoHistoriesUncheckedCreateNestedManyWithoutMemoInput;
+  memo_tags?: Prisma.memo_tagsUncheckedCreateNestedManyWithoutMemoInput;
+};
+
+export type MemosCreateOrConnectWithoutUserInput = {
+  where: Prisma.MemosWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.MemosCreateWithoutUserInput,
+    Prisma.MemosUncheckedCreateWithoutUserInput
+  >;
+};
+
+export type MemosCreateManyUserInputEnvelope = {
+  data: Prisma.MemosCreateManyUserInput | Prisma.MemosCreateManyUserInput[];
+  skipDuplicates?: boolean;
+};
+
+export type MemosUpsertWithWhereUniqueWithoutUserInput = {
+  where: Prisma.MemosWhereUniqueInput;
+  update: Prisma.XOR<
+    Prisma.MemosUpdateWithoutUserInput,
+    Prisma.MemosUncheckedUpdateWithoutUserInput
+  >;
+  create: Prisma.XOR<
+    Prisma.MemosCreateWithoutUserInput,
+    Prisma.MemosUncheckedCreateWithoutUserInput
+  >;
+};
+
+export type MemosUpdateWithWhereUniqueWithoutUserInput = {
+  where: Prisma.MemosWhereUniqueInput;
+  data: Prisma.XOR<Prisma.MemosUpdateWithoutUserInput, Prisma.MemosUncheckedUpdateWithoutUserInput>;
+};
+
+export type MemosUpdateManyWithWhereWithoutUserInput = {
+  where: Prisma.MemosScalarWhereInput;
+  data: Prisma.XOR<
+    Prisma.MemosUpdateManyMutationInput,
+    Prisma.MemosUncheckedUpdateManyWithoutUserInput
+  >;
+};
+
+export type MemosScalarWhereInput = {
+  AND?: Prisma.MemosScalarWhereInput | Prisma.MemosScalarWhereInput[];
+  OR?: Prisma.MemosScalarWhereInput[];
+  NOT?: Prisma.MemosScalarWhereInput | Prisma.MemosScalarWhereInput[];
+  id?: Prisma.IntFilter<'Memos'> | number;
+  userId?: Prisma.IntFilter<'Memos'> | number;
+  orderIndex?: Prisma.IntFilter<'Memos'> | number;
+  width?: Prisma.IntNullableFilter<'Memos'> | number | null;
+  height?: Prisma.IntNullableFilter<'Memos'> | number | null;
+  title?: Prisma.StringFilter<'Memos'> | string;
+  content?: Prisma.StringFilter<'Memos'> | string;
+  deletedAt?: Prisma.DateTimeNullableFilter<'Memos'> | Date | string | null;
+  createdAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
+  updatedAt?: Prisma.DateTimeFilter<'Memos'> | Date | string;
+};
+
 export type MemosCreateWithoutHistoriesInput = {
   orderIndex?: number;
   width?: number | null;
@@ -543,11 +738,13 @@ export type MemosCreateWithoutHistoriesInput = {
   deletedAt?: Date | string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  user: Prisma.UserCreateNestedOneWithoutMemosInput;
   memo_tags?: Prisma.memo_tagsCreateNestedManyWithoutMemoInput;
 };
 
 export type MemosUncheckedCreateWithoutHistoriesInput = {
   id?: number;
+  userId: number;
   orderIndex?: number;
   width?: number | null;
   height?: number | null;
@@ -596,11 +793,13 @@ export type MemosUpdateWithoutHistoriesInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  user?: Prisma.UserUpdateOneRequiredWithoutMemosNestedInput;
   memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput;
 };
 
 export type MemosUncheckedUpdateWithoutHistoriesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number;
+  userId?: Prisma.IntFieldUpdateOperationsInput | number;
   orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
   height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
@@ -621,11 +820,13 @@ export type MemosCreateWithoutMemo_tagsInput = {
   deletedAt?: Date | string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  user: Prisma.UserCreateNestedOneWithoutMemosInput;
   histories?: Prisma.MemoHistoriesCreateNestedManyWithoutMemoInput;
 };
 
 export type MemosUncheckedCreateWithoutMemo_tagsInput = {
   id?: number;
+  userId: number;
   orderIndex?: number;
   width?: number | null;
   height?: number | null;
@@ -674,10 +875,50 @@ export type MemosUpdateWithoutMemo_tagsInput = {
   deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  user?: Prisma.UserUpdateOneRequiredWithoutMemosNestedInput;
   histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput;
 };
 
 export type MemosUncheckedUpdateWithoutMemo_tagsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  userId?: Prisma.IntFieldUpdateOperationsInput | number;
+  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
+  width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  title?: Prisma.StringFieldUpdateOperationsInput | string;
+  content?: Prisma.StringFieldUpdateOperationsInput | string;
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  histories?: Prisma.MemoHistoriesUncheckedUpdateManyWithoutMemoNestedInput;
+};
+
+export type MemosCreateManyUserInput = {
+  id?: number;
+  orderIndex?: number;
+  width?: number | null;
+  height?: number | null;
+  title: string;
+  content: string;
+  deletedAt?: Date | string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+};
+
+export type MemosUpdateWithoutUserInput = {
+  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
+  width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  title?: Prisma.StringFieldUpdateOperationsInput | string;
+  content?: Prisma.StringFieldUpdateOperationsInput | string;
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  histories?: Prisma.MemoHistoriesUpdateManyWithoutMemoNestedInput;
+  memo_tags?: Prisma.memo_tagsUpdateManyWithoutMemoNestedInput;
+};
+
+export type MemosUncheckedUpdateWithoutUserInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number;
   orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
   width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
@@ -688,6 +929,19 @@ export type MemosUncheckedUpdateWithoutMemo_tagsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   histories?: Prisma.MemoHistoriesUncheckedUpdateManyWithoutMemoNestedInput;
+  memo_tags?: Prisma.memo_tagsUncheckedUpdateManyWithoutMemoNestedInput;
+};
+
+export type MemosUncheckedUpdateManyWithoutUserInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  orderIndex?: Prisma.IntFieldUpdateOperationsInput | number;
+  width?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  height?: Prisma.NullableIntFieldUpdateOperationsInput | number | null;
+  title?: Prisma.StringFieldUpdateOperationsInput | string;
+  content?: Prisma.StringFieldUpdateOperationsInput | string;
+  deletedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
 };
 
 /**
@@ -741,6 +995,7 @@ export type MemosSelect<
 > = runtime.Types.Extensions.GetSelect<
   {
     id?: boolean;
+    userId?: boolean;
     orderIndex?: boolean;
     width?: boolean;
     height?: boolean;
@@ -749,6 +1004,7 @@ export type MemosSelect<
     deletedAt?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
     histories?: boolean | Prisma.Memos$historiesArgs<ExtArgs>;
     memo_tags?: boolean | Prisma.Memos$memo_tagsArgs<ExtArgs>;
     _count?: boolean | Prisma.MemosCountOutputTypeDefaultArgs<ExtArgs>;
@@ -761,6 +1017,7 @@ export type MemosSelectCreateManyAndReturn<
 > = runtime.Types.Extensions.GetSelect<
   {
     id?: boolean;
+    userId?: boolean;
     orderIndex?: boolean;
     width?: boolean;
     height?: boolean;
@@ -769,6 +1026,7 @@ export type MemosSelectCreateManyAndReturn<
     deletedAt?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
   },
   ExtArgs['result']['memos']
 >;
@@ -778,6 +1036,7 @@ export type MemosSelectUpdateManyAndReturn<
 > = runtime.Types.Extensions.GetSelect<
   {
     id?: boolean;
+    userId?: boolean;
     orderIndex?: boolean;
     width?: boolean;
     height?: boolean;
@@ -786,12 +1045,14 @@ export type MemosSelectUpdateManyAndReturn<
     deletedAt?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
   },
   ExtArgs['result']['memos']
 >;
 
 export type MemosSelectScalar = {
   id?: boolean;
+  userId?: boolean;
   orderIndex?: boolean;
   width?: boolean;
   height?: boolean;
@@ -806,6 +1067,7 @@ export type MemosOmit<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetOmit<
   | 'id'
+  | 'userId'
   | 'orderIndex'
   | 'width'
   | 'height'
@@ -819,28 +1081,35 @@ export type MemosOmit<
 export type MemosInclude<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
   histories?: boolean | Prisma.Memos$historiesArgs<ExtArgs>;
   memo_tags?: boolean | Prisma.Memos$memo_tagsArgs<ExtArgs>;
   _count?: boolean | Prisma.MemosCountOutputTypeDefaultArgs<ExtArgs>;
 };
 export type MemosIncludeCreateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
-> = {};
+> = {
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
+};
 export type MemosIncludeUpdateManyAndReturn<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
-> = {};
+> = {
+  user?: boolean | Prisma.UserDefaultArgs<ExtArgs>;
+};
 
 export type $MemosPayload<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   name: 'Memos';
   objects: {
+    user: Prisma.$UserPayload<ExtArgs>;
     histories: Prisma.$MemoHistoriesPayload<ExtArgs>[];
     memo_tags: Prisma.$memo_tagsPayload<ExtArgs>[];
   };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
       id: number;
+      userId: number;
       orderIndex: number;
       width: number | null;
       height: number | null;
@@ -1359,6 +1628,20 @@ export interface Prisma__MemosClient<
   GlobalOmitOptions = {},
 > extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: 'PrismaPromise';
+  user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>,
+  ): Prisma.Prisma__UserClient<
+    | runtime.Types.Result.GetResult<
+        Prisma.$UserPayload<ExtArgs>,
+        T,
+        'findUniqueOrThrow',
+        GlobalOmitOptions
+      >
+    | Null,
+    Null,
+    ExtArgs,
+    GlobalOmitOptions
+  >;
   histories<T extends Prisma.Memos$historiesArgs<ExtArgs> = {}>(
     args?: Prisma.Subset<T, Prisma.Memos$historiesArgs<ExtArgs>>,
   ): Prisma.PrismaPromise<
@@ -1413,6 +1696,7 @@ export interface Prisma__MemosClient<
  */
 export interface MemosFieldRefs {
   readonly id: Prisma.FieldRef<'Memos', 'Int'>;
+  readonly userId: Prisma.FieldRef<'Memos', 'Int'>;
   readonly orderIndex: Prisma.FieldRef<'Memos', 'Int'>;
   readonly width: Prisma.FieldRef<'Memos', 'Int'>;
   readonly height: Prisma.FieldRef<'Memos', 'Int'>;
@@ -1690,6 +1974,10 @@ export type MemosCreateManyAndReturnArgs<
    */
   data: Prisma.MemosCreateManyInput | Prisma.MemosCreateManyInput[];
   skipDuplicates?: boolean;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemosIncludeCreateManyAndReturn<ExtArgs> | null;
 };
 
 /**
@@ -1766,6 +2054,10 @@ export type MemosUpdateManyAndReturnArgs<
    * Limit how many Memos to update.
    */
   limit?: number;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemosIncludeUpdateManyAndReturn<ExtArgs> | null;
 };
 
 /**

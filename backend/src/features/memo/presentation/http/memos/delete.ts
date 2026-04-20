@@ -1,6 +1,11 @@
-import { Router } from "express";
-import { handleRouteError, parseParams, positiveIntField } from "../../../../../shared/http/requestValidation";
-import type { MemoUseCases } from "../../../application/memoUseCases";
+import { Router } from 'express';
+import {
+  handleRouteError,
+  parseParams,
+  positiveIntField,
+} from '../../../../../shared/http/requestValidation';
+import { requireUserId } from '../../../../../shared/http/authContext';
+import type { MemoUseCases } from '../../../application/memoUseCases';
 
 const parseDeleteParams = (value: unknown) =>
   parseParams(value, {
@@ -10,14 +15,14 @@ const parseDeleteParams = (value: unknown) =>
 export const createDeleteRouter = ({ moveMemoToTrash }: MemoUseCases) => {
   const deleteRouter = Router();
 
-  deleteRouter.delete("/:id", async (req, res) => {
+  deleteRouter.delete('/:id', async (req, res) => {
     try {
       const { id } = parseDeleteParams(req.params);
-      const deletedMemo = await moveMemoToTrash(id);
+      const deletedMemo = await moveMemoToTrash(requireUserId(req), id);
 
       res.status(200).json(deletedMemo);
     } catch (error) {
-      return handleRouteError(res, error, "Failed to move memo to trash.", "Memo not found.");
+      return handleRouteError(res, error, 'Failed to move memo to trash.', 'Memo not found.');
     }
   });
 

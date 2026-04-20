@@ -220,6 +220,8 @@ export type UserWhereInput = {
   displayName?: Prisma.StringNullableFilter<'User'> | string | null;
   createdAt?: Prisma.DateTimeFilter<'User'> | Date | string;
   updatedAt?: Prisma.DateTimeFilter<'User'> | Date | string;
+  memos?: Prisma.MemosListRelationFilter;
+  tags?: Prisma.TagsListRelationFilter;
 };
 
 export type UserOrderByWithRelationInput = {
@@ -229,6 +231,8 @@ export type UserOrderByWithRelationInput = {
   displayName?: Prisma.SortOrderInput | Prisma.SortOrder;
   createdAt?: Prisma.SortOrder;
   updatedAt?: Prisma.SortOrder;
+  memos?: Prisma.MemosOrderByRelationAggregateInput;
+  tags?: Prisma.TagsOrderByRelationAggregateInput;
 };
 
 export type UserWhereUniqueInput = Prisma.AtLeast<
@@ -242,6 +246,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<
     displayName?: Prisma.StringNullableFilter<'User'> | string | null;
     createdAt?: Prisma.DateTimeFilter<'User'> | Date | string;
     updatedAt?: Prisma.DateTimeFilter<'User'> | Date | string;
+    memos?: Prisma.MemosListRelationFilter;
+    tags?: Prisma.TagsListRelationFilter;
   },
   'id' | 'email'
 >;
@@ -278,6 +284,8 @@ export type UserCreateInput = {
   displayName?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
 };
 
 export type UserUncheckedCreateInput = {
@@ -287,6 +295,8 @@ export type UserUncheckedCreateInput = {
   displayName?: string | null;
   createdAt?: Date | string;
   updatedAt?: Date | string;
+  memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
+  tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
 };
 
 export type UserUpdateInput = {
@@ -295,6 +305,8 @@ export type UserUpdateInput = {
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
 };
 
 export type UserUncheckedUpdateInput = {
@@ -304,6 +316,8 @@ export type UserUncheckedUpdateInput = {
   displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
+  tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
 };
 
 export type UserCreateManyInput = {
@@ -367,6 +381,11 @@ export type UserSumOrderByAggregateInput = {
   id?: Prisma.SortOrder;
 };
 
+export type UserScalarRelationFilter = {
+  is?: Prisma.UserWhereInput;
+  isNot?: Prisma.UserWhereInput;
+};
+
 export type StringFieldUpdateOperationsInput = {
   set?: string;
 };
@@ -387,6 +406,218 @@ export type IntFieldUpdateOperationsInput = {
   divide?: number;
 };
 
+export type UserCreateNestedOneWithoutMemosInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutMemosInput,
+    Prisma.UserUncheckedCreateWithoutMemosInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemosInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneRequiredWithoutMemosNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutMemosInput,
+    Prisma.UserUncheckedCreateWithoutMemosInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMemosInput;
+  upsert?: Prisma.UserUpsertWithoutMemosInput;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<
+      Prisma.UserUpdateToOneWithWhereWithoutMemosInput,
+      Prisma.UserUpdateWithoutMemosInput
+    >,
+    Prisma.UserUncheckedUpdateWithoutMemosInput
+  >;
+};
+
+export type UserCreateNestedOneWithoutTagsInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutTagsInput,
+    Prisma.UserUncheckedCreateWithoutTagsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTagsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+};
+
+export type UserUpdateOneRequiredWithoutTagsNestedInput = {
+  create?: Prisma.XOR<
+    Prisma.UserCreateWithoutTagsInput,
+    Prisma.UserUncheckedCreateWithoutTagsInput
+  >;
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutTagsInput;
+  upsert?: Prisma.UserUpsertWithoutTagsInput;
+  connect?: Prisma.UserWhereUniqueInput;
+  update?: Prisma.XOR<
+    Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutTagsInput, Prisma.UserUpdateWithoutTagsInput>,
+    Prisma.UserUncheckedUpdateWithoutTagsInput
+  >;
+};
+
+export type UserCreateWithoutMemosInput = {
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  tags?: Prisma.TagsCreateNestedManyWithoutUserInput;
+};
+
+export type UserUncheckedCreateWithoutMemosInput = {
+  id?: number;
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  tags?: Prisma.TagsUncheckedCreateNestedManyWithoutUserInput;
+};
+
+export type UserCreateOrConnectWithoutMemosInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutMemosInput,
+    Prisma.UserUncheckedCreateWithoutMemosInput
+  >;
+};
+
+export type UserUpsertWithoutMemosInput = {
+  update: Prisma.XOR<
+    Prisma.UserUpdateWithoutMemosInput,
+    Prisma.UserUncheckedUpdateWithoutMemosInput
+  >;
+  create: Prisma.XOR<
+    Prisma.UserCreateWithoutMemosInput,
+    Prisma.UserUncheckedCreateWithoutMemosInput
+  >;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutMemosInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMemosInput, Prisma.UserUncheckedUpdateWithoutMemosInput>;
+};
+
+export type UserUpdateWithoutMemosInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  tags?: Prisma.TagsUpdateManyWithoutUserNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutMemosInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  tags?: Prisma.TagsUncheckedUpdateManyWithoutUserNestedInput;
+};
+
+export type UserCreateWithoutTagsInput = {
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosCreateNestedManyWithoutUserInput;
+};
+
+export type UserUncheckedCreateWithoutTagsInput = {
+  id?: number;
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+  memos?: Prisma.MemosUncheckedCreateNestedManyWithoutUserInput;
+};
+
+export type UserCreateOrConnectWithoutTagsInput = {
+  where: Prisma.UserWhereUniqueInput;
+  create: Prisma.XOR<Prisma.UserCreateWithoutTagsInput, Prisma.UserUncheckedCreateWithoutTagsInput>;
+};
+
+export type UserUpsertWithoutTagsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutTagsInput, Prisma.UserUncheckedUpdateWithoutTagsInput>;
+  create: Prisma.XOR<Prisma.UserCreateWithoutTagsInput, Prisma.UserUncheckedCreateWithoutTagsInput>;
+  where?: Prisma.UserWhereInput;
+};
+
+export type UserUpdateToOneWithWhereWithoutTagsInput = {
+  where?: Prisma.UserWhereInput;
+  data: Prisma.XOR<Prisma.UserUpdateWithoutTagsInput, Prisma.UserUncheckedUpdateWithoutTagsInput>;
+};
+
+export type UserUpdateWithoutTagsInput = {
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUpdateManyWithoutUserNestedInput;
+};
+
+export type UserUncheckedUpdateWithoutTagsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number;
+  email?: Prisma.StringFieldUpdateOperationsInput | string;
+  passwordHash?: Prisma.StringFieldUpdateOperationsInput | string;
+  displayName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null;
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string;
+  memos?: Prisma.MemosUncheckedUpdateManyWithoutUserNestedInput;
+};
+
+/**
+ * Count Type UserCountOutputType
+ */
+
+export type UserCountOutputType = {
+  memos: number;
+  tags: number;
+};
+
+export type UserCountOutputTypeSelect<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  memos?: boolean | UserCountOutputTypeCountMemosArgs;
+  tags?: boolean | UserCountOutputTypeCountTagsArgs;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeDefaultArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the UserCountOutputType
+   */
+  select?: Prisma.UserCountOutputTypeSelect<ExtArgs> | null;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountMemosArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.MemosWhereInput;
+};
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountTagsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  where?: Prisma.TagsWhereInput;
+};
+
 export type UserSelect<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = runtime.Types.Extensions.GetSelect<
@@ -397,6 +628,9 @@ export type UserSelect<
     displayName?: boolean;
     createdAt?: boolean;
     updatedAt?: boolean;
+    memos?: boolean | Prisma.User$memosArgs<ExtArgs>;
+    tags?: boolean | Prisma.User$tagsArgs<ExtArgs>;
+    _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
   },
   ExtArgs['result']['user']
 >;
@@ -444,12 +678,28 @@ export type UserOmit<
   'id' | 'email' | 'passwordHash' | 'displayName' | 'createdAt' | 'updatedAt',
   ExtArgs['result']['user']
 >;
+export type UserInclude<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  memos?: boolean | Prisma.User$memosArgs<ExtArgs>;
+  tags?: boolean | Prisma.User$tagsArgs<ExtArgs>;
+  _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>;
+};
+export type UserIncludeCreateManyAndReturn<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {};
+export type UserIncludeUpdateManyAndReturn<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {};
 
 export type $UserPayload<
   ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
 > = {
   name: 'User';
-  objects: {};
+  objects: {
+    memos: Prisma.$MemosPayload<ExtArgs>[];
+    tags: Prisma.$TagsPayload<ExtArgs>[];
+  };
   scalars: runtime.Types.Extensions.GetPayloadResult<
     {
       id: number;
@@ -968,6 +1218,23 @@ export interface Prisma__UserClient<
   GlobalOmitOptions = {},
 > extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: 'PrismaPromise';
+  memos<T extends Prisma.User$memosArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$memosArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<
+        Prisma.$MemosPayload<ExtArgs>,
+        T,
+        'findMany',
+        GlobalOmitOptions
+      >
+    | Null
+  >;
+  tags<T extends Prisma.User$tagsArgs<ExtArgs> = {}>(
+    args?: Prisma.Subset<T, Prisma.User$tagsArgs<ExtArgs>>,
+  ): Prisma.PrismaPromise<
+    | runtime.Types.Result.GetResult<Prisma.$TagsPayload<ExtArgs>, T, 'findMany', GlobalOmitOptions>
+    | Null
+  >;
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1023,6 +1290,10 @@ export type UserFindUniqueArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * Filter, which User to fetch.
    */
   where: Prisma.UserWhereUniqueInput;
@@ -1043,6 +1314,10 @@ export type UserFindUniqueOrThrowArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * Filter, which User to fetch.
    */
   where: Prisma.UserWhereUniqueInput;
@@ -1062,6 +1337,10 @@ export type UserFindFirstArgs<
    * Omit specific fields from the User
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
   /**
    * Filter, which User to fetch.
    */
@@ -1113,6 +1392,10 @@ export type UserFindFirstOrThrowArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * Filter, which User to fetch.
    */
   where?: Prisma.UserWhereInput;
@@ -1163,6 +1446,10 @@ export type UserFindManyArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * Filter, which Users to fetch.
    */
   where?: Prisma.UserWhereInput;
@@ -1212,6 +1499,10 @@ export type UserCreateArgs<
    * Omit specific fields from the User
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
   /**
    * The data needed to create a User.
    */
@@ -1266,6 +1557,10 @@ export type UserUpdateArgs<
    * Omit specific fields from the User
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
   /**
    * The data needed to update a User.
    */
@@ -1339,6 +1634,10 @@ export type UserUpsertArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * The filter to search for the User to update in case it exists.
    */
   where: Prisma.UserWhereUniqueInput;
@@ -1367,6 +1666,10 @@ export type UserDeleteArgs<
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
+  /**
    * Filter which User to delete.
    */
   where: Prisma.UserWhereUniqueInput;
@@ -1389,6 +1692,58 @@ export type UserDeleteManyArgs<
 };
 
 /**
+ * User.memos
+ */
+export type User$memosArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Memos
+   */
+  select?: Prisma.MemosSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Memos
+   */
+  omit?: Prisma.MemosOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MemosInclude<ExtArgs> | null;
+  where?: Prisma.MemosWhereInput;
+  orderBy?: Prisma.MemosOrderByWithRelationInput | Prisma.MemosOrderByWithRelationInput[];
+  cursor?: Prisma.MemosWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.MemosScalarFieldEnum | Prisma.MemosScalarFieldEnum[];
+};
+
+/**
+ * User.tags
+ */
+export type User$tagsArgs<
+  ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs,
+> = {
+  /**
+   * Select specific fields to fetch from the Tags
+   */
+  select?: Prisma.TagsSelect<ExtArgs> | null;
+  /**
+   * Omit specific fields from the Tags
+   */
+  omit?: Prisma.TagsOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.TagsInclude<ExtArgs> | null;
+  where?: Prisma.TagsWhereInput;
+  orderBy?: Prisma.TagsOrderByWithRelationInput | Prisma.TagsOrderByWithRelationInput[];
+  cursor?: Prisma.TagsWhereUniqueInput;
+  take?: number;
+  skip?: number;
+  distinct?: Prisma.TagsScalarFieldEnum | Prisma.TagsScalarFieldEnum[];
+};
+
+/**
  * User without action
  */
 export type UserDefaultArgs<
@@ -1402,4 +1757,8 @@ export type UserDefaultArgs<
    * Omit specific fields from the User
    */
   omit?: Prisma.UserOmit<ExtArgs> | null;
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.UserInclude<ExtArgs> | null;
 };
