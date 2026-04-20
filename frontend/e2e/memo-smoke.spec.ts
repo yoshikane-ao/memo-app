@@ -1,18 +1,12 @@
 import { expect, test } from '@playwright/test';
 
-// TODO(Phase 3.2): 認証導入に合わせて E2E を書き直す。
-//   - fakePrisma (backend/src/test/e2eApiServer.ts) に User モデルを追加し、
-//     /auth/register → /auth/login → /auth/me を通すこと
-//   - webServer.mjs の isApiRequest に /auth を追加すること
-//   - テーマ切替（ダーク/ライト）の色アサーションも ThemeToggle 経由で検証する
-//
-// 現状の問題:
-//   - /memos/list が authMiddleware で 401 を返すため、未認証で memo 画面に入れない
-//   - ダーク固定前提の背景色アサーションが、ライト既定化で破綻している
-test.fixme('creates, trashes, and undoes a memo through the menu flow', async ({ page }) => {
-  await page.goto('/');
+// /login のデモアカウントボタンでログインしてからメニュー経由で
+// メモの作成 → ごみ箱移動 → アンドゥまでの一連の流れを通す smoke テスト。
+test('creates, trashes, and undoes a memo through the menu flow', async ({ page }) => {
+  await page.goto('/login');
+  await page.locator('.auth-demo-button').click();
+  await expect(page).toHaveURL(/\/menu$/);
 
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(10, 10, 11)');
   await expect(page.locator('[data-menu-app-id="memo"]')).toBeVisible();
   await page.locator('[data-menu-app-id="memo"]').click();
 
