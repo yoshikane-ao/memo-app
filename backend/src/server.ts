@@ -4,11 +4,14 @@ import { initSentry } from './shared/sentry';
 initSentry();
 
 import { buildApp } from './app';
-import { config } from './config';
+import { assertProductionSecrets, config } from './config';
 import { ensureDemoUser } from './features/auth';
 import { logger } from './shared/logger';
 
 async function bootstrap() {
+  // 本番環境で JWT_SECRET が dev fallback のままデプロイされないよう、起動最初に検証する。
+  assertProductionSecrets();
+
   try {
     await ensureDemoUser();
   } catch (error) {
@@ -24,4 +27,8 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+bootstrap().catch((error) => {
+  // assertProductionSecrets などトップレベルの起動失敗をログに残してから非ゼロ終了する。
+  logger.fatal({ err: error }, 'backend 起動に失敗しました');
+  process.exit(1);
+});
