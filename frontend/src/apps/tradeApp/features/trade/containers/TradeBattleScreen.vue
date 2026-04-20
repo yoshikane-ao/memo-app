@@ -1,41 +1,35 @@
 ﻿<script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import StockBoard from './StockBoard.vue';
-import PlayerPanel from './PlayerPanel.vue';
-import ActionPanel from './ActionPanel.vue';
+import StockBoard from '../ui/StockBoard.vue';
+import PlayerPanel from '../ui/PlayerPanel.vue';
+import ActionPanel from '../ui/ActionPanel.vue';
 
-import type {
-  BattleActionDraft,
-  BattleClosePreview,
-  ChartOrderMarker,
-  PlayerId,
-  PlayerState,
-  StockKey,
-  StockState,
-} from '../features/trade';
+import type { PlayerId, PlayerState, StockKey, StockState } from '../types';
+import type { BattleActionDraft } from '../model/tradeBattle';
 import {
-  MAX_BATTLE_TURNS as MAX_TURNS,
-  buildActivePositionMarkers,
   buildBattleActionProjection,
   buildBattleConfirmedAction,
+  createDefaultBattleActionDraft,
+} from '../model/tradeBattle';
+import { calculatePlayerVictoryValue, formatCurrency } from '../model/gameCalculations';
+import { MAX_BATTLE_TURNS as MAX_TURNS, findPlayerById } from '../model/tradeBattleState';
+import type { BattleClosePreview, ChartOrderMarker } from '../model/tradeBattleSelectors';
+import {
+  buildActivePositionMarkers,
   buildBattleResult,
   buildPendingClosePreview,
   buildPendingCloseSummary,
   buildProjectedBoardPrices,
-  calculatePlayerVictoryValue,
   cloneStockSnapshots,
-  createDefaultBattleActionDraft,
-  createInitialGameState,
-  createTradeBattleFlow,
-  findPlayerById,
-  formatCurrency,
   hasProjectedChartMovement,
-  useTradeButtonSound,
-  useTradeGameStore,
-} from '../features/trade';
+} from '../model/tradeBattleSelectors';
+import { useTradeGameStore } from '../model/useTradeGameStore';
+import { createInitialGameState } from '../model/mockGame';
+import { createTradeBattleFlow } from '../application/tradeBattleFlow';
+import { useTradeButtonSound } from './useTradeButtonSound';
 
-import '../css/style.css';
+import '../../../css/style.css';
 
 const gameStore = useTradeGameStore();
 const router = useRouter();

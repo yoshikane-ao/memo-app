@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createInitialGameState } from '../infrastructure/mockGame';
+import { createInitialGameState } from './mockGame';
 import {
   AD_CAMPAIGN_ACTION,
   NO_COMPANY_ACTION,

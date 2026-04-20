@@ -2,7 +2,7 @@ import { ref } from 'vue';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AD_CAMPAIGN_ACTION, NO_COMPANY_ACTION, type StockKey } from '../types';
-import { createInitialGameState } from '../infrastructure/mockGame';
+import { createInitialGameState } from '../model/mockGame';
 import { createDefaultBattleActionDraft } from '../model/tradeBattle';
 import { findPlayerById, findStockByKey } from '../model/tradeBattleState';
 import { createTradeBattleFlow } from './tradeBattleFlow';

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
-import profileCreateBackgroundUrl from '../assets/profile-create-background.png';
+import profileCreateBackgroundUrl from '../../../assets/profile-create-background.png';
 import type {
   CreateTradeProfileInput,
   TradeProfileIcon,
   TradeProfileTheme,
-} from '../features/trade';
+} from '../model/useTradeProfileStore';
 
 const props = defineProps<{
   modelValue: boolean;

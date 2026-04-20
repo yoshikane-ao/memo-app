@@ -1,32 +1,44 @@
 <script setup lang="ts">
-import type { BattleMode } from '../../store/useTradeGameStore'
+import type { FirstPlayer } from '../../model/tradeSetup';
 
 const props = defineProps<{
-  modelValue: BattleMode
-}>()
+  modelValue: FirstPlayer;
+  player1Name: string;
+  player2Name: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: BattleMode): void
-}>()
-
-const options: Array<{ value: BattleMode; title: string }> = [
-  { value: 'pvp', title: 'P1 VS P2' },
-  { value: 'pvc', title: 'P1 VS CPU' },
-  { value: 'cvc', title: 'CPU VS CPU' },
-]
+  (e: 'update:modelValue', value: FirstPlayer): void;
+}>();
 </script>
 
 <template>
   <div class="segment-grid">
     <button
-      v-for="option in options"
-      :key="option.value"
       type="button"
       class="segment-button"
-      :class="{ 'segment-button--active': props.modelValue === option.value }"
-      @click="emit('update:modelValue', option.value)"
+      :class="{ 'segment-button--active': props.modelValue === 'p1' }"
+      @click="emit('update:modelValue', 'p1')"
     >
-      {{ option.title }}
+      {{ props.player1Name }} 先攻
+    </button>
+
+    <button
+      type="button"
+      class="segment-button"
+      :class="{ 'segment-button--active': props.modelValue === 'p2' }"
+      @click="emit('update:modelValue', 'p2')"
+    >
+      {{ props.player2Name }} 先攻
+    </button>
+
+    <button
+      type="button"
+      class="segment-button"
+      :class="{ 'segment-button--active': props.modelValue === 'random' }"
+      @click="emit('update:modelValue', 'random')"
+    >
+      ランダム
     </button>
   </div>
 </template>
@@ -39,7 +51,7 @@ const options: Array<{ value: BattleMode; title: string }> = [
 }
 
 .segment-button {
-  height: 42px;
+  height: 40px;
   padding: 0 10px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -49,7 +61,12 @@ const options: Array<{ value: BattleMode; title: string }> = [
   font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .segment-button:hover {
@@ -62,7 +79,7 @@ const options: Array<{ value: BattleMode; title: string }> = [
   background: linear-gradient(135deg, rgba(73, 119, 255, 0.9), rgba(58, 198, 255, 0.82));
   box-shadow:
     0 10px 22px rgba(52, 109, 255, 0.22),
-    inset 0 1px 0 rgba(255,255,255,0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 @media (max-width: 900px) {

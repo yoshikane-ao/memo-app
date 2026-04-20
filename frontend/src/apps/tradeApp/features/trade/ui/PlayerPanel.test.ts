@@ -1,13 +1,13 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import type { PlayerState, StockState } from '../features/trade';
+import type { PlayerState, StockState } from '../types';
 import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
   FACILITY_INVESTMENT_ACTION,
-  formatSignedCurrency,
-} from '../features/trade';
+} from '../types';
+import { formatSignedCurrency } from '../model/gameCalculations';
 import PlayerPanel from './PlayerPanel.vue';
 
 function createStocks(): StockState[] {

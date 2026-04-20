@@ -7,7 +7,7 @@ import {
   type GameState,
   type PlayerState,
 } from '../types';
-import { createInitialGameState } from '../infrastructure/mockGame';
+import { createInitialGameState } from './mockGame';
 import {
   advanceBattleTurnState,
   formatPositionUnits,

@@ -1,21 +1,21 @@
 <script setup lang="ts">
-type StartingCashMode = 'same' | 'separate'
+type StartingCashMode = 'same' | 'separate';
 
 const props = defineProps<{
-  cashMode: StartingCashMode
-  sharedCash: number
-  player1Cash: number
-  player2Cash: number
-  player1Name: string
-  player2Name: string
-}>()
+  cashMode: StartingCashMode;
+  sharedCash: number;
+  player1Cash: number;
+  player2Cash: number;
+  player1Name: string;
+  player2Name: string;
+}>();
 
 const emit = defineEmits<{
-  (e: 'update:cashMode', value: StartingCashMode): void
-  (e: 'update:sharedCash', value: number): void
-  (e: 'update:player1Cash', value: number): void
-  (e: 'update:player2Cash', value: number): void
-}>()
+  (e: 'update:cashMode', value: StartingCashMode): void;
+  (e: 'update:sharedCash', value: number): void;
+  (e: 'update:player1Cash', value: number): void;
+  (e: 'update:player2Cash', value: number): void;
+}>();
 </script>
 
 <template>
@@ -112,7 +112,10 @@ const emit = defineEmits<{
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .mode-button:hover {
@@ -125,7 +128,7 @@ const emit = defineEmits<{
   background: linear-gradient(135deg, rgba(73, 119, 255, 0.9), rgba(58, 198, 255, 0.82));
   box-shadow:
     0 10px 22px rgba(52, 109, 255, 0.22),
-    inset 0 1px 0 rgba(255,255,255,0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .cash-grid {

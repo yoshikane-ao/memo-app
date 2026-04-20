@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
-import type { StockState } from '../features/trade';
+import type { StockState } from '../types';
 import StockBoard from './StockBoard.vue';
 
 function createStocks(): StockState[] {

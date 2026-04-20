@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BattleActionPreview } from '../features/trade';
+import type { BattleActionPreview } from '../model/tradeBattle';
 
 type CpuIndicatorStats = {
   participantCount: number;
