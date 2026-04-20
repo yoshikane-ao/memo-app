@@ -1,5 +1,6 @@
 import { prisma } from '../../../db';
 import { syncSerialSequence } from '../../../shared/db/syncSerialSequence';
+import { RecordNotFoundError } from '../../../shared/errors';
 import type { RestoreTagInput, TagRecord, TagRepository } from '../application/tagPorts';
 
 const toTagRecord = (tag: { id: number; title: string }): TagRecord => ({
@@ -18,7 +19,7 @@ const assertMemoOwnership = async (
     select: { id: true },
   });
   if (!memo) {
-    throw { code: 'P2025' };
+    throw new RecordNotFoundError();
   }
 };
 
@@ -32,7 +33,7 @@ const assertTagOwnership = async (
     select: { id: true },
   });
   if (!tag) {
-    throw { code: 'P2025' };
+    throw new RecordNotFoundError();
   }
 };
 

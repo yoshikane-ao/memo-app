@@ -1,5 +1,6 @@
 import type { Prisma } from '../../../generated/prisma/client';
 import { prisma } from '../../../db';
+import { RecordNotFoundError } from '../../../shared/errors';
 import type {
   BulkQuizLabelOperation,
   BulkUpdateQuizLabelsInput,
@@ -172,7 +173,7 @@ export const createQuizRepository = (): QuizRepository => ({
         select: { id: true },
       });
       if (!existing) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
 
       await tx.quizTagsRelations.deleteMany({ where: { quiz_id: input.id } });
@@ -194,7 +195,7 @@ export const createQuizRepository = (): QuizRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
   },
 
@@ -224,7 +225,7 @@ export const createQuizRepository = (): QuizRepository => ({
         select: { id: true },
       });
       if (!tag) {
-        throw { code: 'P2025' };
+        throw new RecordNotFoundError();
       }
 
       await tx.quizTagsRelations.deleteMany({ where: { quizTag_id: tagId } });
@@ -253,7 +254,7 @@ export const createQuizRepository = (): QuizRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
   },
 
@@ -276,7 +277,7 @@ export const createQuizRepository = (): QuizRepository => ({
     });
 
     if (quizzes.length !== input.quizIds.length) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
     const nextGroupNames = input.groups
@@ -380,7 +381,7 @@ export const createQuizRepository = (): QuizRepository => ({
     });
 
     if (result.count === 0) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
     return { id, isFavorite };
