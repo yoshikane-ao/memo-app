@@ -1,3 +1,4 @@
+import { RecordNotFoundError } from '../../../shared/errors';
 import { RequestValidationError } from '../../../shared/http/requestValidation';
 import type {
   CreateMemoInput,
@@ -23,10 +24,8 @@ export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRep
     return memoRepository.create(input);
   },
 
-  async updateMemo(input: UpdateMemoInput) {
-    const updatedMemo = await memoRepository.update(input);
-    await memoRepository.createHistory(input.userId, input.id, input.title, input.content);
-    return updatedMemo;
+  updateMemo(input: UpdateMemoInput) {
+    return memoRepository.updateWithHistory(input);
   },
 
   moveMemoToTrash(userId: number, id: number) {
@@ -45,7 +44,7 @@ export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRep
     const existingMemo = await memoRepository.findById(userId, id);
 
     if (!existingMemo) {
-      throw { code: 'P2025' };
+      throw new RecordNotFoundError();
     }
 
     if (existingMemo.deletedAt == null) {
