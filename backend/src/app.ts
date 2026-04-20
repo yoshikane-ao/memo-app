@@ -57,7 +57,19 @@ export function buildApp() {
   app.use(requestLogger);
   app.use(metricsMiddleware);
   app.use(cors());
-  app.use(helmet());
+  // Swagger UI が 'unsafe-inline' / 'unsafe-eval' を要求し、HTTP 配信環境では
+  // upgrade-insecure-requests が誤動作するため、CSP を portfolio 用に緩める。
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          'upgrade-insecure-requests': null,
+        },
+      },
+    }),
+  );
   app.use(createRateLimiter());
   app.use(express.json());
   app.use(cookieParser());
