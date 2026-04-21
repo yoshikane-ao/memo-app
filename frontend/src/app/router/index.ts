@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
     name: 'login',
     component: LoginPage,
     meta: {
-      pageTitle: 'ログイン | Memo App',
+      pageTitle: 'ログイン | ポートフォリオハブ',
       requiresAuth: false,
       hideForAuthenticated: true,
     },
@@ -33,7 +33,7 @@ const routes: RouteRecordRaw[] = [
     name: 'register',
     component: RegisterPage,
     meta: {
-      pageTitle: '新規登録 | Memo App',
+      pageTitle: '新規登録 | ポートフォリオハブ',
       requiresAuth: false,
       hideForAuthenticated: true,
     },
@@ -47,7 +47,7 @@ const routes: RouteRecordRaw[] = [
         name: 'menu-home',
         component: MenuHomePage,
         meta: {
-          pageTitle: 'Memo App',
+          pageTitle: 'ポートフォリオハブ',
           requiresAuth: false,
         },
       },
@@ -66,7 +66,7 @@ const applyDocumentTitle = (pageTitle?: unknown) => {
   }
 
   document.title =
-    typeof pageTitle === 'string' && pageTitle.trim() !== '' ? pageTitle : 'Memo App';
+    typeof pageTitle === 'string' && pageTitle.trim() !== '' ? pageTitle : 'ポートフォリオハブ';
 };
 
 export const createAppRouter = (history: RouterHistory = createWebHistory()) => {

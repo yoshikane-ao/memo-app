@@ -1,5 +1,4 @@
 node_modules/
-tmp-chrome-profile*/
-tmp-*.png
-tmp-*.log
+tmp-*
+text.txt
 .env

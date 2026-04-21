@@ -1,38 +1,41 @@
+/*
+ * Menu theme — 白基調 / ネイビーアクセント
+ *   色彩心理学の方針:
+ *     白 (#ffffff)       … 清潔・誠実・余白による集中
+ *     ネイビー (#1e40af) … 信頼・知性。ここぞの一箇所だけに使う
+ *     スレートグレー     … 中性的で色相を主張しない下地と文字
+ */
+
 .menu-shell {
   --menu-bg: var(--app-shell-bg);
   --menu-surface: #ffffff;
-  --menu-surface-strong: #f4efe7;
-  --menu-surface-soft: #ede6da;
+  --menu-surface-strong: #f8fafc;
+  --menu-surface-soft: #f1f5f9;
   --menu-text: var(--app-shell-text);
-  --menu-text-soft: #4a453e;
-  --menu-text-muted: #7a7366;
-  --menu-accent: #c86a38;
-  --menu-accent-strong: #a55427;
-  --menu-accent-soft: rgba(200, 106, 56, 0.12);
-  --menu-border: rgba(30, 20, 10, 0.12);
-  --menu-shadow: 0 18px 42px rgba(60, 40, 20, 0.08);
-  --menu-card-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.08), transparent 24%),
-    linear-gradient(180deg, #ffffff, #f8f2e8);
-  --menu-card-border: rgba(30, 20, 10, 0.08);
-  --menu-chip-bg: rgba(30, 20, 10, 0.04);
-  --menu-chip-border: rgba(30, 20, 10, 0.08);
-  --menu-hero-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.12), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(30, 20, 10, 0.04), transparent 32%),
-    linear-gradient(135deg, #ffffff, #f5eee3);
-  --menu-hero-glow: radial-gradient(circle, rgba(200, 106, 56, 0.18), transparent 66%);
-  --menu-header-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.1), transparent 30%),
-    linear-gradient(180deg, #ffffff, #f4ede1);
-  --menu-thumb-bg: rgba(30, 20, 10, 0.04);
-  --menu-stack-bg: rgba(30, 20, 10, 0.04);
-  --menu-stack-border: rgba(30, 20, 10, 0.08);
-  --menu-card-elevation: 0 14px 30px rgba(60, 40, 20, 0.08);
-  --menu-card-elevation-hover: 0 22px 40px rgba(60, 40, 20, 0.14);
-  --menu-compact-bg: rgba(30, 20, 10, 0.04);
-  --menu-compact-hover-bg: rgba(200, 106, 56, 0.1);
-  --menu-footer-border: rgba(30, 20, 10, 0.1);
+  --menu-text-soft: #475569;
+  --menu-text-muted: #94a3b8;
+  --menu-accent: #1e40af;
+  --menu-accent-strong: #1e3a8a;
+  --menu-accent-soft: rgba(30, 64, 175, 0.08);
+  --menu-accent-border: rgba(30, 64, 175, 0.22);
+  --menu-accent-border-strong: rgba(30, 64, 175, 0.32);
+  --menu-border: rgba(15, 23, 42, 0.08);
+  --menu-shadow: 0 18px 42px rgba(15, 23, 42, 0.04);
+  --menu-card-bg: #ffffff;
+  --menu-card-border: rgba(15, 23, 42, 0.06);
+  --menu-chip-bg: rgba(15, 23, 42, 0.04);
+  --menu-chip-border: rgba(15, 23, 42, 0.06);
+  --menu-hero-bg: #ffffff;
+  --menu-hero-glow: radial-gradient(circle, rgba(30, 64, 175, 0.06), transparent 66%);
+  --menu-header-bg: rgba(255, 255, 255, 0.9);
+  --menu-thumb-bg: #f8fafc;
+  --menu-stack-bg: #f8fafc;
+  --menu-stack-border: rgba(15, 23, 42, 0.06);
+  --menu-card-elevation: 0 14px 30px rgba(15, 23, 42, 0.04);
+  --menu-card-elevation-hover: 0 22px 40px rgba(15, 23, 42, 0.08);
+  --menu-compact-bg: rgba(15, 23, 42, 0.03);
+  --menu-compact-hover-bg: rgba(30, 64, 175, 0.06);
+  --menu-footer-border: rgba(15, 23, 42, 0.08);
   --menu-font-stack: var(--app-shell-font);
   display: flex;
   flex-direction: column;
@@ -42,36 +45,32 @@
 }
 
 [data-theme="dark"] .menu-shell {
-  --menu-surface: #121214;
-  --menu-surface-strong: #17171a;
-  --menu-surface-soft: #1d1d22;
-  --menu-text-soft: #c4bbb0;
-  --menu-text-muted: #8f867b;
-  --menu-accent-strong: #ee8b57;
-  --menu-accent-soft: rgba(200, 106, 56, 0.14);
+  --menu-surface: #0f172a;
+  --menu-surface-strong: #1e293b;
+  --menu-surface-soft: #334155;
+  --menu-text-soft: #cbd5e1;
+  --menu-text-muted: #94a3b8;
+  --menu-accent: #60a5fa;
+  --menu-accent-strong: #93c5fd;
+  --menu-accent-soft: rgba(96, 165, 250, 0.12);
+  --menu-accent-border: rgba(96, 165, 250, 0.28);
+  --menu-accent-border-strong: rgba(96, 165, 250, 0.4);
   --menu-border: rgba(255, 255, 255, 0.08);
   --menu-shadow: 0 24px 54px rgba(0, 0, 0, 0.34);
-  --menu-card-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.1), transparent 24%),
-    linear-gradient(180deg, rgba(28, 28, 31, 0.94), rgba(16, 16, 18, 0.96));
+  --menu-card-bg: rgba(15, 23, 42, 0.72);
   --menu-card-border: rgba(255, 255, 255, 0.07);
   --menu-chip-bg: rgba(255, 255, 255, 0.04);
   --menu-chip-border: rgba(255, 255, 255, 0.06);
-  --menu-hero-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.16), transparent 24%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.05), transparent 32%),
-    linear-gradient(135deg, rgba(24, 24, 28, 0.98), rgba(8, 8, 10, 0.98));
-  --menu-hero-glow: radial-gradient(circle, rgba(200, 106, 56, 0.22), transparent 66%);
-  --menu-header-bg:
-    radial-gradient(circle at top right, rgba(200, 106, 56, 0.14), transparent 30%),
-    linear-gradient(180deg, rgba(26, 26, 30, 0.96), rgba(12, 12, 14, 0.96));
+  --menu-hero-bg: rgba(15, 23, 42, 0.9);
+  --menu-hero-glow: radial-gradient(circle, rgba(96, 165, 250, 0.16), transparent 66%);
+  --menu-header-bg: rgba(15, 23, 42, 0.9);
   --menu-thumb-bg: rgba(255, 255, 255, 0.03);
   --menu-stack-bg: rgba(255, 255, 255, 0.03);
   --menu-stack-border: rgba(255, 255, 255, 0.05);
   --menu-card-elevation: 0 16px 34px rgba(0, 0, 0, 0.22);
   --menu-card-elevation-hover: 0 22px 42px rgba(0, 0, 0, 0.28);
   --menu-compact-bg: rgba(255, 255, 255, 0.04);
-  --menu-compact-hover-bg: rgba(200, 106, 56, 0.08);
+  --menu-compact-hover-bg: rgba(96, 165, 250, 0.08);
   --menu-footer-border: rgba(255, 255, 255, 0.08);
 }
 

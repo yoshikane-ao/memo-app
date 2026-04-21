@@ -76,10 +76,10 @@
 .menu-shell-user {
   font-size: 0.76rem;
   color: var(--menu-text-soft);
-  padding: 4px 10px;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: var(--menu-chip-bg);
-  border: 1px solid var(--menu-chip-border);
+  background: var(--menu-compact-bg);
+  border: 1px solid var(--menu-border);
   max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -107,9 +107,9 @@
 }
 
 .menu-shell-auth-button:hover {
-  background: var(--menu-accent-soft, rgba(200, 106, 56, 0.12));
-  color: var(--menu-accent-strong, #a55427);
-  border-color: rgba(200, 106, 56, 0.32);
+  background: var(--menu-accent-soft);
+  color: var(--menu-accent-strong);
+  border-color: var(--menu-accent-border-strong);
 }
 
 .menu-shell-summary {
@@ -155,6 +155,13 @@
   flex-wrap: wrap;
 }
 
+.menu-shell-compact-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .menu-shell-header-actions {
   display: inline-flex;
   align-items: center;
@@ -188,7 +195,7 @@
 
 .menu-shell-compact-link:hover {
   color: var(--menu-accent-strong);
-  border-color: rgba(200, 106, 56, 0.32);
+  border-color: var(--menu-accent-border-strong);
   background: var(--menu-compact-hover-bg);
 }
 

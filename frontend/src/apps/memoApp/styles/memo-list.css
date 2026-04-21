@@ -16,7 +16,7 @@
 }
 
 .memo-app-page .memo-row:focus-within {
-  background: rgba(28, 28, 30, 0.48);
+  background: var(--memo-bg-selected);
   box-shadow: inset 0 0 0 1px var(--memo-border-focus);
 }
 
