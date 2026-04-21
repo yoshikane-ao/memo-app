@@ -1,18 +1,28 @@
-# Memo App
+# ポートフォリオハブ
 
-Vue 3 / Express / Prisma / PostgreSQL で組んだフルスタックのメモアプリ（個人制作）。feature 単位のクリーンアーキテクチャ、JWT + httpOnly cookie の認証、Zod 由来の OpenAPI 仕様、Prometheus / Sentry による観測性、GHCR 経由の CI/CD まで**本番運用で求められる一式**をポートフォリオ用に束ねている。
+複数の個人制作アプリを 1 つのハブに集約したフルスタック・ポートフォリオ。代表作 **memo-app** は Vue 3 / Express / Prisma / PostgreSQL の構成で、JWT + httpOnly cookie 認証、Zod 由来の OpenAPI 仕様、Prometheus / Sentry の観測性、GHCR 経由の CI/CD まで**本番運用で求められる一式**を備えている。
 
-> **🚀 ライブデモ:** http://3.104.123.11/ （`demo@example.com` / `demo12345` のボタン一発でログイン可能）
+> **🚀 ライブデモ:** http://3.104.123.11/ （ハブで作品一覧 → memo カードをクリック → デモログインボタンで全機能を触れる）
 > **📘 API ドキュメント:** http://3.104.123.11/api/docs/ （Swagger UI, OpenAPI 3.0）
 > **🏛 アーキテクチャ:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ／ **🛠 セットアップ:** [docs/LOCAL_SETUP.md](docs/LOCAL_SETUP.md)
 
-![デスクトップ版スクリーンショット](docs/screenshots/desktop.png)
+![ポートフォリオハブ全景](docs/screenshots/menu-hero.png)
+
+![代表作 memo-app（デスクトップ）](docs/screenshots/desktop.png)
 
 <p align="center">
-  <img src="docs/screenshots/mobile.png" alt="モバイル版スクリーンショット" width="320">
+  <img src="docs/screenshots/mobile.png" alt="代表作 memo-app（モバイル）" width="320">
 </p>
 
-## ハイライト
+## 掲載作品
+
+`/menu` から各作品のライブデモへ遷移できる。詳細はカード内の概要・工夫した点・使用技術・制作期間を参照。
+
+- **memo-app** — タグ管理・ごみ箱・型安全な Undo/Redo を備えたメモアプリ。本リポジトリの代表作で、以下「ハイライト」の対象。Vue 3 / Express / Prisma / PostgreSQL、約 2 ヶ月。
+- **quiz-app** — 単語・意味・タグを 1 モデルに集約し、作成と回答を同データから扱える単語帳形式のクイズアプリ。同スタック、約 1 ヶ月。
+- **trade-app** — 1 画面 2 プレイヤーで交互操作するローカル対戦のトレードゲーム。価格変動と勝敗判定を純粋関数で分離。Vue 3 / Express / PostgreSQL、約 1 ヶ月。
+
+## 代表作 memo-app のハイライト
 
 - **Zod 由来の OpenAPI 仕様** — リクエスト検証・API ドキュメント・TypeScript 型の単一ソース。[`backend/src/features/*/presentation/http/schemas.ts`](backend/src/features/) の Zod スキーマから `/api/docs` の Swagger UI を自動生成（[docs/screenshots/api-docs.png](docs/screenshots/api-docs.png)）
 - **JWT + httpOnly cookie 認証** — `bcryptjs` でハッシュ化、アクセス/リフレッシュトークンの 2 段構え、401 時のフロント側自動再試行、起動時のデモアカウント seed まで実装（[`backend/src/features/auth/`](backend/src/features/auth/)）
@@ -58,11 +68,7 @@ Node で個別に動かす手順・テスト実行方法は [docs/LOCAL_SETUP.md
 
 ## API ドキュメントを見る
 
-- 本番: http://3.104.123.11/api/docs/
-- ローカル: `docker compose up` 後に http://localhost/api/docs/
-- JSON: http://3.104.123.11/api/openapi.json
-
-各エンドポイントの Zod スキーマは [`backend/src/features/*/presentation/http/schemas.ts`](backend/src/features/) に集約されており、**リクエスト検証・OpenAPI ドキュメント・TypeScript 型**がすべて同じ定義から生成される。
+本番: http://3.104.123.11/api/docs/ ／ ローカル: `docker compose up` 後に http://localhost/api/docs/ ／ JSON: http://3.104.123.11/api/openapi.json
 
 ## 貢献・コミット規約
 
