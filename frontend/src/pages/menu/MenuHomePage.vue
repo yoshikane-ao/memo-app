@@ -9,7 +9,7 @@ const theme = useThemeStore();
 
 const thumbnailFor = (path: string) => {
   if (theme.mode === 'dark') return path;
-  return path.replace(/\.svg$/, '-light.svg');
+  return path.replace(/\.(png|svg)$/, '-light.$1');
 };
 
 type PortfolioGroup = {
