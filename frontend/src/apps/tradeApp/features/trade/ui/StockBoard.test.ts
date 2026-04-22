@@ -453,4 +453,66 @@ describe('StockBoard', () => {
     expect(wrapper.find('[data-order-marker="marker-old"]').exists()).toBe(true);
     expect(wrapper.find('[data-series="market"] path.line-main').attributes('d')).toContain('L');
   });
+
+  it('left-pads shorter histories so every series starts from the left edge of the plot', () => {
+    const stocks: StockState[] = [
+      {
+        key: 'market',
+        name: 'Market Corp',
+        basePrice: 1000000,
+        currentPrice: 1010000,
+        previousPrice: 1005000,
+        bubbleUpper: 0,
+        bubbleLower: 0,
+        history: [1000000, 1002000, 1005000, 1010000],
+        shortInterest: 0,
+        correlationNote: '',
+      },
+      {
+        key: 'p1',
+        name: 'Player1 Inc',
+        basePrice: 1000000,
+        currentPrice: 1004000,
+        previousPrice: 1002000,
+        bubbleUpper: 0,
+        bubbleLower: 0,
+        history: [1000000, 1002000, 1004000],
+        shortInterest: 0,
+        correlationNote: '',
+      },
+      {
+        key: 'p2',
+        name: 'Player2 Inc',
+        basePrice: 1000000,
+        currentPrice: 999000,
+        previousPrice: 1000000,
+        bubbleUpper: 0,
+        bubbleLower: 0,
+        history: [1000000, 999000],
+        shortInterest: 0,
+        correlationNote: '',
+      },
+    ];
+
+    const wrapper = mount(StockBoard, {
+      props: {
+        stocks,
+        turn: 4,
+        projectedPrices: null,
+        interactivePlayerId: 'player1',
+        orderMarkers: [],
+      },
+    });
+
+    const extractStartX = (seriesKey: string): number => {
+      const d = wrapper.find(`[data-series="${seriesKey}"] path.line-main`).attributes('d') ?? '';
+      const match = d.match(/^M\s+([\d.]+)\s+[\d.]+/);
+      if (!match) throw new Error(`No M command in path for ${seriesKey}: ${d}`);
+      return Number.parseFloat(match[1]);
+    };
+
+    const marketStartX = extractStartX('market');
+    expect(extractStartX('p1')).toBeCloseTo(marketStartX, 5);
+    expect(extractStartX('p2')).toBeCloseTo(marketStartX, 5);
+  });
 });

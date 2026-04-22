@@ -616,12 +616,18 @@ function buildPath(series: ChartSeries): string {
     return '';
   }
 
-  return series.visibleHistory
-    .map((value, index) => {
-      const plotIndex = index + series.offset;
-      return `${index === 0 ? 'M' : 'L'} ${x(plotIndex, chart.value.plotCount)} ${y(value, chart.value)}`;
-    })
-    .join(' ');
+  const firstValue = series.visibleHistory[0];
+  const segments: string[] = [`M ${x(0, chart.value.plotCount)} ${y(firstValue, chart.value)}`];
+
+  series.visibleHistory.forEach((value, index) => {
+    const plotIndex = index + series.offset;
+    if (index === 0 && plotIndex === 0) {
+      return;
+    }
+    segments.push(`L ${x(plotIndex, chart.value.plotCount)} ${y(value, chart.value)}`);
+  });
+
+  return segments.join(' ');
 }
 
 function buildCommitAnimationKey(projection: ChartProjectionViewModel): string {
