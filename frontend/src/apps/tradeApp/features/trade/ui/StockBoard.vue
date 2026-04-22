@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import type { PlayerId, StockKey, StockState } from '../types';
-import chartBackdrop from '../../../assets/trade-chart-background.png';
 
 type OrderMarker = {
   id: string;
@@ -14,6 +13,7 @@ type OrderMarker = {
   executionPrice: number;
   historyIndex: number;
   turn: number;
+  orderAmount?: number;
 };
 
 type ChartSeries = StockState & {
@@ -151,9 +151,9 @@ const padBottom = 22;
 const padLeft = 42;
 const chartWidth = viewWidth - padLeft - padRight;
 const chartHeight = viewHeight - padTop - padBottom;
-const labelBoxHeight = 22;
-const labelBoxInset = 14;
-const labelBoxWidth = 84;
+const labelBoxHeight = 16;
+const labelBoxInset = 8;
+const labelBoxWidth = 68;
 const chartTickStep = 50000;
 const previewZoomTargetRatio = 0.42;
 const previewZoomMinRange = 60000;
@@ -387,10 +387,16 @@ function buildVisibleOrderMarkers(
       laneMap.set(laneKey, laneIndex + 1);
       const isPendingClose = marker.isPendingClose === true;
 
+      const sideShort = marker.side === 'buy' ? '買' : '売';
+      const amountLabel =
+        marker.orderAmount != null && marker.orderAmount > 0
+          ? ` ${formatPrice(marker.orderAmount)}`
+          : '';
       const markerLabel = isPendingClose
-        ? `${sideLabelMap[marker.side]} 保留`
-        : sideLabelMap[marker.side];
-      const badgeWidth = isPendingClose ? 108 : 84;
+        ? `${sideShort}${amountLabel} 保留`
+        : `${sideShort}${amountLabel}`;
+      const hasAmount = amountLabel.length > 0;
+      const badgeWidth = isPendingClose ? 128 : hasAmount ? 108 : 84;
       const badgeHeight = isPendingClose ? 25 : 22;
       const offset = 24 + laneIndex * 20;
       const badgeY =
@@ -459,13 +465,13 @@ function buildProjectionSegments(
       y: y(series.projectedPrice, sharedChart),
     };
     const moveAmount = Math.abs(projectedValue - currentValue);
-    const intensity = clamp(Math.sqrt(moveAmount / chartTickStep), 0.72, 1.9);
-    const pointRadius = 4.6 + intensity * 0.75;
-    const pathStrokeWidth = 2.3 + intensity * 0.55;
-    const pathOpacity = clamp(0.42 + intensity * 0.12, 0.42, 0.72);
-    const haloRadius = pointRadius + 3 + intensity * 1.8;
-    const rippleRadius = haloRadius + 5 + intensity * 2.4;
-    const effectOpacity = clamp(0.36 + intensity * 0.16, 0.36, 0.72);
+    const intensity = clamp(Math.sqrt(moveAmount / chartTickStep), 0.5, 1.4);
+    const pointRadius = 3.2 + intensity * 0.5;
+    const pathStrokeWidth = 1.6 + intensity * 0.4;
+    const pathOpacity = clamp(0.32 + intensity * 0.1, 0.32, 0.58);
+    const haloRadius = pointRadius + 1.6 + intensity * 0.8;
+    const rippleRadius = haloRadius + 2 + intensity * 1.4;
+    const effectOpacity = clamp(0.22 + intensity * 0.12, 0.22, 0.48);
 
     return [
       {
@@ -557,6 +563,18 @@ function buildPriceLabels(
     };
   });
 }
+
+const isOpeningTurn = computed(() => {
+  if (props.turn > 1) return false;
+  if (isCommitAnimationActive.value) return false;
+  if ((props.orderMarkers?.length ?? 0) > 0) return false;
+  const projected = props.projectedPrices;
+  if (projected) {
+    const hasAny = Object.values(projected).some((price) => price != null);
+    if (hasAny) return false;
+  }
+  return true;
+});
 
 const chart = computed<SharedChartViewModel>(() => {
   const series = buildSharedSeries();
@@ -744,14 +762,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="board-wrap">
-    <header class="board-head">
-      <div class="title-copy">
-        <div class="board-title">価格ボード</div>
-      </div>
-      <div class="turn-chip">T{{ turn }}</div>
-    </header>
-
-    <div class="quote-pills">
+    <div class="quote-strip">
       <button
         v-for="series in chart.series"
         :key="series.key"
@@ -770,12 +781,10 @@ onBeforeUnmount(() => {
       >
         <span class="quote-dot" :style="{ background: series.color }"></span>
         <span class="quote-name">{{ series.label }}</span>
-        <div class="quote-values">
-          <strong>{{ formatPrice(series.currentPrice) }}円</strong>
-          <span v-if="series.projectedPrice !== null" class="quote-landing">
-            → {{ formatPrice(series.projectedPrice) }}円
-          </span>
-        </div>
+        <strong>{{ formatPrice(series.currentPrice) }}</strong>
+        <span v-if="series.projectedPrice !== null" class="quote-landing">
+          → {{ formatPrice(series.projectedPrice) }}
+        </span>
       </button>
     </div>
 
@@ -784,12 +793,6 @@ onBeforeUnmount(() => {
       :data-preview-zoom="chart.isPreviewZoomed ? 'true' : 'false'"
       :data-commit-animation="isCommitAnimationActive ? 'true' : 'false'"
     >
-      <div
-        class="shared-chart__backdrop"
-        :style="{ '--chart-backdrop-image': `url(${chartBackdrop})` }"
-        data-chart-backdrop
-        aria-hidden="true"
-      ></div>
       <div class="shared-chart__head">
         <div class="shared-chart__legend">
           <button
@@ -1127,6 +1130,50 @@ onBeforeUnmount(() => {
         >
           {{ formatPrice(tick) }}
         </text>
+
+        <g v-if="isOpeningTurn" class="opening-overlay" data-opening-overlay aria-hidden="true">
+          <circle
+            class="opening-overlay__pulse"
+            :cx="padLeft + chartWidth / 2"
+            :cy="padTop + chartHeight / 2"
+            r="48"
+          />
+          <circle
+            class="opening-overlay__pulse opening-overlay__pulse--delay"
+            :cx="padLeft + chartWidth / 2"
+            :cy="padTop + chartHeight / 2"
+            r="48"
+          />
+          <rect
+            class="opening-overlay__plaque"
+            :x="padLeft + chartWidth / 2 - 112"
+            :y="padTop + chartHeight / 2 - 26"
+            width="224"
+            height="54"
+            rx="10"
+          />
+          <text
+            class="opening-overlay__eyebrow"
+            :x="padLeft + chartWidth / 2"
+            :y="padTop + chartHeight / 2 - 14"
+          >
+            OPENING · TURN 1
+          </text>
+          <text
+            class="opening-overlay__title"
+            :x="padLeft + chartWidth / 2"
+            :y="padTop + chartHeight / 2 + 4"
+          >
+            市場が動き出す…
+          </text>
+          <text
+            class="opening-overlay__hint"
+            :x="padLeft + chartWidth / 2"
+            :y="padTop + chartHeight / 2 + 20"
+          >
+            注文を組み立てると予測ゴーストが描画されます
+          </text>
+        </g>
       </svg>
     </article>
   </section>
@@ -1139,71 +1186,35 @@ onBeforeUnmount(() => {
   height: 100%;
   min-height: 0;
   min-width: 0;
-  border-radius: 20px;
-  border: 1px solid rgba(107, 143, 255, 0.22);
-  background:
-    linear-gradient(180deg, rgba(3, 9, 24, 0.98) 0%, rgba(3, 7, 19, 0.95) 100%),
-    radial-gradient(circle at 20% 0%, rgba(76, 132, 255, 0.16), transparent 32%),
-    radial-gradient(circle at 80% 0%, rgba(255, 88, 108, 0.12), transparent 28%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 20px 48px rgba(0, 0, 0, 0.3);
-  padding: 8px 10px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(107, 143, 255, 0.18);
+  background: linear-gradient(180deg, rgba(3, 9, 24, 0.98) 0%, rgba(3, 7, 19, 0.95) 100%);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3);
+  padding: 6px 8px 8px;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 6px;
   overflow: hidden;
 }
 
-.board-head {
+.quote-strip {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.title-copy {
-  display: grid;
-  gap: 2px;
-}
-
-.board-title {
-  color: #f4f8ff;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-}
-
-.turn-chip {
-  padding: 4px 8px;
-  border-radius: 999px;
-  border: 1px solid rgba(108, 155, 255, 0.3);
-  background: linear-gradient(180deg, rgba(27, 49, 91, 0.9), rgba(11, 20, 43, 0.95));
-  color: #c9d8ff;
-  font-size: 8px;
-  font-weight: 800;
-}
-
-.quote-pills {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(156px, 1fr));
   gap: 6px;
+  flex-wrap: wrap;
 }
 
 .quote-pill {
   appearance: none;
   min-width: 0;
-  display: flex;
-  justify-content: space-between;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
+  gap: 6px;
+  padding: 4px 10px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(18, 30, 58, 0.82), rgba(10, 18, 35, 0.92));
-  border: 1px solid rgba(124, 150, 206, 0.2);
+  background: rgba(12, 22, 44, 0.7);
+  border: 1px solid rgba(124, 150, 206, 0.18);
   color: #dfe8ff;
-  font-size: 7px;
+  font-size: 10px;
   line-height: 1;
   cursor: pointer;
   transition:
@@ -1238,31 +1249,26 @@ onBeforeUnmount(() => {
 
 .quote-name {
   color: #c4d7fb;
-  font-size: 7px;
-  font-weight: 800;
+  font-size: 10px;
+  font-weight: 700;
   white-space: nowrap;
-}
-
-.quote-values {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  min-width: 0;
-  margin-left: auto;
+  letter-spacing: 0.02em;
 }
 
 .quote-pill strong {
   color: #f8fbff;
-  font-size: 8px;
-  font-weight: 900;
+  font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .quote-landing {
-  color: rgba(195, 213, 255, 0.84);
-  font-size: 8px;
-  font-weight: 900;
+  color: rgba(195, 213, 255, 0.72);
+  font-size: 10px;
+  font-weight: 700;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .shared-chart {
@@ -1290,20 +1296,6 @@ onBeforeUnmount(() => {
   box-shadow:
     inset 0 0 0 1px rgba(111, 143, 255, 0.08),
     0 14px 28px rgba(0, 0, 0, 0.18);
-}
-
-.shared-chart__backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(3, 9, 24, 0.28) 0%, rgba(3, 9, 24, 0.54) 100%),
-    radial-gradient(circle at center, rgba(8, 17, 38, 0.1), rgba(3, 8, 21, 0.4) 72%),
-    var(--chart-backdrop-image) center / cover no-repeat;
-  filter: saturate(0.9) brightness(0.9);
-  transform: scale(1.02);
-  transform-origin: center;
 }
 
 .shared-chart__head {
@@ -1412,6 +1404,89 @@ onBeforeUnmount(() => {
   font-weight: 700;
   fill: rgba(217, 229, 255, 0.58);
   text-anchor: end;
+}
+
+.opening-overlay {
+  pointer-events: none;
+  animation: opening-fade-in 0.6s ease-out both;
+}
+
+.opening-overlay__pulse {
+  fill: none;
+  stroke: rgba(149, 185, 255, 0.42);
+  stroke-width: 1.4;
+  transform-box: fill-box;
+  transform-origin: center;
+  opacity: 0;
+  animation: opening-pulse 2.6s ease-out infinite;
+}
+
+.opening-overlay__pulse--delay {
+  animation-delay: 1.3s;
+}
+
+.opening-overlay__plaque {
+  fill: rgba(4, 10, 22, 0.78);
+  stroke: rgba(124, 180, 255, 0.22);
+  stroke-width: 1;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+
+.opening-overlay__eyebrow {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 6.4px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  fill: rgba(165, 196, 255, 0.68);
+  text-anchor: middle;
+}
+
+.opening-overlay__title {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 10.6px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  fill: rgba(236, 244, 255, 0.92);
+  text-anchor: middle;
+  filter: drop-shadow(0 0 10px rgba(124, 180, 255, 0.28));
+}
+
+.opening-overlay__hint {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  font-size: 6.4px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  fill: rgba(198, 217, 255, 0.62);
+  text-anchor: middle;
+}
+
+@keyframes opening-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes opening-pulse {
+  0% {
+    opacity: 0.52;
+    transform: scale(0.35);
+  }
+
+  70% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
 }
 
 .chart-series,
@@ -1789,7 +1864,9 @@ onBeforeUnmount(() => {
   .chart-commit__under,
   .chart-commit__main,
   .chart-commit__highlight,
-  .chart-commit__point {
+  .chart-commit__point,
+  .opening-overlay,
+  .opening-overlay__pulse {
     animation: none;
   }
 }

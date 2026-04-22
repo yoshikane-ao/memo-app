@@ -29,6 +29,10 @@ const isTradeBattleRoute = computed(() => {
   return route.name === 'menu-workspace-trade-battle';
 });
 
+const isTradeAppRoute = computed(() => {
+  return route.meta.menuAppId === 'trade';
+});
+
 const showCompactNav = computed(() => {
   return !isMenuHome.value && !isTradeBattleRoute.value;
 });
@@ -59,7 +63,7 @@ const currentYear = new Date().getFullYear();
             <span class="menu-shell-breadcrumb-separator">/</span>
             <span class="menu-shell-breadcrumb-app">{{ activeApp.name }}</span>
           </div>
-          <ThemeToggle />
+          <ThemeToggle v-if="!isTradeAppRoute" />
           <template v-if="authStore.isAuthenticated">
             <span class="menu-shell-user">
               {{ displayLabel }}
@@ -89,7 +93,7 @@ const currentYear = new Date().getFullYear();
         ポートフォリオへ戻る
       </RouterLink>
       <div class="menu-shell-compact-actions">
-        <ThemeToggle />
+        <ThemeToggle v-if="!isTradeAppRoute" />
         <template v-if="authStore.isAuthenticated">
           <span class="menu-shell-user">
             {{ displayLabel }}
@@ -104,7 +108,7 @@ const currentYear = new Date().getFullYear();
       </div>
     </div>
 
-    <div v-else-if="isTradeBattleRoute" class="menu-shell-floating-actions">
+    <div v-else-if="isTradeBattleRoute && !isTradeAppRoute" class="menu-shell-floating-actions">
       <ThemeToggle />
     </div>
 

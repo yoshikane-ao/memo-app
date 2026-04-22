@@ -81,7 +81,10 @@ describe('tradeBattleSelectors', () => {
     const player1 = findPlayerById(state, 'player1');
 
     player1.companyFunds = 1_000;
-    player1.cooldowns[AD_CAMPAIGN_ACTION] = 0;
+    player1.companyActionCharges[AD_CAMPAIGN_ACTION] = 2;
+    state.stocks.forEach((stock) => {
+      stock.cpuPool = [];
+    });
 
     const companyDraft = {
       ...createDefaultBattleActionDraft(),
@@ -172,6 +175,7 @@ describe('tradeBattleSelectors', () => {
         executionPrice: 1_000_000,
         historyIndex: 0,
         turn: 1,
+        orderAmount: 10_000,
       },
     ]);
   });

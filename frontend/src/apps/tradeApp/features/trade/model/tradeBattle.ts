@@ -1,6 +1,7 @@
 import type {
   CompanyAction,
   CooldownAction,
+  OrderType,
   PlayerId,
   PlayerState,
   StockKey,
@@ -10,7 +11,6 @@ import type {
   TurnActionPayload,
 } from '../types';
 import {
-  BUYBACK_ACTION,
   COMPANY_ACTIONS,
   MODE_LABELS,
   NO_COMPANY_ACTION,
@@ -49,6 +49,7 @@ export type BattleActionDraft = {
   tradeMode: TradeMode;
   quantity: number;
   companyAction: CompanyAction;
+  orderType: OrderType;
 };
 
 export type BattleActionPreview = {
@@ -96,7 +97,6 @@ export type BattleConfirmedAction = TurnActionPayload & {
 };
 
 const NONE_COMPANY_ACTION = NO_COMPANY_ACTION;
-const HIDDEN_COMPANY_ACTION = BUYBACK_ACTION;
 
 function formatCurrency(value: number): string {
   return `${Math.round(value).toLocaleString('ja-JP')}円`;
@@ -150,9 +150,7 @@ function stockChoicesForPlayer(playerId: PlayerId): BattleStockChoice[] {
 }
 
 function companyActionsForBattle(): CooldownAction[] {
-  return COMPANY_ACTIONS.filter(
-    (action) => action !== NONE_COMPANY_ACTION && action !== HIDDEN_COMPANY_ACTION,
-  ) as CooldownAction[];
+  return COMPANY_ACTIONS.filter((action) => action !== NONE_COMPANY_ACTION) as CooldownAction[];
 }
 
 function visibleTradeActionsForMode(tradeMode: TradeMode): TradeAction[] {
@@ -246,18 +244,21 @@ function normalizeDraftForPlayer(
     quantity: normalizeQuantity(draft.quantity),
   };
 
+  if (!nextDraft.orderType) {
+    nextDraft.orderType = 'market';
+  }
+
   if (nextDraft.actionKind === 'wait') {
     nextDraft.quantity = 0;
     nextDraft.companyAction = NONE_COMPANY_ACTION;
+    nextDraft.orderType = 'market';
     return nextDraft;
   }
 
   if (nextDraft.actionKind === 'company') {
     nextDraft.stockKey = ownStockKey(playerId);
-    if (
-      nextDraft.companyAction === NONE_COMPANY_ACTION ||
-      nextDraft.companyAction === HIDDEN_COMPANY_ACTION
-    ) {
+    nextDraft.orderType = 'market';
+    if (nextDraft.companyAction === NONE_COMPANY_ACTION) {
       nextDraft.companyAction = companyActions[0] ?? NONE_COMPANY_ACTION;
     }
     return nextDraft;
@@ -481,6 +482,7 @@ export function createDefaultBattleActionDraft(): BattleActionDraft {
     tradeMode: 'investment',
     quantity: 0,
     companyAction: NONE_COMPANY_ACTION,
+    orderType: 'market',
   };
 }
 
@@ -595,6 +597,7 @@ export function buildBattleConfirmedAction(
       tradeMode: projection.draft.tradeMode,
       quantity: 0,
       companyAction: NONE_COMPANY_ACTION,
+      orderType: 'market',
       metaAction: 'wait',
     };
   }
@@ -615,5 +618,6 @@ export function buildBattleConfirmedAction(
       projection.draft.actionKind === 'company'
         ? projection.draft.companyAction
         : NONE_COMPANY_ACTION,
+    orderType: projection.draft.actionKind === 'trade' ? projection.draft.orderType : 'market',
   };
 }

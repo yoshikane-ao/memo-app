@@ -35,6 +35,7 @@ function createStocks(): StockState[] {
       history: [10000],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
     {
       key: 'p2',
@@ -47,6 +48,7 @@ function createStocks(): StockState[] {
       history: [10000],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
     {
       key: 'market',
@@ -59,6 +61,7 @@ function createStocks(): StockState[] {
       history: [10000],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
   ];
 }
@@ -83,12 +86,13 @@ function createPlayer(): PlayerState {
     },
     positions: [],
     speculation: [],
-    cooldowns: {
-      [CAPITAL_INCREASE_ACTION]: 0,
-      [AD_CAMPAIGN_ACTION]: 0,
-      [BUYBACK_ACTION]: 0,
-      [FACILITY_INVESTMENT_ACTION]: 0,
+    companyActionCharges: {
+      [CAPITAL_INCREASE_ACTION]: 2,
+      [AD_CAMPAIGN_ACTION]: 2,
+      [BUYBACK_ACTION]: 2,
+      [FACILITY_INVESTMENT_ACTION]: 2,
     },
+    feintTokens: 2,
     recentCashChange: 0,
     recentNetChange: 0,
     marketBias: 0,
@@ -98,13 +102,28 @@ function createPlayer(): PlayerState {
 }
 
 describe('buildBattleActionProjection', () => {
-  it('moves price by the full invested amount', () => {
+  it('moves price linearly up to the slippage reference amount', () => {
     expect(calculateTradePriceImpact(10000, 10000, 10000)).toBe(10000);
-    expect(calculateTradePriceImpact(25000, 10000, 10000)).toBe(25000);
     expect(calculateTradePriceImpact(9000, 10000, 10000)).toBe(9000);
     expect(calculateTradePriceImpact(1000, 1000, 1000)).toBe(1000);
     expect(calculateTradePriceImpact(100, 100, 100)).toBe(100);
-    expect(calculateTradePriceImpact(200000, 100000, 100000)).toBe(200000);
+  });
+
+  it('dampens price impact above the slippage reference amount', () => {
+    expect(calculateTradePriceImpact(25000, 10000, 10000)).toBe(22247);
+    expect(calculateTradePriceImpact(200000, 100000, 100000)).toBe(53589);
+  });
+
+  it('ensures double investment yields less than double impact above the reference', () => {
+    const single = calculateTradePriceImpact(20000, 10000, 10000);
+    const double = calculateTradePriceImpact(40000, 10000, 10000);
+    expect(double).toBeLessThan(single * 2);
+  });
+
+  it('handles invalid inputs without producing NaN', () => {
+    expect(calculateTradePriceImpact(0, 10000, 10000)).toBe(0);
+    expect(calculateTradePriceImpact(-500, 10000, 10000)).toBe(0);
+    expect(calculateTradePriceImpact(Number.NaN, 10000, 10000)).toBe(0);
   });
 
   it('uses the exact self-buy percentages for player1', () => {

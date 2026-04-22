@@ -3,7 +3,9 @@ import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
+  COMPANY_ACTION_INITIAL_CHARGES,
   FACILITY_INVESTMENT_ACTION,
+  INITIAL_FEINT_TOKENS,
   type GameState,
   type PlayerState,
 } from '../types';
@@ -47,10 +49,8 @@ describe('tradeBattleState', () => {
         openedTurn: 4,
       },
     ];
-    state.players[0].cooldowns[CAPITAL_INCREASE_ACTION] = 2;
-    state.players[0].cooldowns[AD_CAMPAIGN_ACTION] = 1;
-    state.players[0].cooldowns[BUYBACK_ACTION] = 3;
-    state.players[0].cooldowns[FACILITY_INVESTMENT_ACTION] = 2;
+    state.players[0].companyActionCharges[CAPITAL_INCREASE_ACTION] = 0;
+    state.players[0].companyActionCharges[AD_CAMPAIGN_ACTION] = 1;
 
     const result = initializeBattleState(state, {
       settings: {
@@ -64,12 +64,14 @@ describe('tradeBattleState', () => {
         marketStartingPrice: 14000,
       },
       stockHistory: runtime,
+      seed: 42,
     });
 
     expect(result).toEqual({
       isGameOver: false,
       logSequence: 1000,
       positionSequence: 0,
+      forwardSequence: 0,
     });
     expect(state.turn).toBe(1);
     expect(state.currentPlayer).toBe('player1');
@@ -82,14 +84,21 @@ describe('tradeBattleState', () => {
     expect(state.players[0].companyFunds).toBe(3000);
     expect(state.players[0].positions).toEqual([]);
     expect(state.players[0].holdings.p1).toEqual({ quantity: 0, avgPrice: 0 });
-    expect(state.players[0].cooldowns).toEqual({
-      [CAPITAL_INCREASE_ACTION]: 0,
-      [AD_CAMPAIGN_ACTION]: 0,
-      [BUYBACK_ACTION]: 0,
-      [FACILITY_INVESTMENT_ACTION]: 0,
+    expect(state.players[0].companyActionCharges).toEqual({
+      [CAPITAL_INCREASE_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+      [AD_CAMPAIGN_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+      [BUYBACK_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+      [FACILITY_INVESTMENT_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
     });
+    expect(state.players[0].feintTokens).toBe(INITIAL_FEINT_TOKENS);
     expect(state.stocks.find((stock) => stock.key === 'market')?.currentPrice).toBe(14000);
     expect(state.stocks.find((stock) => stock.key === 'p1')?.currentPrice).toBe(1000000);
+    expect(state.rngSeed).toBe(42);
+    expect(state.rngCursor).toBeGreaterThan(0);
+    expect(state.eventDeck.length).toBeGreaterThan(0);
+    expect(state.forwardOrders).toEqual([]);
+    expect(state.revealedEvents).toEqual([]);
+    expect(state.stocks.every((stock) => stock.cpuPool.length > 0)).toBe(true);
     expect(runtime.pointCounters).toEqual({ p1: 1, p2: 1, market: 1 });
     expect(runtime.pointIds).toEqual({ p1: [1], p2: [1], market: [1] });
   });
@@ -146,10 +155,9 @@ describe('tradeBattleState', () => {
     });
     expect(state.turn).toBe(1);
     expect(state.currentPlayer).toBe('player2');
-    expect(state.marketCondition).toBe('bull');
   });
 
-  it('moves to the next turn and rotates market condition on turn four', () => {
+  it('moves to the next turn after both players acted', () => {
     const state = createGameState();
     state.turn = 3;
     state.currentPlayer = 'player2';
@@ -161,19 +169,18 @@ describe('tradeBattleState', () => {
     });
     expect(state.turn).toBe(4);
     expect(state.currentPlayer).toBe('player2');
-    expect(state.marketCondition).toBe('sideways');
   });
 
   it('ends the battle after the final completed turn', () => {
     const state = createGameState();
-    state.turn = 10;
+    state.turn = 12;
     state.currentPlayer = 'player1';
 
     expect(advanceBattleTurnState(state)).toEqual({
       didAdvance: false,
       isGameOver: true,
     });
-    expect(state.turn).toBe(10);
+    expect(state.turn).toBe(12);
     expect(state.currentPlayer).toBe('player1');
   });
 

@@ -16,6 +16,7 @@ export const MIN_TRADE_ORDER_AMOUNT = 1000;
 export const STOCK_PRICE_TICK = 100;
 export const MIN_STOCK_PRICE = STOCK_PRICE_TICK;
 export const PRICE_STEP_RATIO = 0.01;
+export const SLIPPAGE_REFERENCE_AMOUNT = 10000;
 
 function ownStockKey(playerId: PlayerId): StockKey {
   return playerId === 'player1' ? 'p1' : 'p2';
@@ -137,7 +138,14 @@ export function calculateTradePriceImpact(
     return 0;
   }
 
-  return Math.round(executedAmount);
+  if (executedAmount <= SLIPPAGE_REFERENCE_AMOUNT) {
+    return Math.round(executedAmount);
+  }
+
+  // 基準額超過分は √ 逓減で、大口ほどインパクトを抑える（富者優位緩和）
+  const excess = executedAmount - SLIPPAGE_REFERENCE_AMOUNT;
+  const dampened = Math.sqrt(excess * SLIPPAGE_REFERENCE_AMOUNT);
+  return Math.round(SLIPPAGE_REFERENCE_AMOUNT + dampened);
 }
 
 export function calculateTradeImpactAmounts(

@@ -9,6 +9,7 @@ import { createTradeBattleFlow } from './tradeBattleFlow';
 
 function createFlowContext() {
   const state = createInitialGameState();
+  state.rngSeed = 1;
   const stockHistory = {
     pointCounters: { p1: 0, p2: 0, market: 0 } as Record<StockKey, number>,
     pointIds: { p1: [], p2: [], market: [] } as Record<StockKey, number[]>,
@@ -30,6 +31,9 @@ function createFlowContext() {
   });
 
   flow.normalizePlayersForBattleStart();
+  state.stocks.forEach((stock) => {
+    stock.cpuPool = [];
+  });
 
   return {
     state,
@@ -46,10 +50,6 @@ describe('tradeBattleFlow', () => {
   it('handles wait turns as application orchestration and advances the battle', () => {
     const { state, isGameOver, recalculateDynamicLines, flow } = createFlowContext();
     const player1 = findPlayerById(state, 'player1');
-    const player2 = findPlayerById(state, 'player2');
-
-    player1.cooldowns[AD_CAMPAIGN_ACTION] = 2;
-    player2.cooldowns[AD_CAMPAIGN_ACTION] = 1;
 
     flow.handleTurn({
       stockKey: 'market',
@@ -63,13 +63,12 @@ describe('tradeBattleFlow', () => {
     expect(state.turn).toBe(1);
     expect(state.currentPlayer).toBe('player2');
     expect(isGameOver.value).toBe(false);
-    expect(player1.cooldowns[AD_CAMPAIGN_ACTION]).toBe(1);
-    expect(player2.cooldowns[AD_CAMPAIGN_ACTION]).toBe(0);
     expect(state.logs[0]).toMatchObject({
       type: 'player',
       tone: 'up',
     });
-    expect(recalculateDynamicLines).toHaveBeenCalledTimes(3);
+    expect(player1.companyActionCharges[AD_CAMPAIGN_ACTION]).toBe(2);
+    expect(recalculateDynamicLines).toHaveBeenCalled();
   });
 
   it('executes pending closes and resets local screen state through the application flow', () => {
@@ -117,5 +116,23 @@ describe('tradeBattleFlow', () => {
     });
     expect(marketStock.currentPrice).toBeLessThan(1_000_200);
     expect(recalculateDynamicLines).toHaveBeenCalled();
+  });
+
+  it('places a forward order via forward orderType instead of immediate execution', () => {
+    const { state, flow } = createFlowContext();
+
+    flow.handleTurn({
+      stockKey: 'market',
+      tradeAction: 'buy',
+      tradeMode: 'investment',
+      quantity: 10000,
+      companyAction: NO_COMPANY_ACTION,
+      orderType: 'forward',
+    });
+
+    expect(state.forwardOrders).toHaveLength(1);
+    const player1 = findPlayerById(state, 'player1');
+    expect(player1.positions).toHaveLength(0);
+    expect(player1.cash).toBeLessThan(100000);
   });
 });

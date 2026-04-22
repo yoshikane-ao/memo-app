@@ -2,8 +2,10 @@ import {
   AD_CAMPAIGN_ACTION,
   BUYBACK_ACTION,
   CAPITAL_INCREASE_ACTION,
+  COMPANY_ACTION_INITIAL_CHARGES,
   DEFAULT_MANAGEMENT_STAKE_SHARES,
   FACILITY_INVESTMENT_ACTION,
+  INITIAL_FEINT_TOKENS,
   type GameState,
 } from '../types';
 
@@ -15,6 +17,12 @@ export function createInitialGameState(): GameState {
     victoryCondition: '最後に現金と自分レートの市場価値を合わせた値が高いプレイヤーの勝利',
     currentPlayer: 'player1',
     initialTotalAssets: 100000,
+    rngSeed: 1,
+    rngCursor: 0,
+    forwardOrders: [],
+    eventDeck: [],
+    revealedEvents: [],
+    speculationDelayActive: false,
     stocks: [
       {
         key: 'p1',
@@ -27,6 +35,7 @@ export function createInitialGameState(): GameState {
         history: [1000000],
         shortInterest: 0,
         correlationNote: 'プレイヤー1側の価格対象',
+        cpuPool: [],
       },
       {
         key: 'p2',
@@ -39,6 +48,7 @@ export function createInitialGameState(): GameState {
         history: [1000000],
         shortInterest: 0,
         correlationNote: 'プレイヤー2側の価格対象',
+        cpuPool: [],
       },
       {
         key: 'market',
@@ -51,6 +61,7 @@ export function createInitialGameState(): GameState {
         history: [1000000],
         shortInterest: 0,
         correlationNote: '共通マーケット',
+        cpuPool: [],
       },
     ],
     players: [
@@ -73,12 +84,13 @@ export function createInitialGameState(): GameState {
         },
         positions: [],
         speculation: [],
-        cooldowns: {
-          [CAPITAL_INCREASE_ACTION]: 0,
-          [AD_CAMPAIGN_ACTION]: 1,
-          [BUYBACK_ACTION]: 0,
-          [FACILITY_INVESTMENT_ACTION]: 2,
+        companyActionCharges: {
+          [CAPITAL_INCREASE_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [AD_CAMPAIGN_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [BUYBACK_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [FACILITY_INVESTMENT_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
         },
+        feintTokens: INITIAL_FEINT_TOKENS,
         recentCashChange: 350,
         recentNetChange: 620,
         marketBias: 0,
@@ -104,12 +116,13 @@ export function createInitialGameState(): GameState {
         },
         positions: [],
         speculation: [],
-        cooldowns: {
-          [CAPITAL_INCREASE_ACTION]: 2,
-          [AD_CAMPAIGN_ACTION]: 0,
-          [BUYBACK_ACTION]: 1,
-          [FACILITY_INVESTMENT_ACTION]: 0,
+        companyActionCharges: {
+          [CAPITAL_INCREASE_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [AD_CAMPAIGN_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [BUYBACK_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
+          [FACILITY_INVESTMENT_ACTION]: COMPANY_ACTION_INITIAL_CHARGES,
         },
+        feintTokens: INITIAL_FEINT_TOKENS,
         recentCashChange: -220,
         recentNetChange: -410,
         marketBias: 0,

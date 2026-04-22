@@ -157,7 +157,7 @@ describe('StockBoard', () => {
     expect(wrapper.findAll('.chart-svg')).toHaveLength(1);
     expect(wrapper.find('.shared-chart').attributes('data-preview-zoom')).toBe('true');
     expect(chartSvgStyle).toContain('--chart-commit-duration');
-    expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(true);
+    expect(wrapper.find('[data-chart-backdrop]').exists()).toBe(false);
     expect(wrapper.findAll('[data-series]')).toHaveLength(3);
     expect(wrapper.findAll('[data-order-marker]')).toHaveLength(2);
     expect(wrapper.findAll('[data-series-label]')).toHaveLength(3);
