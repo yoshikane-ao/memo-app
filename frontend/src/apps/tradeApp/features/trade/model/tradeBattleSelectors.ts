@@ -1,12 +1,16 @@
 import type {
+  CpuStats,
+  ForwardOrder,
   PlayerId,
   PlayerState,
   StockKey,
   StockState,
+  TradeAction,
   TradePositionEntry,
   TurnActionPayload,
 } from '../types';
 import { AD_CAMPAIGN_ACTION, CAPITAL_INCREASE_ACTION, FACILITY_INVESTMENT_ACTION } from '../types';
+import { estimateCpuReactionRange, type CpuReactionRange } from './cpuBehavior';
 import {
   calculateTradePositionCloseImpactAmount,
   calculateTradePositionPnL,
@@ -53,6 +57,7 @@ export type ChartOrderMarker = {
   executionPrice: number;
   historyIndex: number;
   turn: number;
+  orderAmount?: number;
 };
 
 function getStock(stocks: StockState[], stockKey: StockKey): StockState {
@@ -219,21 +224,21 @@ export function buildProjectedBoardPrices(options: {
 
     if (
       actionDraft.companyAction === CAPITAL_INCREASE_ACTION &&
-      currentPlayer.cooldowns[CAPITAL_INCREASE_ACTION] <= 0
+      (currentPlayer.companyActionCharges[CAPITAL_INCREASE_ACTION] ?? 0) > 0
     ) {
-      moveProjectedPrice(priceMap, targetStock, -12);
+      moveProjectedPrice(priceMap, targetStock, -18);
     } else if (
       actionDraft.companyAction === AD_CAMPAIGN_ACTION &&
-      currentPlayer.cooldowns[AD_CAMPAIGN_ACTION] <= 0 &&
-      currentPlayer.companyFunds >= 600
+      (currentPlayer.companyActionCharges[AD_CAMPAIGN_ACTION] ?? 0) > 0 &&
+      currentPlayer.companyFunds >= 900
     ) {
-      moveProjectedPrice(priceMap, targetStock, 6);
+      moveProjectedPrice(priceMap, targetStock, 9);
     } else if (
       actionDraft.companyAction === FACILITY_INVESTMENT_ACTION &&
-      currentPlayer.cooldowns[FACILITY_INVESTMENT_ACTION] <= 0 &&
-      currentPlayer.companyFunds >= 700
+      (currentPlayer.companyActionCharges[FACILITY_INVESTMENT_ACTION] ?? 0) > 0 &&
+      currentPlayer.companyFunds >= 1050
     ) {
-      moveProjectedPrice(priceMap, targetStock, 4);
+      moveProjectedPrice(priceMap, targetStock, 6);
     }
 
     return priceMap;
@@ -346,8 +351,111 @@ export function buildActivePositionMarkers(options: {
           executionPrice: position.entryPrice,
           historyIndex,
           turn: position.openedTurn,
+          orderAmount: position.orderAmount,
         },
       ];
     }),
   );
+}
+
+export function buildCpuStats(stocks: StockState[]): CpuStats {
+  let participantCount = 0;
+  let withdrawalCount = 0;
+  let investmentTotal = 0;
+  let weakParticipantCount = 0;
+  let strongParticipantCount = 0;
+  let p1ParticipantCount = 0;
+  let p2ParticipantCount = 0;
+  let p1InvestmentTotal = 0;
+  let p2InvestmentTotal = 0;
+
+  for (const stock of stocks) {
+    for (const cpu of stock.cpuPool) {
+      if (!cpu.active) {
+        withdrawalCount += 1;
+        continue;
+      }
+      participantCount += 1;
+      investmentTotal += cpu.capital;
+      if (cpu.sentiment === 'bullish') strongParticipantCount += 1;
+      else if (cpu.sentiment === 'bearish') weakParticipantCount += 1;
+
+      if (stock.key === 'p1') {
+        p1ParticipantCount += 1;
+        p1InvestmentTotal += cpu.capital;
+      } else if (stock.key === 'p2') {
+        p2ParticipantCount += 1;
+        p2InvestmentTotal += cpu.capital;
+      }
+    }
+  }
+
+  return {
+    participantCount,
+    withdrawalCount,
+    investmentTotal,
+    weakParticipantCount,
+    strongParticipantCount,
+    p1ParticipantCount,
+    p2ParticipantCount,
+    p1InvestmentTotal,
+    p2InvestmentTotal,
+  };
+}
+
+export type CpuReactionProjection = {
+  stockKey: StockKey;
+  action: TradeAction;
+  range: CpuReactionRange;
+};
+
+export function buildCpuReactionProjection(params: {
+  stocks: StockState[];
+  actionDraft: BattleActionDraft;
+  orderAmount: number;
+}): CpuReactionProjection | null {
+  const { stocks, actionDraft, orderAmount } = params;
+  if (actionDraft.actionKind !== 'trade' || orderAmount <= 0) return null;
+  const stock = stocks.find((item) => item.key === actionDraft.stockKey);
+  if (!stock) return null;
+  return {
+    stockKey: actionDraft.stockKey,
+    action: actionDraft.tradeAction,
+    range: estimateCpuReactionRange({
+      actingStock: stock,
+      action: actionDraft.tradeAction,
+      executedAmount: orderAmount,
+    }),
+  };
+}
+
+export type ForwardOrderRow = {
+  id: string;
+  playerId: PlayerId;
+  stockKey: StockKey;
+  triggerTurn: number;
+  remainingTurns: number;
+  tradeAction: TradeAction;
+  orderAmount: number;
+  reservationFee: number;
+  status: ForwardOrder['status'];
+};
+
+export function buildForwardOrderRows(params: {
+  state: { forwardOrders: ForwardOrder[]; turn: number };
+}): ForwardOrderRow[] {
+  const { forwardOrders, turn } = params.state;
+  return forwardOrders
+    .filter((order) => order.status === 'pending')
+    .map((order) => ({
+      id: order.id,
+      playerId: order.playerId,
+      stockKey: order.stockKey,
+      triggerTurn: order.triggerTurn,
+      remainingTurns: Math.max(0, order.triggerTurn - turn),
+      tradeAction: order.tradeAction,
+      orderAmount: order.orderAmount,
+      reservationFee: order.reservationFee,
+      status: order.status,
+    }));
 }

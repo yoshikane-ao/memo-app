@@ -8,10 +8,12 @@ const props = withDefaults(
     identity: PlayerIdentity;
     profile?: TradeProfile | null;
     disabled?: boolean;
+    size?: 'default' | 'compact';
   }>(),
   {
     profile: null,
     disabled: false,
+    size: 'default',
   },
 );
 
@@ -100,7 +102,12 @@ function formatCurrency(value: number): string {
 <template>
   <article
     class="slot-card"
-    :class="[slotAccentClass, `slot-card--${identity.kind}`, { 'is-disabled': disabled }]"
+    :class="[
+      slotAccentClass,
+      `slot-card--${identity.kind}`,
+      `slot-card--size-${size}`,
+      { 'is-disabled': disabled },
+    ]"
   >
     <header class="slot-card__header">
       <span class="slot-card__slot">{{ slotLabel }}</span>
@@ -421,6 +428,94 @@ function formatCurrency(value: number): string {
   color: #9fb4e6;
   font-size: 12px;
   font-weight: 700;
+}
+
+.slot-card--size-compact {
+  min-height: 148px;
+  padding: 12px;
+  gap: 10px;
+  border-radius: 14px;
+}
+
+.slot-card--size-compact .slot-card__header {
+  gap: 8px;
+}
+
+.slot-card--size-compact .slot-card__slot,
+.slot-card--size-compact .slot-card__badge {
+  min-height: 22px;
+  padding: 0 9px;
+  font-size: 9px;
+}
+
+.slot-card--size-compact .slot-card__body {
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.slot-card--size-compact .slot-card__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.slot-card--size-compact .slot-card__avatar span {
+  font-size: 14px;
+}
+
+.slot-card--size-compact .slot-card__name-row {
+  gap: 6px;
+}
+
+.slot-card--size-compact .slot-card__name {
+  font-size: 14px;
+}
+
+.slot-card--size-compact .slot-card__battle-count {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.slot-card--size-compact .slot-card__subtitle {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.slot-card--size-compact .slot-card__stats {
+  gap: 6px;
+}
+
+.slot-card--size-compact .slot-card__stat {
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
+.slot-card--size-compact .slot-card__stat-label {
+  font-size: 8px;
+}
+
+.slot-card--size-compact .slot-card__stat-value {
+  font-size: 11px;
+}
+
+.slot-card--size-compact .slot-card__actions {
+  gap: 6px;
+}
+
+.slot-card--size-compact .slot-card__action-primary,
+.slot-card--size-compact .slot-card__action-secondary {
+  gap: 6px;
+}
+
+.slot-card--size-compact .slot-card__button {
+  min-width: 68px;
+  padding: 8px 10px;
+  font-size: 10px;
+  border-radius: 10px;
+}
+
+.slot-card--size-compact .slot-card__text-link {
+  font-size: 10px;
 }
 
 @media (max-width: 900px) {

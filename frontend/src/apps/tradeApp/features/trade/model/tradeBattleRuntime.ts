@@ -1,10 +1,14 @@
 import type {
+  EventCard,
+  ForwardOrder,
   GameState,
   LogEntry,
   PlayerId,
   PlayerState,
+  RevealedEvent,
   SpeculationPosition,
   StockKey,
+  TradeAction,
   TradePositionEntry,
   TurnActionPayload,
 } from '../types';
@@ -29,19 +33,44 @@ import {
 } from './tradeImpact';
 import {
   type BattleStockHistoryRuntime,
+  findPlayerById,
   findStockByKey,
   formatPositionUnits,
   normalizePositionUnits,
   resolveOwnStockKey,
   syncPlayerBooksFromPositions,
 } from './tradeBattleState';
+import { createSeededRng, type SeededRng } from './rng';
+import {
+  applyCompanyCpuInfluence,
+  simulateCpuReactions,
+  type CpuReactionContext,
+} from './cpuBehavior';
+import {
+  calculateForwardOrderFee,
+  canPlaceForwardOrder,
+  createForwardOrder,
+  markForwardOrderSettled,
+} from './forwardOrders';
 
 export type BattleSequenceRuntime = {
   logSequence: number;
   positionSequence: number;
+  forwardSequence: number;
 };
 
-type RuntimeState = Pick<GameState, 'turn' | 'stocks' | 'players'>;
+type RuntimeState = Pick<
+  GameState,
+  | 'turn'
+  | 'stocks'
+  | 'players'
+  | 'rngSeed'
+  | 'rngCursor'
+  | 'forwardOrders'
+  | 'revealedEvents'
+  | 'eventDeck'
+  | 'speculationDelayActive'
+>;
 
 type ConsumedPositionEntry = {
   id: string;
@@ -67,6 +96,11 @@ export function createTradeBattleRuntime(options: {
   stockHistory: BattleStockHistoryRuntime;
 }) {
   const { state, sequences, stockHistory } = options;
+  const rng: SeededRng = createSeededRng(state.rngSeed, state.rngCursor);
+
+  const syncRng = () => {
+    state.rngCursor = rng.getCursor();
+  };
 
   const getStock = (stockKey: StockKey) => findStockByKey(state, stockKey);
 
@@ -91,7 +125,6 @@ export function createTradeBattleRuntime(options: {
     orderAmount: number,
   ): TradePositionEntry => {
     sequences.positionSequence += 1;
-
     return {
       id: `position-${sequences.positionSequence}`,
       stockKey,
@@ -124,9 +157,7 @@ export function createTradeBattleRuntime(options: {
     positionId: string,
   ): ConsumedPositionEntry | null => {
     const targetPosition = player.positions.find((position) => position.id === positionId);
-    if (!targetPosition) {
-      return null;
-    }
+    if (!targetPosition) return null;
 
     player.positions = player.positions.filter((position) => position.id !== positionId);
     syncPlayerBooksFromPositions(player);
@@ -192,25 +223,61 @@ export function createTradeBattleRuntime(options: {
     if (impactAmounts.market !== 0) moveStockPrice('market', impactAmounts.market);
   };
 
+  const buildCpuContext = (logs: LogEntry[]): CpuReactionContext => ({
+    rng,
+    stocks: state.stocks,
+    logs,
+    pushLog: (targetLogs, label, message, tone) => pushLog(targetLogs, 'cpu', label, message, tone),
+    applyPriceMove: (stockKey, rawDelta) => moveStockPrice(stockKey, rawDelta),
+  });
+
+  const triggerCpuReactions = (
+    actingPlayerId: PlayerId,
+    actingStockKey: StockKey,
+    action: TradeAction,
+    executedAmount: number,
+    logs: LogEntry[],
+  ) => {
+    simulateCpuReactions({
+      ctx: buildCpuContext(logs),
+      actingPlayerId,
+      actingStockKey,
+      action,
+      executedAmount,
+    });
+    syncRng();
+  };
+
   const resolveOrderQuantity = (openPrice: number, rawAmount: number): number => {
     const amount = Math.max(0, Math.floor(rawAmount));
-    if (amount < MIN_TRADE_ORDER_AMOUNT || openPrice <= 0) {
-      return 0;
-    }
-
+    if (amount < MIN_TRADE_ORDER_AMOUNT || openPrice <= 0) return 0;
     return normalizePositionUnits(amount / openPrice);
   };
 
   const settleSpeculation = (player: PlayerState, logs: LogEntry[]) => {
+    if (state.speculationDelayActive) {
+      state.speculationDelayActive = false;
+      pushLog(
+        logs,
+        'system',
+        '短期決済遅延',
+        `${player.name}の短期ポジション決済が1ターン遅延しました。`,
+        'warn',
+      );
+      for (const position of player.speculation) {
+        if (position.settlementTurn <= state.turn) {
+          position.settlementTurn = state.turn + 1;
+        }
+      }
+      return;
+    }
+
     const settled: SpeculationPosition[] = [];
     const remaining: SpeculationPosition[] = [];
 
     for (const position of player.speculation) {
-      if (position.settlementTurn <= state.turn) {
-        settled.push(position);
-      } else {
-        remaining.push(position);
-      }
+      if (position.settlementTurn <= state.turn) settled.push(position);
+      else remaining.push(position);
     }
 
     player.speculation = remaining;
@@ -366,17 +433,18 @@ export function createTradeBattleRuntime(options: {
           `${player.name}が${stock.name}を買いで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`,
           'up',
         );
-        return;
+      } else {
+        stock.shortInterest += executedUnits;
+        pushLog(
+          logs,
+          'player',
+          '短期',
+          `${player.name}が${stock.name}を売りで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`,
+          'down',
+        );
       }
 
-      stock.shortInterest += executedUnits;
-      pushLog(
-        logs,
-        'player',
-        '短期',
-        `${player.name}が${stock.name}を売りで ${formatCurrency(orderAmount)} 注文。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`,
-        'down',
-      );
+      triggerCpuReactions(player.id, payload.stockKey, payload.tradeAction, orderAmount, logs);
       return;
     }
 
@@ -417,6 +485,7 @@ export function createTradeBattleRuntime(options: {
         `${player.name}が${stock.name}を ${formatCurrency(requiredCash)} で買い。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`,
         'up',
       );
+      triggerCpuReactions(player.id, payload.stockKey, 'buy', requiredCash, logs);
       return;
     }
 
@@ -456,6 +525,7 @@ export function createTradeBattleRuntime(options: {
       `${player.name}が${stock.name}を ${formatCurrency(requiredCash)} で売り。約定 ${formatCurrency(executionPrice)} / 約${formatPositionUnits(executedUnits)}口`,
       'down',
     );
+    triggerCpuReactions(player.id, payload.stockKey, 'sell', requiredCash, logs);
   };
 
   const applyCompanyAction = (
@@ -463,98 +533,401 @@ export function createTradeBattleRuntime(options: {
     action: TurnActionPayload['companyAction'],
     logs: LogEntry[],
   ) => {
-    if (action === NO_COMPANY_ACTION) {
-      return;
-    }
+    if (action === NO_COMPANY_ACTION) return;
 
-    if (player.cooldowns[action] > 0) {
+    if ((player.companyActionCharges[action] ?? 0) <= 0) {
       pushLog(
         logs,
         'system',
-        'クールダウン',
-        `${player.name}の${action}はあと${player.cooldowns[action]}ターン使えません。`,
-        'warn',
-      );
-      return;
-    }
-
-    if (action === BUYBACK_ACTION) {
-      pushLog(
-        logs,
-        'system',
-        '未使用の追加操作',
-        'この操作は現在のルールでは使用できません。',
+        'チャージ切れ',
+        `${player.name}の${action}はもう使用できません（残回数 0）。`,
         'warn',
       );
       return;
     }
 
     const stockKey = resolveOwnStockKey(player.id);
+    const stock = getStock(stockKey);
 
     switch (action) {
-      case CAPITAL_INCREASE_ACTION:
-        player.companyFunds += 1500;
-        moveStockPrice(stockKey, -12);
-        player.cooldowns[action] = 3;
+      case CAPITAL_INCREASE_ACTION: {
+        player.companyFunds += 2250;
+        moveStockPrice(stockKey, -18);
+        applyCompanyCpuInfluence({
+          pool: stock.cpuPool,
+          influence: { kind: 'sentiment_shift', from: 'bullish', to: 'bearish', count: 2 },
+          rng,
+        });
+        player.companyActionCharges[action] -= 1;
+        syncRng();
         pushLog(
           logs,
           'player',
           '追加操作',
-          `${player.name}が資金調整を実行。予備資金 +${formatCurrency(1500)}、自分レートはやや下向きです。`,
+          `${player.name}が増資を実行。予備資金 +${formatCurrency(2250)}、CPUに弱気シフト。`,
           'warn',
         );
         break;
+      }
       case AD_CAMPAIGN_ACTION: {
-        const cost = 600;
+        const cost = 900;
         if (player.companyFunds < cost) {
           pushLog(
             logs,
             'system',
             '予備資金不足',
-            `${player.name}は注目集めに必要な予備資金が不足しています。`,
+            `${player.name}は広告に必要な予備資金が不足しています。`,
             'warn',
           );
           return;
         }
-
         player.companyFunds -= cost;
-        player.cash += 220;
-        moveStockPrice(stockKey, 6);
-        player.cooldowns[action] = 2;
+        player.cash += 330;
+        moveStockPrice(stockKey, 9);
+        applyCompanyCpuInfluence({
+          pool: stock.cpuPool,
+          influence: { kind: 'participation_boost', count: 3, biasTowards: 'bullish' },
+          rng,
+        });
+        player.companyActionCharges[action] -= 1;
+        syncRng();
         pushLog(
           logs,
           'player',
           '追加操作',
-          `${player.name}が注目集めを実行。予備資金 -${formatCurrency(cost)}、現金 +${formatCurrency(220)}。`,
+          `${player.name}が広告を実行。予備資金 -${formatCurrency(cost)}、現金 +${formatCurrency(330)}、参加CPU増。`,
           'up',
         );
         break;
       }
       case FACILITY_INVESTMENT_ACTION: {
-        const cost = 700;
+        const cost = 1050;
         if (player.companyFunds < cost) {
           pushLog(
             logs,
             'system',
             '予備資金不足',
-            `${player.name}は安定化に必要な予備資金が不足しています。`,
+            `${player.name}は設備投資に必要な予備資金が不足しています。`,
             'warn',
           );
           return;
         }
-
         player.companyFunds -= cost;
-        moveStockPrice(stockKey, 4);
-        player.cooldowns[action] = 2;
+        moveStockPrice(stockKey, 6);
+        applyCompanyCpuInfluence({
+          pool: stock.cpuPool,
+          influence: { kind: 'withdrawal_recall', count: 3 },
+          rng,
+        });
+        player.companyActionCharges[action] -= 1;
+        syncRng();
         pushLog(
           logs,
           'player',
           '追加操作',
-          `${player.name}が安定化を実行。自分レートが上向きました。`,
+          `${player.name}が設備投資を実行。撤退CPUが参加復帰。`,
           'up',
         );
         break;
       }
+      case BUYBACK_ACTION: {
+        const cost = 1200;
+        if (player.companyFunds < cost) {
+          pushLog(
+            logs,
+            'system',
+            '予備資金不足',
+            `${player.name}は自社買いに必要な予備資金が不足しています。`,
+            'warn',
+          );
+          return;
+        }
+        player.companyFunds -= cost;
+        moveStockPrice(stockKey, 15);
+        applyCompanyCpuInfluence({
+          pool: stock.cpuPool,
+          influence: { kind: 'participation_boost', count: 2, biasTowards: 'bullish' },
+          rng,
+        });
+        player.companyActionCharges[action] -= 1;
+        syncRng();
+        pushLog(
+          logs,
+          'player',
+          '追加操作',
+          `${player.name}が自社買いを実行。予備資金 -${formatCurrency(cost)}、強気CPUが参加。`,
+          'up',
+        );
+        break;
+      }
+    }
+  };
+
+  const placeForwardOrder = (
+    player: PlayerState,
+    payload: TurnActionPayload,
+    logs: LogEntry[],
+  ): ForwardOrder | null => {
+    const orderAmount = Math.max(0, Math.floor(payload.quantity));
+    const check = canPlaceForwardOrder(player, orderAmount);
+    if (!check.allowed) {
+      pushLog(
+        logs,
+        'system',
+        '予約注文拒否',
+        check.reason ?? '予約注文を受け付けられません。',
+        'warn',
+      );
+      return null;
+    }
+    if (orderAmount < MIN_TRADE_ORDER_AMOUNT) {
+      pushLog(
+        logs,
+        'system',
+        '予約注文拒否',
+        `予約注文の最低額は ${formatCurrency(MIN_TRADE_ORDER_AMOUNT)} です。`,
+        'warn',
+      );
+      return null;
+    }
+
+    player.cash -= check.fee;
+
+    sequences.forwardSequence += 1;
+    const order = createForwardOrder({
+      playerId: player.id,
+      stockKey: payload.stockKey,
+      tradeAction: payload.tradeAction,
+      tradeMode: payload.tradeMode,
+      orderAmount,
+      placedTurn: state.turn,
+      idHint: sequences.forwardSequence,
+    });
+    state.forwardOrders.push(order);
+
+    pushLog(
+      logs,
+      'player',
+      '予約注文',
+      `${player.name}が ${getStock(payload.stockKey).name} の ${payload.tradeAction === 'buy' ? '買い' : '売り'} ${formatCurrency(orderAmount)} を T${order.triggerTurn} に予約（予約料 ${formatCurrency(check.fee)}）。`,
+      payload.tradeAction === 'buy' ? 'up' : 'down',
+    );
+    return order;
+  };
+
+  const settleForwardOrdersForTurn = (logs: LogEntry[]) => {
+    const pending = state.forwardOrders.filter(
+      (order) => order.status === 'pending' && order.triggerTurn <= state.turn,
+    );
+    for (const order of pending) {
+      const player = findPlayerById(state, order.playerId);
+      applyPlayerOrder(
+        player,
+        {
+          stockKey: order.stockKey,
+          tradeAction: order.tradeAction,
+          tradeMode: order.tradeMode,
+          quantity: order.orderAmount,
+          companyAction: NO_COMPANY_ACTION,
+          orderType: 'market',
+        },
+        logs,
+      );
+      markForwardOrderSettled(order);
+      pushLog(
+        logs,
+        'system',
+        '予約発動',
+        `${player.name}の予約注文が発動しました（${getStock(order.stockKey).name} ${order.tradeAction === 'buy' ? '買い' : '売り'} ${formatCurrency(order.orderAmount)}）。`,
+        'neutral',
+      );
+    }
+  };
+
+  const cancelForwardOrderWithFeint = (
+    player: PlayerState,
+    orderId: string,
+    logs: LogEntry[],
+  ): boolean => {
+    const order = state.forwardOrders.find((item) => item.id === orderId);
+    if (!order) {
+      pushLog(logs, 'system', '予約取消', '予約注文が見つかりません。', 'warn');
+      return false;
+    }
+    if (order.playerId !== player.id) {
+      pushLog(logs, 'system', '予約取消', '自分の予約注文のみ取消可能です。', 'warn');
+      return false;
+    }
+    if (order.status !== 'pending') {
+      pushLog(logs, 'system', '予約取消', '既に発動または取消済みです。', 'warn');
+      return false;
+    }
+    if (player.feintTokens <= 0) {
+      pushLog(logs, 'system', '予約取消', 'ブラフチップが残っていません。', 'warn');
+      return false;
+    }
+
+    player.feintTokens -= 1;
+    order.status = 'canceled';
+    pushLog(
+      logs,
+      'player',
+      'ブラフ発動',
+      `${player.name}が予約注文（T${order.triggerTurn}）を取消。予約料 ${formatCurrency(order.reservationFee)} は没収。`,
+      'warn',
+    );
+    return true;
+  };
+
+  const revealEventsForTurn = (logs: LogEntry[]) => {
+    const REVEAL_TURNS = [3, 6, 9];
+    if (!REVEAL_TURNS.includes(state.turn)) return;
+    const card = state.eventDeck.shift();
+    if (!card) return;
+
+    const revealed: RevealedEvent = {
+      card,
+      revealedTurn: state.turn,
+      triggerTurn: state.turn + 2,
+      status: 'revealed',
+    };
+    state.revealedEvents.push(revealed);
+
+    pushLog(
+      logs,
+      'market',
+      'イベント予告',
+      `T${revealed.triggerTurn} に「${card.title}」が発動します。${card.description}`,
+      'neutral',
+    );
+  };
+
+  const applyEventEffect = (card: EventCard, logs: LogEntry[]) => {
+    switch (card.effect) {
+      case 'market_boom':
+        moveStockPrice('market', 900);
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `マーケット急騰：マーケット銘柄が跳ね上がりました。`,
+          'up',
+        );
+        break;
+      case 'market_crash':
+        moveStockPrice('market', -900);
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `マーケット急落：マーケット銘柄が崩れました。`,
+          'down',
+        );
+        break;
+      case 'cpu_withdrawal_spike': {
+        let withdrawn = 0;
+        for (const stock of state.stocks) {
+          const active = stock.cpuPool.filter((cpu) => cpu.active);
+          const target = Math.ceil(active.length * 0.35);
+          for (let i = 0; i < target; i += 1) {
+            if (active.length === 0) break;
+            const idx = rng.nextInt(0, active.length);
+            active[idx].active = false;
+            active.splice(idx, 1);
+            withdrawn += 1;
+          }
+        }
+        syncRng();
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `CPU撤退の連鎖：計 ${withdrawn} 人が市場から撤退しました。`,
+          'warn',
+        );
+        break;
+      }
+      case 'cpu_participation_surge': {
+        let activated = 0;
+        for (const stock of state.stocks) {
+          const inactive = stock.cpuPool.filter((cpu) => !cpu.active);
+          const target = Math.ceil(inactive.length * 0.6);
+          for (let i = 0; i < target; i += 1) {
+            if (inactive.length === 0) break;
+            const idx = rng.nextInt(0, inactive.length);
+            inactive[idx].active = true;
+            inactive.splice(idx, 1);
+            activated += 1;
+          }
+        }
+        syncRng();
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `個人投資家の参入：計 ${activated} 人が参加しました。`,
+          'up',
+        );
+        break;
+      }
+      case 'short_squeeze': {
+        const shortMap: Record<StockKey, number> = {
+          p1: getStock('p1').shortInterest,
+          p2: getStock('p2').shortInterest,
+          market: getStock('market').shortInterest,
+        };
+        let targetKey: StockKey = 'market';
+        let maxShort = -1;
+        (Object.keys(shortMap) as StockKey[]).forEach((key) => {
+          if (shortMap[key] > maxShort) {
+            maxShort = shortMap[key];
+            targetKey = key;
+          }
+        });
+        moveStockPrice(targetKey, 1200);
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `ショートスクイーズ：${getStock(targetKey).name} が急騰しました。`,
+          'up',
+        );
+        break;
+      }
+      case 'speculation_delay':
+        state.speculationDelayActive = true;
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          '短期決済遅延：次回の短期決済は1ターン遅れます。',
+          'warn',
+        );
+        break;
+      case 'dividend_leak': {
+        const beneficiary = rng.chance(0.5) ? 'player1' : 'player2';
+        const player = findPlayerById(state, beneficiary);
+        player.cash += 4000;
+        syncRng();
+        pushLog(
+          logs,
+          'market',
+          'イベント発動',
+          `配当リーク：${player.name} に現金 +${formatCurrency(4000)}。`,
+          'up',
+        );
+        break;
+      }
+    }
+  };
+
+  const fireDueEvents = (logs: LogEntry[]) => {
+    const due = state.revealedEvents.filter(
+      (event) => event.status === 'revealed' && event.triggerTurn <= state.turn,
+    );
+    for (const event of due) {
+      applyEventEffect(event.card, logs);
+      event.status = 'fired';
     }
   };
 
@@ -564,5 +937,13 @@ export function createTradeBattleRuntime(options: {
     closeOpenPosition,
     applyPlayerOrder,
     applyCompanyAction,
+    placeForwardOrder,
+    settleForwardOrdersForTurn,
+    cancelForwardOrderWithFeint,
+    revealEventsForTurn,
+    fireDueEvents,
+    syncRng,
   };
 }
+
+export { calculateForwardOrderFee };

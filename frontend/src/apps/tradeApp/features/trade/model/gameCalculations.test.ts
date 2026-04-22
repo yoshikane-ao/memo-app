@@ -28,6 +28,7 @@ function createStocks(): StockState[] {
       history: [100],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
     {
       key: 'p2',
@@ -40,6 +41,7 @@ function createStocks(): StockState[] {
       history: [90],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
     {
       key: 'market',
@@ -52,6 +54,7 @@ function createStocks(): StockState[] {
       history: [80],
       shortInterest: 0,
       correlationNote: '',
+      cpuPool: [],
     },
   ];
 }
@@ -76,12 +79,13 @@ function createPlayer(): PlayerState {
     },
     positions: [],
     speculation: [],
-    cooldowns: {
-      [CAPITAL_INCREASE_ACTION]: 0,
-      [AD_CAMPAIGN_ACTION]: 0,
-      [BUYBACK_ACTION]: 0,
-      [FACILITY_INVESTMENT_ACTION]: 0,
+    companyActionCharges: {
+      [CAPITAL_INCREASE_ACTION]: 2,
+      [AD_CAMPAIGN_ACTION]: 2,
+      [BUYBACK_ACTION]: 2,
+      [FACILITY_INVESTMENT_ACTION]: 2,
     },
+    feintTokens: 2,
     recentCashChange: 0,
     recentNetChange: 0,
     marketBias: 0,

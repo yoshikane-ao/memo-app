@@ -10,7 +10,6 @@ import {
   findPlayerById,
   initializeBattleState,
   MAX_BATTLE_TURNS,
-  reducePlayerCooldowns as reduceCooldowns,
 } from '../model/tradeBattleState';
 import { createTradeBattleRuntime } from '../model/tradeBattleRuntime';
 import type { GameStartSettings } from '../model/tradeSetup';
@@ -47,6 +46,7 @@ export function createTradeBattleFlow(options: BattleFlowOptions) {
   const sequences = {
     logSequence: 1000,
     positionSequence: 0,
+    forwardSequence: 0,
   };
 
   const runtime = createTradeBattleRuntime({
@@ -76,22 +76,25 @@ export function createTradeBattleFlow(options: BattleFlowOptions) {
 
     sequences.logSequence = normalizedBattleState.logSequence;
     sequences.positionSequence = normalizedBattleState.positionSequence;
+    sequences.forwardSequence = normalizedBattleState.forwardSequence;
     isGameOver.value = normalizedBattleState.isGameOver;
     recalculateDynamicLines();
   };
 
-  const executePendingClose = (positionId: string) => {
-    if (isGameOver.value) {
-      return;
-    }
+  const resolveTurnHead = (logs: LogEntry[]) => {
+    runtime.revealEventsForTurn(logs);
+    runtime.fireDueEvents(logs);
+    runtime.settleForwardOrdersForTurn(logs);
+  };
 
-    if (lastClosedPositionTurn.value === state.turn) {
-      return;
-    }
+  const executePendingClose = (positionId: string) => {
+    if (isGameOver.value) return;
+    if (lastClosedPositionTurn.value === state.turn) return;
 
     const logs: LogEntry[] = [];
     const player = getPlayer(state.currentPlayer);
 
+    resolveTurnHead(logs);
     runtime.settleSpeculation(player, logs);
     recalculateDynamicLines();
 
@@ -103,7 +106,6 @@ export function createTradeBattleFlow(options: BattleFlowOptions) {
     }
 
     lastClosedPositionTurn.value = state.turn;
-    reduceCooldowns(player);
     recalculateDynamicLines();
 
     appendLogs(logs);
@@ -113,13 +115,12 @@ export function createTradeBattleFlow(options: BattleFlowOptions) {
   };
 
   const handleTurn = (payload: TurnActionWithWait) => {
-    if (isGameOver.value) {
-      return;
-    }
+    if (isGameOver.value) return;
 
     const logs: LogEntry[] = [];
     const player = getPlayer(state.currentPlayer);
 
+    resolveTurnHead(logs);
     runtime.settleSpeculation(player, logs);
     recalculateDynamicLines();
 
@@ -133,21 +134,32 @@ export function createTradeBattleFlow(options: BattleFlowOptions) {
       );
     } else if (payload.companyAction !== NO_COMPANY_ACTION) {
       runtime.applyCompanyAction(player, payload.companyAction, logs);
+    } else if (payload.orderType === 'forward') {
+      runtime.placeForwardOrder(player, payload, logs);
     } else {
       runtime.applyPlayerOrder(player, payload, logs);
     }
 
-    reduceCooldowns(getPlayer('player1'));
-    reduceCooldowns(getPlayer('player2'));
     recalculateDynamicLines();
 
     appendLogs(logs);
     advanceTurn();
   };
 
+  const cancelForwardOrderWithFeint = (orderId: string) => {
+    if (isGameOver.value) return false;
+    const logs: LogEntry[] = [];
+    const player = getPlayer(state.currentPlayer);
+    const didCancel = runtime.cancelForwardOrderWithFeint(player, orderId, logs);
+    appendLogs(logs);
+    recalculateDynamicLines();
+    return didCancel;
+  };
+
   return {
     normalizePlayersForBattleStart,
     executePendingClose,
     handleTurn,
+    cancelForwardOrderWithFeint,
   };
 }

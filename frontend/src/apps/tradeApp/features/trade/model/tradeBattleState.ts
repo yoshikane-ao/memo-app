@@ -1,6 +1,8 @@
 import {
+  COMPANY_ACTION_INITIAL_CHARGES,
   COOLDOWN_ACTIONS,
   DEFAULT_MANAGEMENT_STAKE_SHARES,
+  INITIAL_FEINT_TOKENS,
   STOCK_KEYS,
   type GameState,
   type HoldingPosition,
@@ -19,12 +21,16 @@ import {
   resolveNextBattlePlayer,
   resolveTurnLeadPlayer,
 } from './tradeBattle';
+import { createSeededRng, generateGameSeed } from './rng';
+import { createCpuPool } from './cpuPopulation';
+import { buildEventDeck } from './eventDeck';
 
 export const DEFAULT_STARTING_CASH = 100000;
 export const STARTING_COMPANY_FUNDS = 3000;
-export const MAX_BATTLE_TURNS = 10;
+export const MAX_BATTLE_TURNS = 12;
 const INITIAL_LOG_SEQUENCE = 1000;
 const INITIAL_POSITION_SEQUENCE = 0;
+const INITIAL_FORWARD_SEQUENCE = 0;
 
 export type BattleStockHistoryRuntime = {
   pointCounters: Record<StockKey, number>;
@@ -47,10 +53,7 @@ export function resetBook(book: Record<StockKey, HoldingPosition>): void {
 }
 
 export function normalizePositionUnits(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) {
-    return 0;
-  }
-
+  if (!Number.isFinite(value) || value <= 0) return 0;
   return Math.round(value * 10000) / 10000;
 }
 
@@ -68,19 +71,13 @@ export function resolveOwnStockKey(playerId: PlayerId): StockKey {
 
 export function findPlayerById(state: Pick<GameState, 'players'>, playerId: PlayerId): PlayerState {
   const player = state.players.find((item) => item.id === playerId);
-  if (!player) {
-    throw new Error(`Player not found: ${playerId}`);
-  }
-
+  if (!player) throw new Error(`Player not found: ${playerId}`);
   return player;
 }
 
 export function findStockByKey(state: Pick<GameState, 'stocks'>, stockKey: StockKey): StockState {
   const stock = state.stocks.find((item) => item.key === stockKey);
-  if (!stock) {
-    throw new Error(`Stock not found: ${stockKey}`);
-  }
-
+  if (!stock) throw new Error(`Stock not found: ${stockKey}`);
   return stock;
 }
 
@@ -113,7 +110,6 @@ function resolveStartingPrice(
   if (stockKey === 'market') {
     return settings?.marketStartingPrice ?? DEFAULT_MARKET_STOCK_STARTING_PRICE;
   }
-
   return DEFAULT_PLAYER_STOCK_STARTING_PRICE;
 }
 
@@ -126,11 +122,13 @@ export function initializeBattleState(
   options: {
     settings?: GameStartSettings | null;
     stockHistory: BattleStockHistoryRuntime;
+    seed?: number;
   },
 ): {
   isGameOver: boolean;
   logSequence: number;
   positionSequence: number;
+  forwardSequence: number;
 } {
   const settings = options.settings;
   const player1 = findPlayerById(state, 'player1');
@@ -142,6 +140,13 @@ export function initializeBattleState(
   state.turn = 1;
   state.currentPlayer = resolveTurnLeadPlayer(state.turn);
   state.logs = [];
+  state.rngSeed = options.seed ?? state.rngSeed ?? generateGameSeed();
+  state.rngCursor = 0;
+  state.forwardOrders = [];
+  state.revealedEvents = [];
+  state.speculationDelayActive = false;
+
+  const rng = createSeededRng(state.rngSeed, state.rngCursor);
 
   state.stocks.forEach((stock) => {
     const startingPrice = resolveStartingPrice(stock.key, settings);
@@ -152,9 +157,13 @@ export function initializeBattleState(
     stock.bubbleLower = 0;
     stock.history = [startingPrice];
     stock.shortInterest = 0;
+    stock.cpuPool = createCpuPool(stock.key, rng);
     options.stockHistory.pointCounters[stock.key] = 1;
     options.stockHistory.pointIds[stock.key] = [1];
   });
+
+  state.eventDeck = buildEventDeck(rng);
+  state.rngCursor = rng.getCursor();
 
   state.players.forEach((player) => {
     const startingCash =
@@ -179,8 +188,9 @@ export function initializeBattleState(
     resetBook(player.shorts);
 
     COOLDOWN_ACTIONS.forEach((action) => {
-      player.cooldowns[action] = 0;
+      player.companyActionCharges[action] = COMPANY_ACTION_INITIAL_CHARGES;
     });
+    player.feintTokens = INITIAL_FEINT_TOKENS;
 
     player.lastSnapshotAssets = player.cash;
     player.lastSnapshotCash = player.cash;
@@ -192,13 +202,8 @@ export function initializeBattleState(
     isGameOver: false,
     logSequence: INITIAL_LOG_SEQUENCE,
     positionSequence: INITIAL_POSITION_SEQUENCE,
+    forwardSequence: INITIAL_FORWARD_SEQUENCE,
   };
-}
-
-export function reducePlayerCooldowns(player: PlayerState): void {
-  COOLDOWN_ACTIONS.forEach((action) => {
-    player.cooldowns[action] = Math.max(0, player.cooldowns[action] - 1);
-  });
 }
 
 export function advanceBattleTurnState(
@@ -213,33 +218,15 @@ export function advanceBattleTurnState(
 
   if (!completedTurn) {
     state.currentPlayer = nextPlayer;
-    return {
-      didAdvance: true,
-      isGameOver: false,
-    };
+    return { didAdvance: true, isGameOver: false };
   }
 
   if (state.turn >= maxTurns) {
-    return {
-      didAdvance: false,
-      isGameOver: true,
-    };
+    return { didAdvance: false, isGameOver: true };
   }
 
   state.turn += 1;
   state.currentPlayer = nextPlayer;
 
-  if (state.turn % 4 === 0) {
-    state.marketCondition =
-      state.marketCondition === 'bull'
-        ? 'sideways'
-        : state.marketCondition === 'sideways'
-          ? 'bear'
-          : 'bull';
-  }
-
-  return {
-    didAdvance: true,
-    isGameOver: false,
-  };
+  return { didAdvance: true, isGameOver: false };
 }

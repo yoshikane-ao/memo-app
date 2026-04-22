@@ -24,6 +24,12 @@
   --up-text: #65d39b;
   --down-text: #ff8b8b;
   --flat-text: #d7dfef;
+
+  --trade-start-stage-bg: #04060b;
+  --trade-start-panel-bg: linear-gradient(180deg, rgba(10, 14, 25, 0.84), rgba(6, 9, 17, 0.92));
+  --trade-start-glow-p1: 0 0 0 1px rgba(87, 174, 255, 0.18), 0 0 28px rgba(59, 121, 255, 0.14);
+  --trade-start-glow-p2: 0 0 0 1px rgba(255, 104, 104, 0.18), 0 0 26px rgba(228, 64, 64, 0.12);
+  --trade-start-glow-neutral: 0 0 0 1px rgba(231, 116, 73, 0.14), 0 0 24px rgba(84, 137, 255, 0.1);
 }
 
 * {
