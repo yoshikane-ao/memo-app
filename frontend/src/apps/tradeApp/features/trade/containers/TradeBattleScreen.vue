@@ -629,6 +629,10 @@ async function goBackToMenu(): Promise<void> {
   min-width: 0;
 }
 
+.hud-slot ~ .hud-slot {
+  justify-self: end;
+}
+
 .turn-announce-slot {
   align-self: start;
   display: flex;
