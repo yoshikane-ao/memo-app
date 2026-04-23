@@ -1,9 +1,20 @@
-name: Deploy to EC2
+name: CI / Deploy to EC2
 
+# validate は PR と main push の両方で走る。build-push と deploy は main push のみ。
+# これにより、フィーチャーブランチでも PR 時点で lint/test/build の保証を得られる。
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
+
+# 同一 PR で連続 push したときは古い run をキャンセルして CI 時間を節約する。
+# ただし main の deploy は途中キャンセルしない（cancel-in-progress を PR 限定）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -54,6 +65,7 @@ jobs:
 
   build-push:
     needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -97,6 +109,9 @@ jobs:
 
   deploy:
     needs: build-push
+    # build-push が main push のみ動くので deploy も自動的にそれに従うが、
+    # 明示しておくことで意図を読み手に伝える。
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 
     steps:
