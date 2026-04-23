@@ -188,11 +188,6 @@ const playerBadgeFillMap: Record<PlayerId, string> = {
   player2: 'rgba(52, 12, 26, 0.94)',
 };
 
-const sideLabelMap: Record<OrderMarker['side'], string> = {
-  buy: '買い',
-  sell: '売り',
-};
-
 function formatPrice(value: number): string {
   return new Intl.NumberFormat('ja-JP').format(Math.round(value));
 }
