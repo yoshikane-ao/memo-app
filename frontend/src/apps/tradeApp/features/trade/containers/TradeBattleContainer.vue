@@ -1,7 +1,39 @@
 <script setup lang="ts">
-import LegacyTradeBattlePage from "../../../view/TradeBattlePage.vue";
+import { computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import TradeWorkspaceShell from '../ui/TradeWorkspaceShell.vue';
+import TradeBattleScreen from './TradeBattleScreen.vue';
+import { useTradeGameStore } from '../model/useTradeGameStore';
+
+const router = useRouter();
+const gameStore = useTradeGameStore();
+const isInitialized = computed(() => gameStore.state.isInitialized);
+
+onMounted(() => {
+  if (!isInitialized.value) {
+    router.replace({ name: 'menu-workspace-trade' });
+  }
+});
 </script>
 
 <template>
-  <LegacyTradeBattlePage />
+  <TradeWorkspaceShell current-label="trade battle">
+    <section class="trade-battle-page-shell">
+      <TradeBattleScreen v-if="isInitialized" />
+    </section>
+  </TradeWorkspaceShell>
 </template>
+
+<style scoped>
+.trade-battle-page-shell {
+  width: 100%;
+  height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: #05070d;
+}
+</style>

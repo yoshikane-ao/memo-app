@@ -11,7 +11,7 @@ const tradeEntry: MenuAppEntry = {
   section: workspaceSection,
   keywords: ['trade', 'stocks', 'battle', 'game'],
   portfolio: {
-    thumbnail: '/portfolio/trade.svg',
+    thumbnail: '/portfolio/trade.png',
     highlights: [
       '1画面で2プレイヤーが交互に操作するローカル対戦の進行管理を実装した',
       '価格変動ロジックと勝敗判定を純粋関数で分離し、テスト容易性を高めた',

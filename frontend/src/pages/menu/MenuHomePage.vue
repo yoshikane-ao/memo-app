@@ -7,9 +7,12 @@ import './menu-home.css';
 
 const theme = useThemeStore();
 
+const heroTitleText = '作ったものを、動かしながら見せる。';
+const heroTitleChars = computed(() => Array.from(heroTitleText));
+
 const thumbnailFor = (path: string) => {
   if (theme.mode === 'dark') return path;
-  return path.replace(/\.svg$/, '-light.svg');
+  return path.replace(/\.(png|svg)$/, '-light.$1');
 };
 
 type PortfolioGroup = {
@@ -43,7 +46,16 @@ const getCardStyle = (groupIndex: number, appIndex: number) => ({
   <div class="menu-home-page">
     <section class="menu-hero">
       <p class="menu-hero-kicker">ポートフォリオ</p>
-      <h1 class="menu-hero-title">作ったものを、動かしながら見せる。</h1>
+      <h1 class="menu-hero-title" :aria-label="heroTitleText">
+        <span
+          v-for="(char, i) in heroTitleChars"
+          :key="i"
+          class="menu-hero-title-char"
+          :style="{ '--char-index': i }"
+          aria-hidden="true"
+          >{{ char }}</span
+        >
+      </h1>
       <p class="menu-hero-copy">
         各作品の概要・工夫した点・使用技術・制作期間を並べています。カードから実際のアプリを
         開いて、そのまま触って確認できます。

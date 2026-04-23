@@ -4,16 +4,13 @@ import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { config } from './config';
+import { createContainer, type AppContainer } from './composition/container';
 import { prisma } from './db';
-import { authMiddleware, authRouter } from './features/auth';
-import { memosRouter, tagsRouter } from './features/memo';
-import { quizRouter } from './features/quiz';
 import { requestLogger } from './shared/http/requestLogger';
 import { metricsMiddleware } from './shared/http/metricsMiddleware';
 import { registry as metricsRegistry } from './shared/metrics';
 import { createDocsRouter } from './shared/openapi/docsRouter';
 import { registerSentryErrorHandler } from './shared/sentry';
-// import { tradeAppRoutes } from "./tradeApp/routes"
 
 const createRateLimiter = () =>
   rateLimit({
@@ -21,7 +18,7 @@ const createRateLimiter = () =>
     limit: config.rateLimitMaxRequests,
   });
 
-const registerRoutes = (app: express.Express) => {
+const registerRoutes = (app: express.Express, container: AppContainer) => {
   app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
   });
@@ -41,17 +38,15 @@ const registerRoutes = (app: express.Express) => {
     res.send(await metricsRegistry.metrics());
   });
 
-  app.use('/auth', authRouter);
-  app.use('/memos', authMiddleware, memosRouter);
-  app.use('/tags', authMiddleware, tagsRouter);
-  app.use('/quiz', authMiddleware, quizRouter);
+  app.use('/auth', container.authRouter);
+  app.use('/memos', container.authMiddleware, container.memosRouter);
+  app.use('/tags', container.authMiddleware, container.tagsRouter);
+  app.use('/quiz', container.authMiddleware, container.quizRouter);
   // OpenAPI ドキュメント。認証不要（公開 API 仕様として閲覧可能）。
   app.use('/api', createDocsRouter());
-  // app.use("/quizTag", quizTagRouter);
-  // app.use("/trade", tradeAppRoutes);
 };
 
-export function buildApp() {
+export function buildApp(container: AppContainer = createContainer()) {
   const app = express();
 
   app.use(requestLogger);
@@ -74,7 +69,7 @@ export function buildApp() {
   app.use(express.json());
   app.use(cookieParser());
 
-  registerRoutes(app);
+  registerRoutes(app, container);
 
   registerSentryErrorHandler(app);
 

@@ -1,4 +1,3 @@
-import { RequestValidationError } from '../../../shared/http/requestValidation';
 import type {
   CreateMemoInput,
   MemoRepository,
@@ -9,6 +8,19 @@ import type {
   UpdateMemoInput,
   UpdateMemoLayoutInput,
 } from './memoPorts';
+import {
+  ensureActiveForTrash,
+  ensureTrashedForPurge,
+  ensureTrashedForRestore,
+} from './policies/memoScopeTransition';
+
+async function requireExistingMemo(memoRepository: MemoRepository, userId: number, id: number) {
+  const memo = await memoRepository.findById(userId, id);
+  if (!memo) {
+    throw { code: 'P2025' };
+  }
+  return memo;
+}
 
 export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRepository }) => ({
   listMemos(userId: number, scope: MemoScope) {
@@ -29,11 +41,15 @@ export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRep
     return updatedMemo;
   },
 
-  moveMemoToTrash(userId: number, id: number) {
+  async moveMemoToTrash(userId: number, id: number) {
+    const existingMemo = await requireExistingMemo(memoRepository, userId, id);
+    ensureActiveForTrash(existingMemo);
     return memoRepository.moveToTrash(userId, id);
   },
 
-  restoreMemo(userId: number, id: number) {
+  async restoreMemo(userId: number, id: number) {
+    const existingMemo = await requireExistingMemo(memoRepository, userId, id);
+    ensureTrashedForRestore(existingMemo);
     return memoRepository.restore(userId, id);
   },
 
@@ -42,16 +58,8 @@ export const createMemoUseCases = ({ memoRepository }: { memoRepository: MemoRep
   },
 
   async purgeMemo(userId: number, id: number) {
-    const existingMemo = await memoRepository.findById(userId, id);
-
-    if (!existingMemo) {
-      throw { code: 'P2025' };
-    }
-
-    if (existingMemo.deletedAt == null) {
-      throw new RequestValidationError('Only trashed memos can be permanently deleted.');
-    }
-
+    const existingMemo = await requireExistingMemo(memoRepository, userId, id);
+    ensureTrashedForPurge(existingMemo);
     return memoRepository.purge(userId, id);
   },
 

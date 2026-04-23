@@ -549,25 +549,28 @@ Module._load = function patchedLoad(request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
-const { buildApp } = require('../app') as {
-  buildApp: () => {
-    listen: (
-      port: number,
-      host: string,
-      callback: () => void,
-    ) => { close: (callback: () => void) => void };
-  };
+type E2EContainer = { ensureDemoUser: () => Promise<void> };
+type E2EApp = {
+  listen: (
+    port: number,
+    host: string,
+    callback: () => void,
+  ) => { close: (callback: () => void) => void };
 };
-const { ensureDemoUser } = require('../features/auth') as {
-  ensureDemoUser: () => Promise<void>;
+const { buildApp } = require('../app') as {
+  buildApp: (container?: E2EContainer) => E2EApp;
+};
+const { createContainer } = require('../composition/container') as {
+  createContainer: () => E2EContainer;
 };
 
 Module._load = originalLoad;
 
 async function bootstrap() {
-  await ensureDemoUser();
+  const container = createContainer();
+  await container.ensureDemoUser();
 
-  const app = buildApp();
+  const app = buildApp(container);
   const server = app.listen(PORT, HOST, () => {
     console.log(`E2E API server listening on http://${HOST}:${PORT}`);
   });

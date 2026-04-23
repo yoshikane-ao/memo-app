@@ -29,8 +29,20 @@ const isTradeBattleRoute = computed(() => {
   return route.name === 'menu-workspace-trade-battle';
 });
 
+const isTradeAppRoute = computed(() => {
+  return route.meta.menuAppId === 'trade';
+});
+
 const showCompactNav = computed(() => {
   return !isMenuHome.value && !isTradeBattleRoute.value;
+});
+
+// displayName が文字化け（U+FFFD を含む）している場合は email にフォールバックする。
+// バックエンド/DB 側のエンコーディング不整合に対する防御。
+const displayLabel = computed(() => {
+  const name = authStore.user?.displayName;
+  if (name && !name.includes('\uFFFD')) return name;
+  return authStore.user?.email ?? '';
 });
 
 const currentYear = new Date().getFullYear();
@@ -51,10 +63,10 @@ const currentYear = new Date().getFullYear();
             <span class="menu-shell-breadcrumb-separator">/</span>
             <span class="menu-shell-breadcrumb-app">{{ activeApp.name }}</span>
           </div>
-          <ThemeToggle />
+          <ThemeToggle v-if="!isTradeAppRoute" />
           <template v-if="authStore.isAuthenticated">
             <span class="menu-shell-user">
-              {{ authStore.user?.displayName || authStore.user?.email }}
+              {{ displayLabel }}
             </span>
             <button type="button" class="menu-shell-auth-button" @click="handleLogout">
               ログアウト
@@ -80,21 +92,23 @@ const currentYear = new Date().getFullYear();
       <RouterLink :to="menuHomePath" class="menu-shell-compact-link">
         ポートフォリオへ戻る
       </RouterLink>
-      <ThemeToggle />
-      <template v-if="authStore.isAuthenticated">
-        <span class="menu-shell-user">
-          {{ authStore.user?.displayName || authStore.user?.email }}
-        </span>
-        <button type="button" class="menu-shell-auth-button" @click="handleLogout">
-          ログアウト
-        </button>
-      </template>
-      <template v-else>
-        <RouterLink to="/login" class="menu-shell-auth-button">ログイン</RouterLink>
-      </template>
+      <div class="menu-shell-compact-actions">
+        <ThemeToggle v-if="!isTradeAppRoute" />
+        <template v-if="authStore.isAuthenticated">
+          <span class="menu-shell-user">
+            {{ displayLabel }}
+          </span>
+          <button type="button" class="menu-shell-auth-button" @click="handleLogout">
+            ログアウト
+          </button>
+        </template>
+        <template v-else>
+          <RouterLink to="/login" class="menu-shell-auth-button">ログイン</RouterLink>
+        </template>
+      </div>
     </div>
 
-    <div v-else-if="isTradeBattleRoute" class="menu-shell-floating-actions">
+    <div v-else-if="isTradeBattleRoute && !isTradeAppRoute" class="menu-shell-floating-actions">
       <ThemeToggle />
     </div>
 

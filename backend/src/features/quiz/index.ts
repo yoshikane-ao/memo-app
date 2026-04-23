@@ -1,9 +1,4 @@
-import { createQuizUseCases } from "./application/quizUseCases";
-import { createQuizRepository } from "./infrastructure/quizRepository";
-import { createQuizRouter } from "./presentation/http/quizRouter";
-
-const quizUseCases = createQuizUseCases({
-  quizRepository: createQuizRepository(),
-});
-
-export const quizRouter = createQuizRouter(quizUseCases);
+export { createQuizUseCases } from './application/quizUseCases';
+export type { QuizUseCases } from './application/quizUseCases';
+export { createQuizRepository } from './infrastructure/quizRepository';
+export { createQuizRouter } from './presentation/http/quizRouter';

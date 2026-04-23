@@ -11,7 +11,7 @@ const memoEntry: MenuAppEntry = {
   section: workspaceSection,
   keywords: ['メモ', '記録', 'タグ', 'ごみ箱'],
   portfolio: {
-    thumbnail: '/portfolio/memo.svg',
+    thumbnail: '/portfolio/memo.png',
     highlights: [
       'タグ管理とごみ箱を組み合わせ、整理と誤削除復帰を両立した',
       'Prismaのソフトデリート設計で、DB整合性とUX要件を同時に満たした',

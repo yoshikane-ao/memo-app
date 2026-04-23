@@ -11,7 +11,7 @@ const quizEntry: MenuAppEntry = {
   section: workspaceSection,
   keywords: ['クイズ', '単語', '意味', 'タグ'],
   portfolio: {
-    thumbnail: '/portfolio/quiz.svg',
+    thumbnail: '/portfolio/quiz.png',
     highlights: [
       '単語・意味・タグを一つのモデルに集約し、作成と回答の両フローを同じデータから扱えるようにした',
       '回答画面と作成画面のルーティングを分離し、状態遷移を単純化した',
