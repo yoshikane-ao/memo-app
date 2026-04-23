@@ -29,7 +29,9 @@ jest.mock('../../../../db', () => ({
 
 import { prisma } from '../../../../db';
 import { buildJsonTestApp } from '../../../../test/buildJsonTestApp';
-import { quizRouter } from '../../index';
+import { createQuizRepository, createQuizRouter, createQuizUseCases } from '../../index';
+
+const quizRouter = createQuizRouter(createQuizUseCases({ quizRepository: createQuizRepository() }));
 
 const TEST_USER_ID = 1;
 
